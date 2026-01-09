@@ -1,0 +1,26 @@
+.badge {
+  font-size: 0.65rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.low {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--accent-green);
+}
+
+.medium {
+  background: rgba(245, 158, 11, 0.2);
+  color: var(--accent-orange);
+}
+
+.high {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
+}
+
+.critical {
+  background: rgba(236, 72, 153, 0.2);
+  color: var(--accent-pink);
+}

@@ -1,0 +1,44 @@
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.card.animate {
+  opacity: 0;
+  transform: scale(0.95);
+  animation: taskAppear 0.4s ease forwards;
+}
+
+@keyframes taskAppear {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--accent-blue);
+  margin-bottom: 0.25rem;
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.meta > :last-child {
+  margin-left: auto;
+}

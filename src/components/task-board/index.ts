@@ -1,0 +1,5 @@
+export { TaskBoard } from './TaskBoard'
+export { TaskBoardHeader } from './TaskBoardHeader'
+export { TaskColumn } from './TaskColumn'
+export { TaskCard } from './TaskCard'
+export type { Task, TaskBoardProps, TaskPriority, TaskType, TaskStatus, AgentRole } from './types'
