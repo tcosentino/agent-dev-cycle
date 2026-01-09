@@ -4,6 +4,7 @@ This folder contains documentation for the AgentForge AI-powered software develo
 
 ## Contents
 
+- [Product Development Flow](./product-development-flow.md) - Core development methodology (the bread and butter)
 - [Architecture](./architecture.md) - System architecture and component overview
 - [Workflow](./workflow.md) - How the development process works
 - [Agents](./agents.md) - AI agent roles and responsibilities
