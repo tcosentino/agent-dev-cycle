@@ -19,6 +19,20 @@
   --engineer-color: #0ea5e9;
   --qa-color: #10b981;
   --lead-color: #f97316;
+  /* New agent colors */
+  --planning-color: #8b5cf6;
+  --research-color: #06b6d4;
+  --ux-color: #ec4899;
+  --coding-color: #0ea5e9;
+  --review-color: #f59e0b;
+  --testing-color: #10b981;
+  --devops-color: #f97316;
+  --monitoring-color: #6366f1;
+  /* Phase colors */
+  --discovery-color: #8b5cf6;
+  --shaping-color: #ec4899;
+  --building-color: #0ea5e9;
+  --delivery-color: #10b981;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -75,6 +89,65 @@ nav {
 
 .nav-step.doc-link:hover {
   opacity: 0.9;
+}
+
+/* Components dropdown */
+.nav-dropdown {
+  position: relative;
+}
+
+.nav-dropdown .nav-step {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.dropdown-icon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s ease;
+}
+
+.nav-dropdown-menu.open + .nav-step .dropdown-icon,
+.nav-dropdown:has(.nav-dropdown-menu.open) .dropdown-icon {
+  transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  min-width: 160px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.5rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.2s ease;
+}
+
+.nav-dropdown-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.nav-dropdown-item {
+  display: block;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.nav-dropdown-item:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
 }
 
 /* Page containers */
@@ -170,9 +243,20 @@ nav {
   letter-spacing: 2px; margin-bottom: 1rem;
 }
 
-.roster-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 2.5rem; }
+.roster-title { font-size: 1.5rem; font-weight: 600; margin-bottom: 1rem; }
+.roster-subtitle { font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 2.5rem; }
 
-.roster-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+.phase-group { margin-bottom: 2rem; }
+.phase-label {
+  display: inline-block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.1em; padding: 0.35rem 0.75rem; border-radius: 20px; margin-bottom: 1rem;
+}
+.phase-label.discovery { background: rgba(139, 92, 246, 0.2); color: var(--discovery-color); }
+.phase-label.shaping { background: rgba(236, 72, 153, 0.2); color: var(--shaping-color); }
+.phase-label.building { background: rgba(14, 165, 233, 0.2); color: var(--building-color); }
+.phase-label.delivery { background: rgba(16, 185, 129, 0.2); color: var(--delivery-color); }
+
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
 
 .roster-card {
   background: var(--bg-tertiary); border: 1px solid var(--border-color);
@@ -191,6 +275,15 @@ nav {
 .roster-avatar.engineer { background: linear-gradient(135deg, var(--engineer-color), #38bdf8); }
 .roster-avatar.qa { background: linear-gradient(135deg, var(--qa-color), #34d399); }
 .roster-avatar.lead { background: linear-gradient(135deg, var(--lead-color), #fb923c); }
+/* New agent avatars */
+.roster-avatar.planning { background: linear-gradient(135deg, var(--planning-color), #a78bfa); }
+.roster-avatar.research { background: linear-gradient(135deg, var(--research-color), #22d3ee); }
+.roster-avatar.ux { background: linear-gradient(135deg, var(--ux-color), #f472b6); }
+.roster-avatar.coding { background: linear-gradient(135deg, var(--coding-color), #38bdf8); }
+.roster-avatar.review { background: linear-gradient(135deg, var(--review-color), #fbbf24); }
+.roster-avatar.testing { background: linear-gradient(135deg, var(--testing-color), #34d399); }
+.roster-avatar.devops { background: linear-gradient(135deg, var(--devops-color), #fb923c); }
+.roster-avatar.monitoring { background: linear-gradient(135deg, var(--monitoring-color), #818cf8); }
 
 .roster-avatar svg { width: 32px; height: 32px; color: white; }
 
@@ -320,6 +413,15 @@ section { padding: 8rem 2rem; position: relative; }
 .channel-member.engineer { background: var(--engineer-color); }
 .channel-member.qa { background: var(--qa-color); }
 .channel-member.lead { background: var(--lead-color); }
+/* New agent channel members */
+.channel-member.planning { background: var(--planning-color); }
+.channel-member.research { background: var(--research-color); }
+.channel-member.ux { background: var(--ux-color); }
+.channel-member.coding { background: var(--coding-color); }
+.channel-member.review { background: var(--review-color); }
+.channel-member.testing { background: var(--testing-color); }
+.channel-member.devops { background: var(--devops-color); }
+.channel-member.monitoring { background: var(--monitoring-color); }
 
 .chat-message {
   display: flex; gap: 0.75rem; padding: 0.5rem 0;
@@ -346,6 +448,15 @@ section { padding: 8rem 2rem; position: relative; }
 .chat-avatar.engineer { background: var(--engineer-color); }
 .chat-avatar.qa { background: var(--qa-color); }
 .chat-avatar.lead { background: var(--lead-color); }
+/* New agent chat avatars */
+.chat-avatar.planning { background: var(--planning-color); }
+.chat-avatar.research { background: var(--research-color); }
+.chat-avatar.ux { background: var(--ux-color); }
+.chat-avatar.coding { background: var(--coding-color); }
+.chat-avatar.review { background: var(--review-color); }
+.chat-avatar.testing { background: var(--testing-color); }
+.chat-avatar.devops { background: var(--devops-color); }
+.chat-avatar.monitoring { background: var(--monitoring-color); }
 
 .chat-content { flex: 1; }
 
@@ -356,6 +467,15 @@ section { padding: 8rem 2rem; position: relative; }
 .chat-name.engineer { color: var(--engineer-color); }
 .chat-name.qa { color: var(--qa-color); }
 .chat-name.lead { color: var(--lead-color); }
+/* New agent chat names */
+.chat-name.planning { color: var(--planning-color); }
+.chat-name.research { color: var(--research-color); }
+.chat-name.ux { color: var(--ux-color); }
+.chat-name.coding { color: var(--coding-color); }
+.chat-name.review { color: var(--review-color); }
+.chat-name.testing { color: var(--testing-color); }
+.chat-name.devops { color: var(--devops-color); }
+.chat-name.monitoring { color: var(--monitoring-color); }
 
 .chat-time { font-size: 0.7rem; color: var(--text-muted); }
 
@@ -818,6 +938,37 @@ section { padding: 8rem 2rem; position: relative; }
 .delivery-stat-value { font-size: 2rem; font-weight: 700; color: var(--accent-green); }
 .delivery-stat-label { font-size: 0.85rem; color: var(--text-muted); }
 
+.delivery-metrics {
+  margin-top: 2rem; padding: 1.25rem; background: var(--bg-tertiary);
+  border-radius: 12px; border: 1px solid var(--border-color);
+  opacity: 0; transform: translateY(10px);
+}
+
+.demo-panel.visible .delivery-metrics {
+  animation: fadeInMessage 0.5s ease forwards; animation-delay: 1.2s;
+}
+
+.metrics-header {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-size: 0.85rem; font-weight: 600; color: var(--monitoring-color);
+  margin-bottom: 1rem;
+}
+
+.metrics-header svg { width: 18px; height: 18px; }
+
+.metrics-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+}
+
+.metric-item {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 0.75rem; background: var(--bg-secondary);
+  border-radius: 8px; text-align: center;
+}
+
+.metric-label { font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem; }
+.metric-value { font-size: 1rem; font-weight: 700; color: var(--accent-green); }
+
 .mvp-section { background: var(--bg-secondary); }
 
 .mvp-comparison {
@@ -1024,6 +1175,15 @@ section { padding: 8rem 2rem; position: relative; }
 .agent-badge.engineer { background: rgba(59, 130, 246, 0.2); color: var(--engineer-color); }
 .agent-badge.qa { background: rgba(16, 185, 129, 0.2); color: var(--qa-color); }
 .agent-badge.lead { background: rgba(245, 158, 11, 0.2); color: var(--lead-color); }
+/* New agent badges */
+.agent-badge.planning { background: rgba(139, 92, 246, 0.2); color: var(--planning-color); }
+.agent-badge.research { background: rgba(6, 182, 212, 0.2); color: var(--research-color); }
+.agent-badge.ux { background: rgba(236, 72, 153, 0.2); color: var(--ux-color); }
+.agent-badge.coding { background: rgba(14, 165, 233, 0.2); color: var(--coding-color); }
+.agent-badge.review { background: rgba(245, 158, 11, 0.2); color: var(--review-color); }
+.agent-badge.testing { background: rgba(16, 185, 129, 0.2); color: var(--testing-color); }
+.agent-badge.devops { background: rgba(249, 115, 22, 0.2); color: var(--devops-color); }
+.agent-badge.monitoring { background: rgba(99, 102, 241, 0.2); color: var(--monitoring-color); }
 
 .status-badge {
   display: inline-block;

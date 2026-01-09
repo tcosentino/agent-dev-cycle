@@ -16,6 +16,7 @@ body {
   max-width: 1000px;
   margin: 0 auto;
   padding: 2rem;
+  padding-top: 6rem; /* Space for fixed nav */
 }
 
 .preview-header {
@@ -68,9 +69,30 @@ body {
   transition: all 0.2s ease;
 }
 
-.animate-btn:hover {
+.animate-btn:hover:not(:disabled) {
   background: var(--bg-tertiary);
   border-color: var(--accent-blue);
+}
+
+.animate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.animate-btn.secondary {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-muted);
+}
+
+.animate-btn.secondary:hover {
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
 }
 
 .demo-wrapper {

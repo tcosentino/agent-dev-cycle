@@ -1,10 +1,11 @@
-import { StrictMode, useState } from 'react'
+import { StrictMode, useState, useCallback, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
-import { TaskBoard, type Task } from './components/task-board'
+import { TaskBoard, type Task, type TaskStatus } from './components/task-board'
+import { Nav } from './components/nav'
 import './components/shared/tokens.css'
 import './component-preview.css'
 
-const sampleTasks: Task[] = [
+const initialTasks: Task[] = [
   {
     key: 'BAAP-1',
     title: 'Product database schema',
@@ -40,38 +41,99 @@ const sampleTasks: Task[] = [
 ]
 
 function ComponentPreview() {
-  const [animate, setAnimate] = useState(false)
+  const [tasks, setTasks] = useState<Task[]>(initialTasks)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const animationRef = useRef<number[]>([])
 
-  const triggerAnimation = () => {
-    setAnimate(false)
-    setTimeout(() => setAnimate(true), 50)
-  }
+  // Update a single task's status
+  const updateTaskStatus = useCallback((taskKey: string, newStatus: TaskStatus) => {
+    setTasks(prev => prev.map(task =>
+      task.key === taskKey ? { ...task, status: newStatus } : task
+    ))
+  }, [])
+
+  // Reset all tasks to todo
+  const resetTasks = useCallback(() => {
+    // Clear any pending animations
+    animationRef.current.forEach(id => clearTimeout(id))
+    animationRef.current = []
+    setIsAnimating(false)
+    setTasks(initialTasks)
+  }, [])
+
+  // Run the full animation sequence
+  const runAnimation = useCallback(() => {
+    // Clear any existing animations
+    animationRef.current.forEach(id => clearTimeout(id))
+    animationRef.current = []
+
+    // Reset first
+    setTasks(initialTasks)
+    setIsAnimating(true)
+
+    // Animation sequence matching the demo page story:
+    // - BAAP-1 moves to In Progress, then to Done
+    // - BAAP-2 moves to In Progress (stays there)
+    // - BAAP-3 and BAAP-4 remain in To Do
+    const sequence: Array<{ delay: number; taskKey: string; status: TaskStatus }> = [
+      // First task starts work
+      { delay: 2000, taskKey: 'BAAP-1', status: 'in-progress' },
+      // Second task starts work
+      { delay: 3000, taskKey: 'BAAP-2', status: 'in-progress' },
+      // First task completes
+      { delay: 4000, taskKey: 'BAAP-1', status: 'done' },
+    ]
+
+    sequence.forEach(({ delay, taskKey, status }) => {
+      const id = window.setTimeout(() => {
+        updateTaskStatus(taskKey, status)
+      }, delay)
+      animationRef.current.push(id)
+    })
+
+    // Mark animation as complete
+    const completeId = window.setTimeout(() => {
+      setIsAnimating(false)
+    }, 5000)
+    animationRef.current.push(completeId)
+  }, [updateTaskStatus])
 
   return (
-    <div className="preview-container">
-      <header className="preview-header">
-        <h1>Component Preview</h1>
-        <p>AgentForge UI Components</p>
-      </header>
+    <>
+      <Nav currentPage="components" />
+      <div className="preview-container">
+        <header className="preview-header">
+          <h1>Component Preview</h1>
+          <p>AgentForge UI Components</p>
+        </header>
 
       <section className="preview-section">
         <div className="section-header">
           <h2>TaskBoard</h2>
-          <button onClick={triggerAnimation} className="animate-btn">
-            Trigger Animation
-          </button>
+          <div className="button-group">
+            <button
+              onClick={runAnimation}
+              className="animate-btn"
+              disabled={isAnimating}
+            >
+              {isAnimating ? 'Animating...' : 'Run Animation'}
+            </button>
+            <button onClick={resetTasks} className="animate-btn secondary">
+              Reset
+            </button>
+          </div>
         </div>
         <div className="demo-wrapper">
           <TaskBoard
             projectName="Bay Area Auto Parts — Inventory System"
             projectKey="BAAP-2026"
             phase="PM Planning"
-            tasks={sampleTasks}
-            animate={animate}
+            tasks={tasks}
           />
         </div>
       </section>
-    </div>
+      </div>
+    </>
   )
 }
 

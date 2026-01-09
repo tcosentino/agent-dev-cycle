@@ -14,6 +14,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="nav-steps">
       <button class="nav-step" id="nav-demo">Demo</button>
       <button class="nav-step doc-link" id="nav-docs">Design Doc</button>
+      <div class="nav-dropdown">
+        <button class="nav-step" id="nav-components">Components <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-icon"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="nav-dropdown-menu" id="components-menu">
+          <a href="/component-preview.html" class="nav-dropdown-item">Task Board</a>
+        </div>
+      </div>
     </div>
   </nav>
 
@@ -33,50 +39,109 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <section id="team" class="team-roster">
       <div class="roster-container">
         <div class="roster-label">Your AI Team</div>
-        <h2 class="roster-title">Meet the agents that build your software</h2>
-        <div class="roster-grid">
-          <div class="roster-card">
-            <div class="roster-avatar pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
-            <div class="roster-name">Product Manager</div>
-            <div class="roster-role">Plans & prioritizes</div>
-            <div class="roster-status"><span class="status-dot"></span>Online</div>
+        <h2 class="roster-title">8 Specialized Agents Across 4 Phases</h2>
+        <p class="roster-subtitle">Our methodology synthesizes best practices from Amazon, Basecamp, Google, and IDEO into a proven development flow.</p>
+
+        <div class="phase-group">
+          <div class="phase-label discovery">Phase 1: Discovery</div>
+          <div class="roster-grid">
+            <div class="roster-card">
+              <div class="roster-avatar planning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+              <div class="roster-name">Planning Agent</div>
+              <div class="roster-role">Problem extraction & PR/FAQ</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
+            <div class="roster-card">
+              <div class="roster-avatar research"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
+              <div class="roster-name">Research Agent</div>
+              <div class="roster-role">Market & technical research</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
           </div>
-          <div class="roster-card">
-            <div class="roster-avatar engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
-            <div class="roster-name">Engineer</div>
-            <div class="roster-role">Builds & implements</div>
-            <div class="roster-status"><span class="status-dot"></span>Online</div>
+        </div>
+
+        <div class="phase-group">
+          <div class="phase-label shaping">Phase 2: Shaping</div>
+          <div class="roster-grid">
+            <div class="roster-card">
+              <div class="roster-avatar planning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+              <div class="roster-name">Planning Agent</div>
+              <div class="roster-role">Scope & pitch documents</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
+            <div class="roster-card">
+              <div class="roster-avatar ux"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg></div>
+              <div class="roster-name">UX Agent</div>
+              <div class="roster-role">Interaction flows & prototypes</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
+            <div class="roster-card">
+              <div class="roster-avatar coding"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+              <div class="roster-name">Coding Agent</div>
+              <div class="roster-role">Technical feasibility</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
           </div>
-          <div class="roster-card">
-            <div class="roster-avatar qa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-            <div class="roster-name">QA Engineer</div>
-            <div class="roster-role">Tests & validates</div>
-            <div class="roster-status"><span class="status-dot"></span>Online</div>
+        </div>
+
+        <div class="phase-group">
+          <div class="phase-label building">Phase 3: Building</div>
+          <div class="roster-grid">
+            <div class="roster-card">
+              <div class="roster-avatar coding"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+              <div class="roster-name">Coding Agent</div>
+              <div class="roster-role">Vertical slice implementation</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
+            <div class="roster-card">
+              <div class="roster-avatar review"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+              <div class="roster-name">Review Agent</div>
+              <div class="roster-role">Code review & security</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
+            <div class="roster-card">
+              <div class="roster-avatar testing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+              <div class="roster-name">Testing Agent</div>
+              <div class="roster-role">Unit & integration tests</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
           </div>
-          <div class="roster-card">
-            <div class="roster-avatar lead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v10"/><path d="M21 12h-6m-6 0H3"/></svg></div>
-            <div class="roster-name">Tech Lead</div>
-            <div class="roster-role">Coordinates & reviews</div>
-            <div class="roster-status"><span class="status-dot"></span>Online</div>
+        </div>
+
+        <div class="phase-group">
+          <div class="phase-label delivery">Phase 4: Delivery</div>
+          <div class="roster-grid">
+            <div class="roster-card">
+              <div class="roster-avatar devops"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></svg></div>
+              <div class="roster-name">DevOps Agent</div>
+              <div class="roster-role">CI/CD & deployment</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
+            <div class="roster-card">
+              <div class="roster-avatar monitoring"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+              <div class="roster-name">Monitoring Agent</div>
+              <div class="roster-role">Metrics & feedback loops</div>
+              <div class="roster-status"><span class="status-dot"></span>Online</div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <section id="requirements" class="step-section">
+    <section id="discovery" class="step-section">
       <div class="section-container">
         <div class="step-content">
           <div class="step-info">
-            <div class="step-number">STEP 01</div>
-            <h2 class="step-title">Requirements Gathering</h2>
-            <p class="step-description">Watch your AI team collaborate in real-time as they process customer requirements, ask clarifying questions, and begin structuring the project.</p>
+            <div class="step-number">PHASE 01</div>
+            <h2 class="step-title">Discovery</h2>
+            <p class="step-description">Understand the problem deeply before jumping to solutions. Planning and Research agents collaborate to extract requirements, draft PR/FAQs, and define success metrics.</p>
             <ul class="step-features">
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Real-time team collaboration</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Automatic requirement extraction</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Task creation as they work</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Visible decision-making process</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Problem extraction vs symptoms</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Amazon-style PR/FAQ drafting</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Competitive & market research</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Measurable success criteria</li>
             </ul>
-            <a href="#planning" class="step-nav-btn">Next: Planning <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+            <a href="#shaping" class="step-nav-btn">Next: Shaping <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
           <div class="demo-panel">
             <div class="demo-header">
@@ -88,53 +153,51 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
                 <div class="chat-channel-header">
                   <div class="channel-name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>project-baap-inventory</div>
                   <div class="channel-members">
-                    <div class="channel-member pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
-                    <div class="channel-member engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
-                    <div class="channel-member qa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-                    <div class="channel-member lead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v10"/></svg></div>
+                    <div class="channel-member planning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+                    <div class="channel-member research"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
                   </div>
                 </div>
                 <div class="chat-message">
-                  <div class="chat-avatar lead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v10"/></svg></div>
+                  <div class="chat-avatar planning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
                   <div class="chat-content">
-                    <div class="chat-header"><span class="chat-name lead">Tech Lead</span><span class="chat-time">9:00 AM</span></div>
-                    <div class="chat-text">New project incoming: Bay Area Auto Parts needs an inventory management system. Customer transcript attached. @PM can you break this down?</div>
+                    <div class="chat-header"><span class="chat-name planning">Planning Agent</span><span class="chat-time">9:00 AM</span></div>
+                    <div class="chat-text">New project: Bay Area Auto Parts needs inventory management. Let me extract the core problem from the customer transcript...</div>
                   </div>
                 </div>
                 <div class="chat-message">
-                  <div class="chat-avatar pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+                  <div class="chat-avatar planning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
                   <div class="chat-content">
-                    <div class="chat-header"><span class="chat-name pm">Product Manager</span><span class="chat-time">9:01 AM</span></div>
-                    <div class="chat-text">On it. Key requirements I'm seeing: automated inventory tracking, reorder alerts at 20% threshold, mobile POS for counter sales.</div>
-                    <div class="chat-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Created 3 requirements</div>
+                    <div class="chat-header"><span class="chat-name planning">Planning Agent</span><span class="chat-time">9:01 AM</span></div>
+                    <div class="chat-text">Core problem: Manual inventory tracking causing stockouts and lost sales. Customer: auto parts retailer with 3 locations.</div>
+                    <div class="chat-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Drafted problem statement</div>
                   </div>
                 </div>
                 <div class="chat-message">
-                  <div class="chat-avatar engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+                  <div class="chat-avatar research"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
                   <div class="chat-content">
-                    <div class="chat-header"><span class="chat-name engineer">Engineer</span><span class="chat-time">9:02 AM</span></div>
-                    <div class="chat-text">For the reorder alerts — should this be email, SMS, or in-app notifications? Also, do they want supplier auto-ordering or just alerts?</div>
+                    <div class="chat-header"><span class="chat-name research">Research Agent</span><span class="chat-time">9:02 AM</span></div>
+                    <div class="chat-text">Researching competitive landscape. Found 3 existing solutions: Lightspeed, Cin7, Sortly. Key gap: none offer auto parts-specific catalog integration.</div>
                   </div>
                 </div>
                 <div class="chat-message">
-                  <div class="chat-avatar pm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+                  <div class="chat-avatar planning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
                   <div class="chat-content">
-                    <div class="chat-header"><span class="chat-name pm">Product Manager</span><span class="chat-time">9:02 AM</span></div>
-                    <div class="chat-text">Good catch. I'll flag that for customer clarification. For now, let's scope for email alerts + dashboard notifications. Auto-ordering can be Phase 2.</div>
-                    <div class="chat-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Created task: BAAP-5 "Clarify notification preferences"</div>
+                    <div class="chat-header"><span class="chat-name planning">Planning Agent</span><span class="chat-time">9:03 AM</span></div>
+                    <div class="chat-text">Drafting PR/FAQ now. Headline: "Bay Area Auto Parts eliminates stockouts with real-time inventory tracking." Success metric: reduce stockouts by 80%.</div>
+                    <div class="chat-action"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Created PR/FAQ draft</div>
                   </div>
                 </div>
                 <div class="chat-message">
-                  <div class="chat-avatar qa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+                  <div class="chat-avatar research"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg></div>
                   <div class="chat-content">
-                    <div class="chat-header"><span class="chat-name qa">QA Engineer</span><span class="chat-time">9:03 AM</span></div>
-                    <div class="chat-text">I'll start drafting acceptance criteria for the POS flow. Need to make sure stock deduction is atomic — no race conditions if two counters sell the same part.</div>
+                    <div class="chat-header"><span class="chat-name research">Research Agent</span><span class="chat-time">9:04 AM</span></div>
+                    <div class="chat-text">Technical scan complete. Barcode scanning via mobile is mature. Real-time sync requires WebSocket. Recommend PostgreSQL for inventory transactions.</div>
                   </div>
                 </div>
                 <div class="typing-indicator">
-                  <div class="chat-avatar lead"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v10"/></svg></div>
+                  <div class="chat-avatar planning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
                   <div class="typing-dots"><span></span><span></span><span></span></div>
-                  <span class="typing-text">Tech Lead is typing...</span>
+                  <span class="typing-text">Planning Agent is typing...</span>
                 </div>
               </div>
             </div>
@@ -143,18 +206,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
     </section>
 
-    <section id="planning" class="step-section">
+    <section id="shaping" class="step-section">
       <div class="section-container">
         <div class="step-content">
           <div class="step-info">
-            <div class="step-number">STEP 02</div>
-            <h2 class="step-title">PM Creates Project Plan</h2>
-            <p class="step-description">The Product Manager breaks down requirements into structured tasks with priorities, estimates, and acceptance criteria — all visible in real-time.</p>
+            <div class="step-number">PHASE 02</div>
+            <h2 class="step-title">Shaping</h2>
+            <p class="step-description">Define the solution at the right level of abstraction. Planning, UX, and Coding agents collaborate to set appetite, identify risks, and create the pitch document.</p>
             <ul class="step-features">
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Automatic task decomposition</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Dependency mapping</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Priority assignment</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Acceptance criteria generation</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Fixed time, variable scope (Shape Up)</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Rabbit hole identification</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Technical feasibility spikes</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Interaction flow prototypes</li>
             </ul>
             <a href="#building" class="step-nav-btn">Next: Building <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
@@ -217,16 +280,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <div class="section-container">
         <div class="step-content">
           <div class="step-info">
-            <div class="step-number">STEP 03</div>
-            <h2 class="step-title">Engineers Build Artifacts</h2>
-            <p class="step-description">The Tech Lead coordinates Engineers to build each component. Watch APIs, background jobs, databases, and UI components materialize in real-time.</p>
+            <div class="step-number">PHASE 03</div>
+            <h2 class="step-title">Building</h2>
+            <p class="step-description">Build the solution within fixed time, adjusting scope as needed. Coding, Review, and Testing agents work in tight loops to deliver working software.</p>
             <ul class="step-features">
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Parallel artifact generation</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Code execution in sandboxed containers</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Automatic dependency resolution</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Real-time progress visibility</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Vertical slice implementation</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Continuous code review & security</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Automated testing with feedback loops</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Scope hammering when needed</li>
             </ul>
-            <a href="#testing" class="step-nav-btn">Next: Testing <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+            <a href="#delivery" class="step-nav-btn">Next: Delivery <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
           <div class="demo-panel">
             <div class="demo-header">
@@ -272,65 +335,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
     </section>
 
-    <section id="testing" class="step-section">
-      <div class="section-container">
-        <div class="step-content">
-          <div class="step-info">
-            <div class="step-number">STEP 04</div>
-            <h2 class="step-title">QA Validates Everything</h2>
-            <p class="step-description">The QA Engineer runs automated tests and Playwright browser tests against built artifacts. Failed tests trigger feedback to Engineers for automatic fixes.</p>
-            <ul class="step-features">
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Automated unit & integration tests</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Playwright browser automation</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Failure feedback to Engineers</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Iterative refinement until passing</li>
-            </ul>
-            <a href="#delivery" class="step-nav-btn">Next: Delivery <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
-          </div>
-          <div class="demo-panel">
-            <div class="demo-header">
-              <span class="demo-dot red"></span><span class="demo-dot yellow"></span><span class="demo-dot green"></span>
-              <span class="demo-title">test_results.log</span>
-            </div>
-            <div class="demo-body">
-              <div class="testing-container">
-                <div class="test-header">
-                  <div class="test-results">
-                    <div class="test-stat"><div class="test-stat-value passed">12</div><div class="test-stat-label">Passed</div></div>
-                    <div class="test-stat"><div class="test-stat-value failed">1</div><div class="test-stat-label">Failed</div></div>
-                    <div class="test-stat"><div class="test-stat-value pending">2</div><div class="test-stat-label">Pending</div></div>
-                  </div>
-                </div>
-                <div class="test-list">
-                  <div class="test-item"><span class="test-name">product.api.create</span><span class="test-badge pass">PASS</span></div>
-                  <div class="test-item"><span class="test-name">product.api.update</span><span class="test-badge pass">PASS</span></div>
-                  <div class="test-item"><span class="test-name">inventory.threshold.alert</span><span class="test-badge pass">PASS</span></div>
-                  <div class="test-item"><span class="test-name">pos.sale.deduction</span><span class="test-badge fail">FAIL</span></div>
-                  <div class="test-item"><span class="test-name">dashboard.render.mobile</span><span class="test-badge running">RUNNING</span></div>
-                </div>
-                <div class="feedback-section">
-                  <div class="feedback-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Feedback sent to Engineer</div>
-                  <div class="feedback-text"><code>pos.sale.deduction</code> failed: Stock not decremented after sale transaction. Expected inventory count 94, got 100. Rebuilding with fix...</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section id="delivery" class="step-section">
       <div class="section-container">
         <div class="step-content">
           <div class="step-info">
-            <div class="step-number">STEP 05</div>
-            <h2 class="step-title">Working Application Delivered</h2>
-            <p class="step-description">After all tests pass and customer feedback is incorporated, the complete application is deployed and ready for use. Full documentation and training materials are auto-generated.</p>
+            <div class="step-number">PHASE 04</div>
+            <h2 class="step-title">Delivery</h2>
+            <p class="step-description">Ship to users and learn from real-world usage. DevOps and Monitoring agents handle deployment, track metrics, and feed insights back into the next discovery cycle.</p>
             <ul class="step-features">
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Production-ready deployment</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Auto-generated documentation</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Training materials included</li>
-              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Ongoing support ready</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Staged rollout with feature flags</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Real-time monitoring & alerts</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Usage analytics & A/B testing</li>
+              <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Feedback loop to next cycle</li>
             </ul>
             <a href="#mvp" class="step-nav-btn">See Roadmap <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
@@ -345,9 +361,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
                 <div class="delivery-title">Application Deployed Successfully</div>
                 <div class="delivery-subtitle">Bay Area Auto Parts Inventory System is live</div>
                 <div class="delivery-stats">
-                  <div class="delivery-stat"><div class="delivery-stat-value">3 days</div><div class="delivery-stat-label">Total Build Time</div></div>
+                  <div class="delivery-stat"><div class="delivery-stat-value">6 weeks</div><div class="delivery-stat-label">Full Cycle</div></div>
                   <div class="delivery-stat"><div class="delivery-stat-value">47</div><div class="delivery-stat-label">Tests Passing</div></div>
-                  <div class="delivery-stat"><div class="delivery-stat-value">4</div><div class="delivery-stat-label">Components Built</div></div>
+                  <div class="delivery-stat"><div class="delivery-stat-value">8</div><div class="delivery-stat-label">Agents Involved</div></div>
+                </div>
+                <div class="delivery-metrics">
+                  <div class="metrics-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>Monitoring Agent Active</div>
+                  <div class="metrics-grid">
+                    <div class="metric-item"><span class="metric-label">Uptime</span><span class="metric-value">99.9%</span></div>
+                    <div class="metric-item"><span class="metric-label">Avg Response</span><span class="metric-value">142ms</span></div>
+                    <div class="metric-item"><span class="metric-label">Daily Users</span><span class="metric-value">23</span></div>
+                    <div class="metric-item"><span class="metric-label">Errors</span><span class="metric-value">0</span></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -444,37 +469,37 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <p>This is the gap AgentForge fills.</p>
 
         <h2>The Solution: AgentForge</h2>
-        <h3>An AI Development Team That Works Like a Real Team</h3>
-        <p>AgentForge orchestrates specialized AI agents that mirror a real software team:</p>
+        <h3>A Research-Backed Development Methodology</h3>
+        <p>AgentForge synthesizes proven methodologies from industry leaders—Amazon's Working Backwards, Basecamp's Shape Up, Google's Design Sprint, and IDEO's Human-Centered Design—into a 4-phase development flow powered by 8 specialized AI agents:</p>
 
         <table class="doc-table">
           <thead>
             <tr>
-              <th>Agent</th>
-              <th>Role</th>
-              <th>Responsibilities</th>
+              <th>Phase</th>
+              <th>Agents</th>
+              <th>Key Activities</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><span class="agent-badge pm">Product Manager</span></td>
-              <td>Requirements & Planning</td>
-              <td>Extracts requirements from customer input, creates task breakdown, prioritizes work, manages scope</td>
+              <td><strong>Discovery</strong></td>
+              <td><span class="agent-badge planning">Planning</span> <span class="agent-badge research">Research</span></td>
+              <td>Problem extraction, PR/FAQ drafting, competitive analysis, success metrics</td>
             </tr>
             <tr>
-              <td><span class="agent-badge engineer">Engineer</span></td>
-              <td>Implementation</td>
-              <td>Writes code, builds APIs, creates UI components, handles integrations</td>
+              <td><strong>Shaping</strong></td>
+              <td><span class="agent-badge planning">Planning</span> <span class="agent-badge ux">UX</span> <span class="agent-badge coding">Coding</span></td>
+              <td>Scope definition, risk identification, technical spikes, interaction flows</td>
             </tr>
             <tr>
-              <td><span class="agent-badge qa">QA Engineer</span></td>
-              <td>Quality Assurance</td>
-              <td>Writes and runs tests, validates against acceptance criteria, reports bugs back to engineers</td>
+              <td><strong>Building</strong></td>
+              <td><span class="agent-badge coding">Coding</span> <span class="agent-badge review">Review</span> <span class="agent-badge testing">Testing</span></td>
+              <td>Vertical slice implementation, code review, automated testing</td>
             </tr>
             <tr>
-              <td><span class="agent-badge lead">Tech Lead</span></td>
-              <td>Coordination & Architecture</td>
-              <td>Orchestrates agent collaboration, makes architectural decisions, ensures code quality</td>
+              <td><strong>Delivery</strong></td>
+              <td><span class="agent-badge devops">DevOps</span> <span class="agent-badge monitoring">Monitoring</span></td>
+              <td>Staged rollout, metrics collection, feedback loops to next cycle</td>
             </tr>
           </tbody>
         </table>
@@ -502,10 +527,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <h3>Agent Orchestration Layer</h3>
         <p>The orchestration system manages agent collaboration:</p>
         <ul>
-          <li><strong>State Machine:</strong> Project progresses through defined phases (Requirements → Planning → Building → Testing → Delivery)</li>
+          <li><strong>State Machine:</strong> Projects progress through 4 phases (Discovery → Shaping → Building → Delivery) with feedback loops</li>
           <li><strong>Message Bus:</strong> Agents communicate through structured events, enabling audit trails and debugging</li>
           <li><strong>Context Management:</strong> Each agent maintains focused context relevant to their role, preventing token bloat</li>
-          <li><strong>Human Handoff Points:</strong> Configurable checkpoints where human review is required before proceeding</li>
+          <li><strong>Human Checkpoints:</strong> Configurable approval gates at phase boundaries (Problem, Pitch, Ship)</li>
         </ul>
 
         <h3>Artifact Generation</h3>
@@ -716,11 +741,38 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `
 
-// Page navigation
-function showPage(page: string) {
+// Router configuration
+const routes: Record<string, string> = {
+  '/': 'demo',
+  '/docs': 'docs'
+}
+
+// Get page from path
+function getPageFromPath(path: string): string {
+  return routes[path] || 'demo'
+}
+
+// Page navigation with routing
+function navigateTo(path: string, pushState = true) {
+  const page = getPageFromPath(path)
+
+  // Update URL if needed
+  if (pushState && window.location.pathname !== path) {
+    history.pushState({ page }, '', path)
+  }
+
+  // Update active page
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   document.getElementById(page + '-page')?.classList.add('active')
   window.scrollTo(0, 0)
+
+  // Update nav active state
+  document.querySelectorAll('.nav-step').forEach(btn => {
+    btn.classList.remove('active')
+    if (btn.id === `nav-${page}`) {
+      btn.classList.add('active')
+    }
+  })
 
   // Re-trigger animations for demo page
   if (page === 'demo') {
@@ -733,12 +785,22 @@ function showPage(page: string) {
   }
 }
 
-// Set up click handlers
-document.getElementById('logo-demo')?.addEventListener('click', () => showPage('demo'))
-document.getElementById('nav-demo')?.addEventListener('click', () => showPage('demo'))
-document.getElementById('nav-docs')?.addEventListener('click', () => showPage('docs'))
-document.getElementById('hero-docs-btn')?.addEventListener('click', () => showPage('docs'))
-document.getElementById('footer-docs-btn')?.addEventListener('click', () => showPage('docs'))
+// Handle browser back/forward
+window.addEventListener('popstate', () => {
+  const path = window.location.pathname
+  navigateTo(path, false)
+})
+
+// Initialize router on page load
+const initialPath = window.location.pathname
+navigateTo(initialPath, false)
+
+// Set up click handlers with routing
+document.getElementById('logo-demo')?.addEventListener('click', () => navigateTo('/'))
+document.getElementById('nav-demo')?.addEventListener('click', () => navigateTo('/'))
+document.getElementById('nav-docs')?.addEventListener('click', () => navigateTo('/docs'))
+document.getElementById('hero-docs-btn')?.addEventListener('click', () => navigateTo('/docs'))
+document.getElementById('footer-docs-btn')?.addEventListener('click', () => navigateTo('/docs'))
 
 // Intersection observer for animations
 const observerOptions = { threshold: 0.2, rootMargin: '0px 0px -50px 0px' }
@@ -782,4 +844,17 @@ window.addEventListener('scroll', () => {
       link.classList.add('active')
     }
   })
+})
+
+// Components dropdown toggle
+const componentsBtn = document.getElementById('nav-components')
+const componentsMenu = document.getElementById('components-menu')
+
+componentsBtn?.addEventListener('click', (e) => {
+  e.stopPropagation()
+  componentsMenu?.classList.toggle('open')
+})
+
+document.addEventListener('click', () => {
+  componentsMenu?.classList.remove('open')
 })
