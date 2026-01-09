@@ -76,6 +76,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Task creation as they work</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Visible decision-making process</li>
             </ul>
+            <a href="#planning" class="step-nav-btn">Next: Planning <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
           <div class="demo-panel">
             <div class="demo-header">
@@ -155,6 +156,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Priority assignment</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Acceptance criteria generation</li>
             </ul>
+            <a href="#building" class="step-nav-btn">Next: Building <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
           <div class="demo-panel">
             <div class="demo-header">
@@ -174,31 +176,35 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
                   <div class="board-status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span class="board-status-text">PM Planning</span></div>
                 </div>
                 <div class="board-columns">
-                  <div class="board-column">
-                    <div class="board-column-header">To Do <span class="column-count">4</span></div>
-                    <div class="board-task">
+                  <div class="board-column" id="col-todo">
+                    <div class="board-column-header">To Do <span class="column-count" id="count-todo">4</span></div>
+                    <div class="board-task task-move-right" id="task-1">
                       <div class="task-key">BAAP-1</div>
                       <div class="task-title">Product database schema</div>
                       <div class="task-meta"><span class="task-type">Backend</span><span class="task-priority priority-high">High</span><div class="task-assignee engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div></div>
                     </div>
-                    <div class="board-task">
+                    <div class="board-task task-move-right-delayed" id="task-2">
                       <div class="task-key">BAAP-2</div>
                       <div class="task-title">Inventory tracking API</div>
                       <div class="task-meta"><span class="task-type">API</span><span class="task-priority priority-high">High</span><div class="task-assignee engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div></div>
                     </div>
-                    <div class="board-task">
+                    <div class="board-task task-static" id="task-3">
                       <div class="task-key">BAAP-3</div>
                       <div class="task-title">POS counter interface</div>
                       <div class="task-meta"><span class="task-type">Frontend</span><span class="task-priority priority-medium">Medium</span><div class="task-assignee engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div></div>
                     </div>
-                    <div class="board-task">
+                    <div class="board-task task-static-delayed" id="task-4">
                       <div class="task-key">BAAP-4</div>
                       <div class="task-title">Reorder alert system</div>
                       <div class="task-meta"><span class="task-type">Backend</span><span class="task-priority priority-medium">Medium</span><div class="task-assignee engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div></div>
                     </div>
                   </div>
-                  <div class="board-column"><div class="board-column-header">In Progress <span class="column-count">0</span></div></div>
-                  <div class="board-column"><div class="board-column-header">Done <span class="column-count">0</span></div></div>
+                  <div class="board-column" id="col-progress">
+                    <div class="board-column-header">In Progress <span class="column-count" id="count-progress">0</span></div>
+                  </div>
+                  <div class="board-column" id="col-done">
+                    <div class="board-column-header">Done <span class="column-count" id="count-done">0</span></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -220,6 +226,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Automatic dependency resolution</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Real-time progress visibility</li>
             </ul>
+            <a href="#testing" class="step-nav-btn">Next: Testing <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
           <div class="demo-panel">
             <div class="demo-header">
@@ -278,6 +285,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Failure feedback to Engineers</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Iterative refinement until passing</li>
             </ul>
+            <a href="#delivery" class="step-nav-btn">Next: Delivery <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
           <div class="demo-panel">
             <div class="demo-header">
@@ -324,6 +332,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Training materials included</li>
               <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Ongoing support ready</li>
             </ul>
+            <a href="#mvp" class="step-nav-btn">See Roadmap <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
           </div>
           <div class="demo-panel">
             <div class="demo-header">
