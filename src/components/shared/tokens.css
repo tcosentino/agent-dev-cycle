@@ -12,24 +12,25 @@
   --text-muted: #555566;
 
   /* Accent colors */
-  --accent-blue: #3b82f6;
-  --accent-purple: #8b5cf6;
+  --accent-primary: #f97316; /* Warm amber */
+  --accent-secondary: #ef4444; /* Coral red */
+  --accent-tertiary: #0ea5e9; /* Sky blue for contrast */
   --accent-green: #10b981;
   --accent-orange: #f59e0b;
   --accent-pink: #ec4899;
   --accent-red: #ef4444;
 
   /* Agent/Role colors */
-  --pm-color: #8b5cf6;
-  --engineer-color: #3b82f6;
+  --pm-color: #ef4444;
+  --engineer-color: #0ea5e9;
   --qa-color: #10b981;
-  --lead-color: #f59e0b;
+  --lead-color: #f97316;
 
   /* Borders & Shadows */
   --border-color: #2a2a3a;
-  --glow-blue: rgba(59, 130, 246, 0.3);
+  --glow-primary: rgba(249, 115, 22, 0.3);
+  --glow-secondary: rgba(239, 68, 68, 0.3);
   --glow-green: rgba(16, 185, 129, 0.3);
-  --glow-purple: rgba(139, 92, 246, 0.3);
 
   /* Typography */
   --font-sans: 'Sora', sans-serif;
