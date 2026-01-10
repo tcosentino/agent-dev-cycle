@@ -1,0 +1,55 @@
+@import '../shared/tokens.css';
+
+.svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.connectionLine {
+  stroke: var(--border-color);
+  stroke-width: 0.15;
+  stroke-linecap: round;
+  transition: stroke var(--transition-normal);
+}
+
+.connectionLine.active {
+  stroke: var(--accent-tertiary);
+  stroke-width: 0.2;
+}
+
+.connectionGlow {
+  stroke: var(--accent-tertiary);
+  stroke-width: 0.4;
+  stroke-linecap: round;
+  opacity: 0.3;
+  filter: blur(1px);
+}
+
+.pulseOuter {
+  opacity: 0.6;
+}
+
+.pulseCore {
+  fill: #fff;
+  transition: fill var(--transition-fast);
+}
+
+.pulseCore.contact {
+  fill: var(--accent-green);
+}
+
+.pulseCore.company {
+  fill: var(--accent-tertiary);
+}
+
+.pulseCore.ticket {
+  fill: var(--accent-orange);
+}
+
+.pulseCore.opportunity {
+  fill: var(--accent-pink);
+}

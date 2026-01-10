@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { TaskBoard, type Task, type TaskStatus } from './components/task-board'
 import { ChatDemo } from './components/chat'
 import { AgentWorkspaceDemo } from './components/agent-workspace'
+import { ApplicationViewDemo } from './components/application-view'
+import { ActionBadgeExplorer } from './components/chat/ActionBadgeExplorer'
 import { Nav } from './components/nav'
 import './components/shared/tokens.css'
 import './component-preview.css'
@@ -153,6 +155,24 @@ function ComponentPreview() {
         <div className="demo-wrapper">
           <AgentWorkspaceDemo autoPlay loop loopDelay={4000} />
         </div>
+      </section>
+
+      <section className="preview-section-full">
+        <div className="section-header">
+          <h2>Application View</h2>
+          <p className="section-description">Integration architecture with animated data flow</p>
+        </div>
+        <div className="demo-wrapper demo-wrapper--tall">
+          <ApplicationViewDemo autoPlay loop loopDelay={4000} />
+        </div>
+      </section>
+
+      <section className="preview-section-full">
+        <div className="section-header">
+          <h2>Action Badge Variations</h2>
+          <p className="section-description">Different styling options for action badges in chat</p>
+        </div>
+        <ActionBadgeExplorer />
       </section>
       </div>
     </>

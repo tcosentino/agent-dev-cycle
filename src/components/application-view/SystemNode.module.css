@@ -1,0 +1,212 @@
+@import '../shared/tokens.css';
+
+.node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  min-width: 100px;
+  transition: all var(--transition-normal);
+  z-index: 10;
+}
+
+.node:hover {
+  border-color: var(--text-muted);
+  transform: translate(-50%, -50%) scale(1.02);
+}
+
+.iconWrapper {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.labelGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.sublabel {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statusDot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: all var(--transition-fast);
+}
+
+/* Sync ring animation */
+.syncRing {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--accent-tertiary);
+  opacity: 0;
+  animation: syncPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes syncPulse {
+  0% {
+    opacity: 0.8;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 0.8;
+    transform: scale(0.9);
+  }
+}
+
+/* Active indicator glow */
+.activeIndicator {
+  position: absolute;
+  inset: -2px;
+  border-radius: var(--radius-md);
+  background: radial-gradient(circle, var(--accent-green) 0%, transparent 70%);
+  opacity: 0.3;
+  animation: activePulse 2s ease-in-out infinite;
+}
+
+@keyframes activePulse {
+  0%, 100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Node type styles */
+.source .iconWrapper {
+  border-color: #ff7a59;
+  background: rgba(255, 122, 89, 0.1);
+}
+
+.source .icon {
+  color: #ff7a59;
+}
+
+.source .label {
+  color: #ff7a59;
+}
+
+.destination .iconWrapper {
+  border-color: #00b4e6;
+  background: rgba(0, 180, 230, 0.1);
+}
+
+.destination .icon {
+  color: #00b4e6;
+}
+
+.destination .label {
+  color: #00b4e6;
+}
+
+.transform .iconWrapper {
+  border-color: var(--accent-orange);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.transform .icon {
+  color: var(--accent-orange);
+}
+
+.orchestrator .iconWrapper {
+  border-color: var(--accent-primary);
+  background: rgba(249, 115, 22, 0.1);
+}
+
+.orchestrator .icon {
+  color: var(--accent-primary);
+}
+
+/* Status styles */
+.idle .statusDot {
+  background: var(--text-muted);
+}
+
+.active .statusDot {
+  background: var(--accent-green);
+  box-shadow: 0 0 8px var(--glow-green);
+}
+
+.syncing .statusDot {
+  background: var(--accent-tertiary);
+  animation: statusBlink 0.8s ease-in-out infinite;
+}
+
+.error .statusDot {
+  background: var(--accent-red);
+  box-shadow: 0 0 8px var(--glow-secondary);
+}
+
+@keyframes statusBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Active state styling */
+.active .iconWrapper {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+}
+
+.syncing .iconWrapper {
+  box-shadow: 0 0 20px rgba(14, 165, 233, 0.2);
+}
+
+.error {
+  border-color: var(--accent-red);
+}
+
+.error .iconWrapper {
+  border-color: var(--accent-red);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}

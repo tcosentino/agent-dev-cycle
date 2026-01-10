@@ -159,3 +159,8 @@ body {
 body {
   overflow-x: hidden;
 }
+
+/* Taller demo wrapper for architecture diagrams */
+.demo-wrapper--tall {
+  min-height: 550px;
+}
