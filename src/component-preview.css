@@ -101,3 +101,61 @@ body {
   border-radius: 16px;
   padding: 1.5rem;
 }
+
+.demo-wrapper-wide {
+  max-width: none;
+}
+
+.section-description {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-left: 1rem;
+}
+
+.section-header {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Full-width section that breaks out of container */
+.preview-section-full {
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  /* Nav (60px) + "Agent Workspace" header (~80px) */
+  height: calc(100vh - 60px - 80px);
+  box-sizing: border-box;
+}
+
+.preview-section-full .section-header {
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.preview-section-full .demo-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-section-full .demo-wrapper > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Prevent horizontal scroll from full-width sections */
+body {
+  overflow-x: hidden;
+}

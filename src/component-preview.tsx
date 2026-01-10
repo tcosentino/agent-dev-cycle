@@ -2,6 +2,7 @@ import { StrictMode, useState, useCallback, useRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { TaskBoard, type Task, type TaskStatus } from './components/task-board'
 import { ChatDemo } from './components/chat'
+import { AgentWorkspaceDemo } from './components/agent-workspace'
 import { Nav } from './components/nav'
 import './components/shared/tokens.css'
 import './component-preview.css'
@@ -141,6 +142,16 @@ function ComponentPreview() {
         </div>
         <div className="demo-wrapper">
           <ChatDemo autoPlay loop loopDelay={3000} />
+        </div>
+      </section>
+
+      <section className="preview-section-full">
+        <div className="section-header">
+          <h2>Agent Workspace</h2>
+          <p className="section-description">Combined chat and task board with synchronized state</p>
+        </div>
+        <div className="demo-wrapper">
+          <AgentWorkspaceDemo autoPlay loop loopDelay={4000} />
         </div>
       </section>
       </div>
