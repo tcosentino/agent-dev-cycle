@@ -5,14 +5,16 @@ import styles from './TaskBoard.module.css'
 
 const statusOrder: TaskStatus[] = ['todo', 'in-progress', 'done']
 
-export function TaskBoard({ projectName, projectKey, phase, tasks, animate = false }: TaskBoardProps) {
+export function TaskBoard({ projectName, projectKey, phase, tasks, animate = false, minHeight }: TaskBoardProps) {
   const tasksByStatus = statusOrder.reduce((acc, status) => {
     acc[status] = tasks.filter(task => task.status === status)
     return acc
   }, {} as Record<TaskStatus, Task[]>)
 
+  const style = minHeight ? { minHeight: typeof minHeight === 'number' ? `${minHeight}px` : minHeight } : undefined
+
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={style}>
       <TaskBoardHeader
         projectName={projectName}
         projectKey={projectKey}

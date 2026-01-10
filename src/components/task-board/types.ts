@@ -18,4 +18,5 @@ export interface TaskBoardProps {
   phase: string
   tasks: Task[]
   animate?: boolean
+  minHeight?: string | number
 }

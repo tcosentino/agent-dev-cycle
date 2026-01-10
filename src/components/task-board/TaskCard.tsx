@@ -21,16 +21,16 @@ export function TaskCard({ task, animate = false, animationDelay = 0 }: TaskCard
   const cardRef = useRef<HTMLDivElement>(null)
   const style = animate ? { animationDelay: `${animationDelay}s` } : undefined
 
-  // FLIP animation: after mount/update, check if we have a cached position
+  // Capture position before React commits DOM changes
+  // This runs during render, before useLayoutEffect
+  const prevRect = positionCache.get(task.key)
+
+  // FLIP animation: after DOM update, check if position changed
   useLayoutEffect(() => {
     const card = cardRef.current
     if (!card) return
 
-    const prevRect = positionCache.get(task.key)
     const currentRect = card.getBoundingClientRect()
-
-    // Always update the cache with current position
-    positionCache.set(task.key, currentRect)
 
     // If we have a previous position and aren't already animating, animate
     if (prevRect && !animatingTasks.has(task.key)) {
@@ -61,13 +61,16 @@ export function TaskCard({ task, animate = false, animationDelay = 0 }: TaskCard
       }
     }
 
+    // Always update cache after layout
+    positionCache.set(task.key, currentRect)
+
     // On unmount, capture final position for the next mount
     return () => {
       if (card) {
         positionCache.set(task.key, card.getBoundingClientRect())
       }
     }
-  }, [task.key, task.status])
+  })
 
   return (
     <div

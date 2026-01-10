@@ -1,4 +1,9 @@
 import './style.css'
+import './components/shared/tokens.css'
+import { createRoot } from 'react-dom/client'
+import { createElement } from 'react'
+import { TaskBoardDemo } from './components/task-board'
+import { ProjectionsPage } from './components/projections'
 
 // Render the HTML content
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
@@ -14,6 +19,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <div class="nav-steps">
       <button class="nav-step" id="nav-demo">Demo</button>
       <button class="nav-step doc-link" id="nav-docs">Design Doc</button>
+      <button class="nav-step" id="nav-projections">Projections</button>
       <div class="nav-dropdown">
         <button class="nav-step" id="nav-components">Components <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="dropdown-icon"><polyline points="6 9 12 15 18 9"/></svg></button>
         <div class="nav-dropdown-menu" id="components-menu">
@@ -227,49 +233,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
               <span class="demo-title">project_board.view</span>
             </div>
             <div class="demo-body">
-              <div class="board-container">
-                <div class="board-header">
-                  <div class="board-project">
-                    <div class="board-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
-                    <div>
-                      <div class="board-project-name">Bay Area Auto Parts — Inventory System</div>
-                      <div class="board-project-key">BAAP-2026</div>
-                    </div>
-                  </div>
-                  <div class="board-status"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span class="board-status-text">PM Planning</span></div>
-                </div>
-                <div class="board-columns">
-                  <div class="board-column" id="col-todo">
-                    <div class="board-column-header">To Do <span class="column-count" id="count-todo">4</span></div>
-                    <div class="board-task task-move-right" id="task-1">
-                      <div class="task-key">BAAP-1</div>
-                      <div class="task-title">Product database schema</div>
-                      <div class="task-meta"><span class="task-type">Backend</span><span class="task-priority priority-high">High</span><div class="task-assignee engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div></div>
-                    </div>
-                    <div class="board-task task-move-right-delayed" id="task-2">
-                      <div class="task-key">BAAP-2</div>
-                      <div class="task-title">Inventory tracking API</div>
-                      <div class="task-meta"><span class="task-type">API</span><span class="task-priority priority-high">High</span><div class="task-assignee engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div></div>
-                    </div>
-                    <div class="board-task task-static" id="task-3">
-                      <div class="task-key">BAAP-3</div>
-                      <div class="task-title">POS counter interface</div>
-                      <div class="task-meta"><span class="task-type">Frontend</span><span class="task-priority priority-medium">Medium</span><div class="task-assignee engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div></div>
-                    </div>
-                    <div class="board-task task-static-delayed" id="task-4">
-                      <div class="task-key">BAAP-4</div>
-                      <div class="task-title">Reorder alert system</div>
-                      <div class="task-meta"><span class="task-type">Backend</span><span class="task-priority priority-medium">Medium</span><div class="task-assignee engineer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div></div>
-                    </div>
-                  </div>
-                  <div class="board-column" id="col-progress">
-                    <div class="board-column-header">In Progress <span class="column-count" id="count-progress">0</span></div>
-                  </div>
-                  <div class="board-column" id="col-done">
-                    <div class="board-column-header">Done <span class="column-count" id="count-done">0</span></div>
-                  </div>
-                </div>
-              </div>
+              <div id="task-board-demo-root"></div>
             </div>
           </div>
         </div>
@@ -739,12 +703,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       </div>
     </div>
   </div>
+
+  <!-- ==================== PROJECTIONS PAGE ==================== -->
+  <div id="projections-page" class="page">
+    <div id="projections-root"></div>
+  </div>
 `
 
 // Router configuration
 const routes: Record<string, string> = {
   '/': 'demo',
-  '/docs': 'docs'
+  '/docs': 'docs',
+  '/projections': 'projections'
 }
 
 // Get page from path
@@ -799,6 +769,7 @@ navigateTo(initialPath, false)
 document.getElementById('logo-demo')?.addEventListener('click', () => navigateTo('/'))
 document.getElementById('nav-demo')?.addEventListener('click', () => navigateTo('/'))
 document.getElementById('nav-docs')?.addEventListener('click', () => navigateTo('/docs'))
+document.getElementById('nav-projections')?.addEventListener('click', () => navigateTo('/projections'))
 document.getElementById('hero-docs-btn')?.addEventListener('click', () => navigateTo('/docs'))
 document.getElementById('footer-docs-btn')?.addEventListener('click', () => navigateTo('/docs'))
 
@@ -858,3 +829,48 @@ componentsBtn?.addEventListener('click', (e) => {
 document.addEventListener('click', () => {
   componentsMenu?.classList.remove('open')
 })
+
+// Mount React TaskBoard demo component
+let taskBoardMounted = false
+const taskBoardRoot = document.getElementById('task-board-demo-root')
+
+if (taskBoardRoot) {
+  const taskBoardObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !taskBoardMounted) {
+        taskBoardMounted = true
+        const root = createRoot(taskBoardRoot)
+        root.render(createElement(TaskBoardDemo, { autoPlay: true, loop: true, loopDelay: 3000, minHeight: 340 }))
+      }
+    })
+  }, { threshold: 0.3 })
+
+  taskBoardObserver.observe(taskBoardRoot)
+}
+
+// Mount React Projections page component
+let projectionsMounted = false
+const projectionsRoot = document.getElementById('projections-root')
+
+if (projectionsRoot) {
+  // Mount when navigating to projections page
+  const mountProjections = () => {
+    if (!projectionsMounted && document.getElementById('projections-page')?.classList.contains('active')) {
+      projectionsMounted = true
+      const root = createRoot(projectionsRoot)
+      root.render(createElement(ProjectionsPage))
+    }
+  }
+
+  // Check on page load and navigation
+  mountProjections()
+
+  // Re-check when navigating (use MutationObserver to detect class changes)
+  const projectionsPage = document.getElementById('projections-page')
+  if (projectionsPage) {
+    const projectionsMutationObserver = new MutationObserver(() => {
+      mountProjections()
+    })
+    projectionsMutationObserver.observe(projectionsPage, { attributes: true, attributeFilter: ['class'] })
+  }
+}
