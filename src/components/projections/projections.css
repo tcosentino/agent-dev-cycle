@@ -1,0 +1,395 @@
+.projections-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+  padding-top: calc(80px + var(--space-xl));
+}
+
+.projections-header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.projections-header h1 {
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+  background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.projections-header p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+/* Path Selector Tabs */
+.path-selector {
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.path-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-width: 200px;
+}
+
+.path-tab:hover {
+  border-color: var(--path-color);
+  background: var(--bg-tertiary);
+}
+
+.path-tab.active {
+  border-color: var(--path-color);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--path-color) 30%, transparent);
+}
+
+.path-icon {
+  font-size: 1.5rem;
+}
+
+.path-tab-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.path-tab-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.path-tab-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Path Content */
+.path-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.path-grid {
+  display: grid;
+  gap: var(--space-xl);
+  margin-bottom: var(--space-xl);
+}
+
+/* Pros & Cons */
+.pros-cons-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+@media (max-width: 768px) {
+  .pros-cons-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pros-card,
+.cons-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.pros-card {
+  border-left: 3px solid var(--accent-green);
+}
+
+.cons-card {
+  border-left: 3px solid var(--accent-red);
+}
+
+.pros-card h3 {
+  color: var(--accent-green);
+  margin-bottom: var(--space-md);
+}
+
+.cons-card h3 {
+  color: var(--accent-red);
+  margin-bottom: var(--space-md);
+}
+
+.pros-card ul,
+.cons-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pros-card li,
+.cons-card li {
+  padding: var(--space-sm) 0;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pros-card li:last-child,
+.cons-card li:last-child {
+  border-bottom: none;
+}
+
+/* Milestones */
+.milestones-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.milestones-section h3 {
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+}
+
+.milestones-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.milestone-item {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.milestone-marker {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--path-color);
+  color: var(--path-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.milestone-content {
+  flex: 1;
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.milestone-item:last-child .milestone-content {
+  border-bottom: none;
+}
+
+.milestone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.milestone-header h4 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.milestone-timeline {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+.milestone-content p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.milestone-cost {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  font-size: 0.85rem;
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+/* Financials */
+.financials-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.financials-section h3 {
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+}
+
+.financials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.financial-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.financial-card.highlight {
+  border-color: var(--path-color);
+  box-shadow: 0 0 15px color-mix(in srgb, var(--path-color) 20%, transparent);
+}
+
+.financial-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.financial-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Comparison Table */
+.comparison-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin-bottom: var(--space-xl);
+  overflow-x: auto;
+}
+
+.comparison-section h3 {
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.comparison-table th {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.comparison-table th:first-child {
+  color: var(--text-muted);
+}
+
+.comparison-table td {
+  color: var(--text-secondary);
+}
+
+.comparison-table td:first-child {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.comparison-table tr:last-child td {
+  border-bottom: none;
+}
+
+.comparison-table tr:hover td {
+  background: var(--bg-tertiary);
+}
+
+/* Recommendation */
+.recommendation-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+}
+
+.recommendation-section h3 {
+  margin-bottom: var(--space-lg);
+  color: var(--text-primary);
+}
+
+.recommendation-card {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--accent-primary) 10%, var(--bg-tertiary)),
+    var(--bg-tertiary)
+  );
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+}
+
+.recommendation-card p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+  line-height: 1.6;
+}
+
+.recommendation-card p:first-child {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.recommendation-card ul {
+  margin: var(--space-md) 0;
+  padding-left: var(--space-lg);
+}
+
+.recommendation-card li {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+  line-height: 1.5;
+}
+
+.recommendation-note {
+  font-style: italic;
+  color: var(--text-muted) !important;
+  border-top: 1px solid var(--border-color);
+  padding-top: var(--space-md);
+  margin-top: var(--space-md);
+  margin-bottom: 0 !important;
+}
