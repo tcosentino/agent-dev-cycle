@@ -29,6 +29,61 @@ AgentForge is an AI-powered custom software development platform that deploys a 
 
 ---
 
+## Capability Gap Recording
+
+Agents are instructed to **log capability gaps** whenever they encounter a situation where:
+
+1. **A human in that role could do something the agent cannot** — e.g., "A human PM would call the client to clarify this ambiguous requirement"
+2. **A missing building block would enable a task** — e.g., "I need a `useDateRangePicker` component but it doesn't exist yet"
+3. **External access would help** — e.g., "I'd look up the competitor's pricing page for reference"
+4. **Domain knowledge is missing** — e.g., "A human engineer would know this company's deployment process"
+
+### Why This Matters
+
+- **Builds the roadmap** — Gaps become backlog items for new components, integrations, or capabilities
+- **Identifies automation boundaries** — Shows where human involvement adds real value
+- **Improves over time** — Frequently logged gaps get prioritized for implementation
+- **Training signal** — Gaps + human solutions = learning opportunities
+
+### Gap Log Format
+
+```typescript
+interface CapabilityGap {
+  agent: 'pm' | 'engineer' | 'qa' | 'tech-lead'
+  timestamp: string
+  task: string                    // What was the agent trying to do?
+  gap: string                     // What couldn't it do?
+  humanWouldDo: string            // How would a human handle this?
+  category: 'component' | 'integration' | 'knowledge' | 'access' | 'judgment'
+  workaround?: string             // Did the agent find an alternative?
+  blocked: boolean                // Did this stop progress?
+}
+```
+
+### Example Gaps
+
+| Agent | Gap | Human Would... | Category |
+|-------|-----|----------------|----------|
+| PM | Can't gauge stakeholder tone/frustration | Read body language, adjust approach | judgment |
+| Engineer | No `useFileUpload` hook available | Build it or use a library | component |
+| QA | Can't test on physical mobile devices | Use device lab, test real interactions | access |
+| Tech Lead | Unsure if approach fits company culture | Ask team, know history | knowledge |
+
+### Graduated Autonomy
+
+Gap logging feeds into **graduated autonomy** — the system starts with more human checkpoints, then reduces them as AI-human agreement improves:
+
+```
+High gaps / Low trust    →  Human approves most decisions
+Decreasing gaps          →  Async review (AI proceeds, human validates)
+Low gaps / High trust    →  Auto-proceed, human spot-checks
+Novel situation          →  Always escalate (even if confident)
+```
+
+Track agreement rates by decision category. When AI choices consistently match human choices, reduce oversight for that category.
+
+---
+
 ## Contents
 
 - [Architecture](./architecture.md) - System architecture and component overview
