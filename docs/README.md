@@ -1,5 +1,25 @@
 # AgentForge Documentation
 
+## Vision
+
+The next generation of software development isn't AI replacing developers—it's **teams of developers working with AI** to build faster and better. AgentForge is the shepherd through this transition.
+
+We provide the **tools a team needs** (project management, components, workflows) **coupled with AI agents** that can execute alongside humans. The key differentiator: AgentForge includes an **actual execution environment** where code runs, tests execute, and deployments happen—not just planning and code generation.
+
+### Competitive Landscape
+
+| Platform | Planning | Code | Execution | AI Agents |
+|----------|----------|------|-----------|-----------|
+| GitHub | ✓ Issues/Projects | ✓ Repos | ✗ Limited Actions | ✓ Copilot |
+| Linear/Jira | ✓ Strong | ✗ | ✗ | ✗ |
+| Vercel/Netlify | ✗ | ✗ | ✓ Deploys | ✗ |
+| Replit | ✗ | ✓ | ✓ Runtime | ✓ Agent |
+| **AgentForge** | ✓ | ✓ | ✓ Full env | ✓ Team |
+
+GitHub is the closest competitor—they have project management, repos, and Copilot agents writing code. But they lack an integrated environment where agents can actually **run** what they build, validate it works, and deploy it. AgentForge closes that loop.
+
+---
+
 ## Executive Summary
 
 AgentForge is an AI-powered custom software development platform that deploys a coordinated team of specialized AI agents to build software from requirements to production. Instead of a single AI assistant, AgentForge orchestrates multiple agents working together—each with distinct roles and responsibilities—to deliver complete software solutions.
