@@ -8,6 +8,10 @@ We provide the **tools a team needs** (project management, components, workflows
 
 ### Competitive Landscape
 
+The market is fragmenting across the human→AI progression spectrum. Most tools optimize for one phase; AgentForge is designed to **carry teams through all three**.
+
+#### Feature Comparison
+
 | Platform | Planning | Code | Execution | AI Agents |
 |----------|----------|------|-----------|-----------|
 | GitHub | ✓ Issues/Projects | ✓ Repos | ✗ Limited Actions | ✓ Copilot |
@@ -16,7 +20,46 @@ We provide the **tools a team needs** (project management, components, workflows
 | Replit | ✗ | ✓ | ✓ Runtime | ✓ Agent |
 | **AgentForge** | ✓ | ✓ | ✓ Full env | ✓ Team |
 
-GitHub is the closest competitor—they have project management, repos, and Copilot agents writing code. But they lack an integrated environment where agents can actually **run** what they build, validate it works, and deploy it. AgentForge closes that loop.
+#### Phase Positioning
+
+| Platform | Phase 1 | Phase 2 | Phase 3 | Progression Path |
+|----------|---------|---------|---------|------------------|
+| **GitHub** | ✓ Strong | ◐ Partial | ✗ | Stuck—no execution layer |
+| **Linear/Jira** | ✓ Planning only | ✗ | ✗ | No AI, no code |
+| **Cursor/Windsurf** | ✓ Coding assist | ◐ | ✗ | Single-agent, no orchestration |
+| **Replit** | ◐ | ◐ | ◐ | Has pieces, not integrated |
+| **AgentForge** | ✓ | ✓ | ✓ | **Full progression** |
+
+#### Why Competitors Get Stuck
+
+**GitHub** has the best Phase 1 story—issues, PRs, Copilot. But they're missing:
+- Integrated execution (Actions is CI, not runtime)
+- Agent orchestration (Copilot is single-agent assist)
+- The feedback loop (can't validate what agents build)
+
+They can't progress to Phase 2/3 without agents that **run and verify** their own work.
+
+**Cursor/Windsurf** are powerful coding assistants but:
+- Single agent, not a team
+- No project management layer
+- Human must validate everything
+- Stuck at "AI assists human" forever
+
+**Replit** is closest—they have code + execution + an agent. But:
+- No project management / planning layer
+- Single agent, not specialized roles
+- No graduated autonomy model
+- Not designed for the Phase 1→3 transition
+
+#### AgentForge's Moat
+
+1. **Full loop**: Plan → Build → Run → Validate → Deploy
+2. **Agent team**: Specialized roles that coordinate (not one agent doing everything)
+3. **Progression by design**: Built to transition from human-heavy to autonomous
+4. **Trust calibration**: Graduated autonomy based on measured agreement
+5. **Gap recording**: System improves itself by logging what it can't do
+
+The key insight: **tools optimized for Phase 1 can't reach Phase 3**. You need execution + agent orchestration + trust measurement from day one. AgentForge is built for the destination, not just the starting point.
 
 ---
 
