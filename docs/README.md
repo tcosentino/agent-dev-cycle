@@ -104,6 +104,117 @@ Track agreement rates by decision category. When AI choices consistently match h
 
 ---
 
+## Product Progression Model
+
+AgentForge itself evolves through phases—starting as a tool that helps humans work with AI agents, transitioning toward a fully autonomous agent team.
+
+### Phase 1: AgentForge as Your PM
+
+In the early phase, **AgentForge acts as the Product Manager** for your AI development team:
+
+- Spins up specialized agents (Engineer, QA, Tech Lead) on your behalf
+- Coordinates work between agents and humans
+- Humans interface directly with agents, review outputs, make decisions
+- High human involvement—agents assist, humans drive
+
+```
+┌─────────────────────────────────────────────────────┐
+│                      Human                          │
+│                        ↓                            │
+│    ┌─────────────────────────────────────────┐     │
+│    │         AgentForge (as PM)              │     │
+│    │  • Spins up agents                      │     │
+│    │  • Coordinates work                     │     │
+│    │  • Surfaces decisions to human          │     │
+│    └─────────────────────────────────────────┘     │
+│         ↓              ↓              ↓            │
+│    [Engineer]      [QA]        [Tech Lead]         │
+│         ↑              ↑              ↑            │
+│         └──────── Human reviews ──────┘            │
+└─────────────────────────────────────────────────────┘
+```
+
+**What humans do:** Review code, approve decisions, clarify requirements, handle edge cases
+
+**What agents do:** Draft code, run tests, surface issues, execute defined tasks
+
+### Phase 2: Human in the Loop
+
+As trust builds and gaps decrease:
+
+- Agents execute more autonomously
+- Humans review async (after the fact) rather than approve in advance
+- AgentForge handles routine decisions, escalates only exceptions
+- Agents learn from human corrections
+
+```
+┌─────────────────────────────────────────────────────┐
+│    ┌─────────────────────────────────────────┐     │
+│    │           AgentForge (PM)               │     │
+│    │  • Autonomous routine decisions         │     │
+│    │  • Escalates exceptions to human        │     │
+│    └─────────────────────────────────────────┘     │
+│         ↓              ↓              ↓            │
+│    [Engineer]      [QA]        [Tech Lead]         │
+│         │              │              │            │
+│         └────── Async human review ───┘            │
+│                        ↓                            │
+│                     Human                           │
+│              (spot-checks, exceptions)              │
+└─────────────────────────────────────────────────────┘
+```
+
+**What humans do:** Spot-check outputs, handle escalations, set direction
+
+**What agents do:** Execute end-to-end, self-validate, request help when uncertain
+
+### Phase 3: Autonomous Agent Team
+
+The end state—agents handle everything, humans are customers:
+
+- Full agent team operates independently
+- Human provides requirements, receives working software
+- Agents self-coordinate, self-review, self-deploy
+- Human involvement only for business decisions
+
+```
+┌─────────────────────────────────────────────────────┐
+│                      Human                          │
+│              (requirements in,                      │
+│               software out)                         │
+│                        ↓                            │
+│    ┌─────────────────────────────────────────┐     │
+│    │           AgentForge Team               │     │
+│    │                                         │     │
+│    │   [PM] ←→ [Engineer] ←→ [Tech Lead]    │     │
+│    │            ↓                            │     │
+│    │          [QA]                           │     │
+│    │                                         │     │
+│    │   Self-coordinating, self-validating   │     │
+│    └─────────────────────────────────────────┘     │
+│                        ↓                            │
+│                Working Software                     │
+└─────────────────────────────────────────────────────┘
+```
+
+**What humans do:** Define what they want, accept delivery
+
+**What agents do:** Everything else
+
+### Measuring Progression
+
+| Metric | Phase 1 | Phase 2 | Phase 3 |
+|--------|---------|---------|---------|
+| Human decisions/day | High (50+) | Medium (10-20) | Low (1-5) |
+| Agent autonomy % | 20-40% | 60-80% | 95%+ |
+| Review mode | Pre-approval | Async review | Exception only |
+| Capability gaps/week | Many | Decreasing | Rare |
+| Human-agent agreement | Tracking | 80%+ | 95%+ |
+
+The transition is **per-category**—some task types reach Phase 3 while others are still in Phase 1. A team might have autonomous test writing (Phase 3) but human-reviewed architecture decisions (Phase 1).
+
+---
+
 ## Contents
 
 - [Architecture](./architecture.md) - System architecture and component overview
