@@ -1,8 +1,9 @@
 @import '../shared/tokens.css';
 
-/* Main container */
-.container {
+/* Container without sidebar (for hideSidebar mode) */
+.containerNoSidebar {
   display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 400px;
   background: var(--bg-primary);
@@ -11,82 +12,7 @@
   overflow: hidden;
 }
 
-/* Sidebar */
-.sidebar {
-  width: 200px;
-  background: var(--bg-secondary);
-  border-right: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebarHeader {
-  padding: var(--space-md);
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-color);
-  height: 49px;
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-}
-
-.channelList {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--space-sm);
-}
-
-.channelButton {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  font-family: var(--font-sans);
-  font-size: 0.875rem;
-  text-align: left;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-
-.channelButton:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.channelButton.active {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-}
-
-.channelHash {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.channelName {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Main area */
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
+/* Header */
 .header {
   display: flex;
   align-items: center;
@@ -96,6 +22,11 @@
   background: var(--bg-secondary);
   height: 49px;
   box-sizing: border-box;
+}
+
+.channelHash {
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .channelTitle {
@@ -237,41 +168,34 @@
   color: var(--accent-primary);
 }
 
-/* Action badges */
+/* Action badges - Accent left border style */
 .actionBadge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
   margin-top: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
-  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  border-left: 3px solid var(--text-muted);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
   font-family: var(--font-sans);
   font-size: 0.8125rem;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
 }
 
 .actionBadge.success {
-  background: var(--bg-tertiary);
-  border-color: var(--border-color);
-  color: var(--text-secondary);
+  border-left-color: var(--accent-green);
 }
 
 .actionBadge.error {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.2);
-  color: var(--accent-red);
+  border-left-color: var(--accent-red);
 }
 
 .actionBadge.pending {
-  background: var(--bg-tertiary);
-  border-color: var(--border-color);
-  color: var(--text-muted);
+  border-left-color: var(--text-muted);
 }
 
 .actionLabel {
-  font-weight: 400;
+  color: var(--text-secondary);
 }
 
 .taskMention {
@@ -289,4 +213,45 @@
 
 .taskMention:hover {
   background: rgba(96, 165, 250, 0.25);
+}
+
+/* Typing indicator at bottom of messages */
+.typingIndicator {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  margin-top: var(--space-xs);
+}
+
+.typingAvatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.typingContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.typingName {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.typingText {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  font-style: italic;
 }

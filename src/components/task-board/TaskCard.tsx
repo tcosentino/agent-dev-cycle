@@ -17,9 +17,22 @@ const positionCache = new Map<string, DOMRect>()
 // Track which tasks are being animated to avoid conflicts
 const animatingTasks = new Set<string>()
 
+// Track tasks that have completed their entrance animation
+const enteredTasks = new Set<string>()
+
+// Export function to reset animation caches (call when story resets)
+export function resetTaskAnimationCache() {
+  positionCache.clear()
+  animatingTasks.clear()
+  enteredTasks.clear()
+}
+
 export function TaskCard({ task, animate = false, animationDelay = 0 }: TaskCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const style = animate ? { animationDelay: `${animationDelay}s` } : undefined
+
+  // Check if this is a new task (hasn't entered yet)
+  const isNewTask = !enteredTasks.has(task.key)
 
   // Capture position before React commits DOM changes
   // This runs during render, before useLayoutEffect
@@ -32,12 +45,45 @@ export function TaskCard({ task, animate = false, animationDelay = 0 }: TaskCard
 
     const currentRect = card.getBoundingClientRect()
 
-    // If we have a previous position and aren't already animating, animate
+    // New task entrance animation - grow from top
+    if (isNewTask) {
+      enteredTasks.add(task.key)
+
+      // Start collapsed
+      card.style.opacity = '0'
+      card.style.transform = 'scaleY(0)'
+      card.style.transformOrigin = 'top center'
+      card.style.transition = 'none'
+
+      // Force reflow
+      card.offsetHeight
+
+      // Animate to full size - grow out from top
+      card.style.opacity = '1'
+      card.style.transform = 'scaleY(1)'
+      card.style.transition = 'opacity 0.35s ease-out, transform 0.35s ease-out'
+
+      // Clean up inline styles after animation
+      const cleanup = () => {
+        card.style.opacity = ''
+        card.style.transform = ''
+        card.style.transformOrigin = ''
+        card.style.transition = ''
+        card.removeEventListener('transitionend', cleanup)
+      }
+      card.addEventListener('transitionend', cleanup)
+
+      // Cache position after entrance
+      positionCache.set(task.key, currentRect)
+      return
+    }
+
+    // FLIP animation for existing tasks moving between columns
     if (prevRect && !animatingTasks.has(task.key)) {
       const deltaX = prevRect.left - currentRect.left
       const deltaY = prevRect.top - currentRect.top
 
-      // Only animate if there's actual movement
+      // Only animate if there's actual movement (column change)
       if (Math.abs(deltaX) > 1 || Math.abs(deltaY) > 1) {
         animatingTasks.add(task.key)
 

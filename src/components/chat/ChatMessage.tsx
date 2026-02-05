@@ -1,5 +1,6 @@
 import type { ChatMessage as ChatMessageType } from './types'
 import { AssigneeBadge } from '../shared/badges/AssigneeBadge'
+import { Spinner } from '../shared/Spinner'
 import styles from './Chat.module.css'
 
 interface ChatMessageProps {
@@ -52,16 +53,16 @@ export function ChatMessage({ message, showAvatar = true }: ChatMessageProps) {
         )}
         <div className={styles.messageText}>
           {message.content}
-          {message.taskRef && !message.action && (
-            <span className={styles.taskRef}>{message.taskRef}</span>
-          )}
         </div>
         {message.action && (
           <div className={`${styles.actionBadge} ${styles[message.action.status]}`}>
+            {message.action.status === 'pending' && (
+              <Spinner size="sm" />
+            )}
             <span className={styles.actionLabel}>{message.action.label}</span>
-            {message.taskRef && (
-              <a href={`#task-${message.taskRef}`} className={styles.taskMention}>
-                {message.taskRef}
+            {message.action.subject && (
+              <a href={`#task-${message.action.subject}`} className={styles.taskMention}>
+                {message.action.subject}
               </a>
             )}
           </div>

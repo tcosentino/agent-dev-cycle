@@ -2,10 +2,13 @@ import type { AgentRole } from '../task-board/types'
 
 export type MessageType = 'user' | 'agent' | 'system'
 export type ActionStatus = 'success' | 'error' | 'pending'
+export type ActionType = 'created' | 'updated' | 'assigned' | 'completed' | 'analyzed' | 'started'
 
 export interface MessageAction {
-  label: string
+  type: ActionType
   status: ActionStatus
+  label: string
+  subject?: string // e.g., task key like "BAAP-1"
 }
 
 export interface ChatMessage {
@@ -15,8 +18,12 @@ export interface ChatMessage {
   senderName?: string
   content: string
   timestamp: number
-  taskRef?: string
   action?: MessageAction
+}
+
+export interface TypingIndicator {
+  sender: AgentRole
+  text: string // e.g., "Analyzing requirements..."
 }
 
 export interface ChatChannel {
@@ -28,6 +35,7 @@ export interface ChatChannel {
 export interface ChatState {
   channels: ChatChannel[]
   activeChannelId: string
+  typing?: TypingIndicator // Who's currently typing/working
 }
 
 export interface ChatProps {

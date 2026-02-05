@@ -1,6 +1,6 @@
 export { TaskBoard } from './TaskBoard'
 export { TaskBoardHeader } from './TaskBoardHeader'
 export { TaskColumn } from './TaskColumn'
-export { TaskCard } from './TaskCard'
+export { TaskCard, resetTaskAnimationCache } from './TaskCard'
 export { TaskBoardDemo } from './TaskBoardDemo'
 export type { Task, TaskBoardProps, TaskPriority, TaskType, TaskStatus, AgentRole } from './types'

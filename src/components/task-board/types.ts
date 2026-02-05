@@ -1,3 +1,5 @@
+export type AgentStatus = 'active' | 'busy' | 'away' | 'offline'
+
 export type TaskPriority = 'low' | 'medium' | 'high' | 'critical'
 export type TaskType = 'backend' | 'frontend' | 'api' | 'database' | 'testing'
 export type TaskStatus = 'todo' | 'in-progress' | 'done'

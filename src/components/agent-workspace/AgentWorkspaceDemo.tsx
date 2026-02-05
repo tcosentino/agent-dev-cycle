@@ -1,7 +1,9 @@
+import { useEffect, useRef } from 'react'
 import { TaskBoard } from '../task-board/TaskBoard'
+import { resetTaskAnimationCache } from '../task-board'
 import { Chat } from '../chat/Chat'
 import { useStoryPlayer, type Story } from '../../hooks'
-import type { Task, TaskStatus } from '../task-board/types'
+import type { Task, TaskStatus, AgentRole } from '../task-board/types'
 import type { ChatMessage, ChatState } from '../chat/types'
 import type { WorkspaceState } from './types'
 import styles from './AgentWorkspace.module.css'
@@ -10,10 +12,18 @@ import styles from './AgentWorkspace.module.css'
 let msgCounter = 0
 const nextMsgId = () => `msg-${++msgCounter}`
 
-// Helper to add a message
-const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) =>
+// Helper to set typing indicator
+const setTyping = (sender: AgentRole, text: string) =>
   (state: WorkspaceState): WorkspaceState => ({
     ...state,
+    typing: { sender, text }
+  })
+
+// Helper to clear typing and add a message
+const addMessageClearTyping = (message: Omit<ChatMessage, 'id' | 'timestamp'>) =>
+  (state: WorkspaceState): WorkspaceState => ({
+    ...state,
+    typing: undefined,
     messages: [...state.messages, {
       ...message,
       id: nextMsgId(),
@@ -21,12 +31,13 @@ const addMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) =>
     }]
   })
 
-// Combined helper: add message and task together
+// Combined helper: clear typing, add message and task together
 const addMessageAndTask = (
   message: Omit<ChatMessage, 'id' | 'timestamp'>,
   task: Task
 ) => (state: WorkspaceState): WorkspaceState => ({
   ...state,
+  typing: undefined,
   messages: [...state.messages, {
     ...message,
     id: nextMsgId(),
@@ -35,18 +46,31 @@ const addMessageAndTask = (
   tasks: [...state.tasks, task]
 })
 
-// Combined helper: add message and update task status
+// Combined helper: clear typing, add message and update task status
 const addMessageAndUpdateTask = (
   message: Omit<ChatMessage, 'id' | 'timestamp'>,
   taskKey: string,
   status: TaskStatus
 ) => (state: WorkspaceState): WorkspaceState => ({
   ...state,
+  typing: undefined,
   messages: [...state.messages, {
     ...message,
     id: nextMsgId(),
     timestamp: Date.now()
   }],
+  tasks: state.tasks.map(t => t.key === taskKey ? { ...t, status } : t)
+})
+
+// Helper to set typing and update task status (for when work starts)
+const setTypingAndUpdateTask = (
+  sender: AgentRole,
+  text: string,
+  taskKey: string,
+  status: TaskStatus
+) => (state: WorkspaceState): WorkspaceState => ({
+  ...state,
+  typing: { sender, text },
   tasks: state.tasks.map(t => t.key === taskKey ? { ...t, status } : t)
 })
 
@@ -57,134 +81,106 @@ const workspaceStory: Story<WorkspaceState> = {
     messages: []
   },
   steps: [
-    // PM starts analyzing
+    // PM starts typing
     {
       delay: 1000,
-      state: addMessage({
-        type: 'agent',
-        sender: 'pm',
-        content: 'New project: Bay Area Auto Parts needs an inventory management system. Analyzing customer requirements...'
-      })
+      state: setTyping('pm', 'Analyzing customer requirements...')
     },
-    // PM identifies core problem
+    // PM completes analysis and creates first task
     {
-      delay: 3000,
-      state: addMessage({
-        type: 'agent',
-        sender: 'pm',
-        content: 'Core problem identified: Manual inventory tracking causing stockouts and lost sales. Customer has 3 retail locations.',
-        action: { label: 'Analyzed requirements', status: 'success' }
-      })
-    },
-    // PM creates first task
-    {
-      delay: 5000,
+      delay: 3500,
       state: addMessageAndTask(
         {
           type: 'agent',
           sender: 'pm',
-          content: 'Creating first task: We need a product database schema to store inventory data.',
-          taskRef: 'BAAP-1',
-          action: { label: 'Created BAAP-1', status: 'success' }
+          content: 'New project for Bay Area Auto Parts. Core problem: manual inventory tracking causing stockouts across 3 retail locations. Starting with database schema.',
+          action: { type: 'created', status: 'success', label: 'createTask', subject: 'BAAP-1' }
         },
         { key: 'BAAP-1', title: 'Product database schema', type: 'backend', priority: 'high', status: 'todo', assignee: 'engineer' }
       )
     },
     // PM creates second task
     {
-      delay: 7000,
+      delay: 5500,
       state: addMessageAndTask(
         {
           type: 'agent',
           sender: 'pm',
-          content: 'Next up: API endpoints for inventory operations.',
-          taskRef: 'BAAP-2',
-          action: { label: 'Created BAAP-2', status: 'success' }
+          content: 'Next priority: API endpoints for inventory operations.',
+          action: { type: 'created', status: 'success', label: 'createTask', subject: 'BAAP-2' }
         },
         { key: 'BAAP-2', title: 'Inventory tracking API', type: 'api', priority: 'high', status: 'todo', assignee: 'engineer' }
       )
     },
-    // Engineer starts on BAAP-1
+    // Engineer starts working on BAAP-1 (typing indicator + task moves to in-progress)
     {
-      delay: 9000,
-      state: addMessageAndUpdateTask(
-        {
-          type: 'agent',
-          sender: 'engineer',
-          content: 'Taking BAAP-1. Setting up PostgreSQL schema with proper indexing for product lookups.',
-          taskRef: 'BAAP-1'
-        },
-        'BAAP-1',
-        'in-progress'
-      )
+      delay: 7500,
+      state: setTypingAndUpdateTask('engineer', 'Setting up PostgreSQL schema...', 'BAAP-1', 'in-progress')
+    },
+    // Engineer posts progress
+    {
+      delay: 9500,
+      state: addMessageClearTyping({
+        type: 'agent',
+        sender: 'engineer',
+        content: 'Schema designed with tables: products, inventory_levels, warehouses, stock_movements. Adding indexes for product lookups.',
+        action: { type: 'started', status: 'pending', label: 'writeCode', subject: 'BAAP-1' }
+      })
     },
     // PM creates third task
     {
-      delay: 11000,
+      delay: 11500,
       state: addMessageAndTask(
         {
           type: 'agent',
           sender: 'pm',
-          content: 'Adding the POS interface task for the counter staff.',
-          taskRef: 'BAAP-3',
-          action: { label: 'Created BAAP-3', status: 'success' }
+          content: 'Adding POS interface task for counter staff.',
+          action: { type: 'created', status: 'success', label: 'createTask', subject: 'BAAP-3' }
         },
         { key: 'BAAP-3', title: 'POS counter interface', type: 'frontend', priority: 'medium', status: 'todo', assignee: 'engineer' }
       )
     },
     // Engineer completes BAAP-1
     {
-      delay: 13000,
+      delay: 13500,
       state: addMessageAndUpdateTask(
         {
           type: 'agent',
           sender: 'engineer',
-          content: 'Database schema complete. Tables: products, inventory_levels, warehouses, stock_movements.',
-          taskRef: 'BAAP-1',
-          action: { label: 'Completed BAAP-1', status: 'success' }
+          content: 'Database schema complete. All migrations passing.',
+          action: { type: 'completed', status: 'success', label: 'completeTask', subject: 'BAAP-1' }
         },
         'BAAP-1',
         'done'
       )
     },
-    // Engineer starts BAAP-2
+    // Engineer starts BAAP-2 (typing indicator + task moves)
     {
-      delay: 15000,
-      state: addMessageAndUpdateTask(
-        {
-          type: 'agent',
-          sender: 'engineer',
-          content: 'Moving to BAAP-2. Building REST endpoints with Express and TypeScript.',
-          taskRef: 'BAAP-2'
-        },
-        'BAAP-2',
-        'in-progress'
-      )
+      delay: 15500,
+      state: setTypingAndUpdateTask('engineer', 'Building REST endpoints...', 'BAAP-2', 'in-progress')
     },
     // PM creates fourth task
     {
-      delay: 17000,
+      delay: 17500,
       state: addMessageAndTask(
         {
           type: 'agent',
           sender: 'pm',
-          content: 'Final task for MVP: automated reorder alerts when stock is low.',
-          taskRef: 'BAAP-4',
-          action: { label: 'Created BAAP-4', status: 'success' }
+          content: 'Final MVP task: automated reorder alerts when stock is low.',
+          action: { type: 'created', status: 'success', label: 'createTask', subject: 'BAAP-4' }
         },
         { key: 'BAAP-4', title: 'Reorder alert system', type: 'backend', priority: 'medium', status: 'todo', assignee: 'engineer' }
       )
     },
     // Engineer completes BAAP-2
     {
-      delay: 19000,
+      delay: 19500,
       state: addMessageAndUpdateTask(
         {
           type: 'agent',
           sender: 'engineer',
-          content: 'API complete. Endpoints: GET/POST/PUT/DELETE for products, inventory levels, and stock transfers.',
-          taskRef: 'BAAP-2',
-          action: { label: 'Completed BAAP-2', status: 'success' }
+          content: 'API complete. Endpoints: GET/POST/PUT/DELETE for products, inventory, and transfers.',
+          action: { type: 'completed', status: 'success', label: 'completeTask', subject: 'BAAP-2' }
         },
         'BAAP-2',
         'done'
@@ -201,13 +197,23 @@ interface AgentWorkspaceDemoProps {
 
 export function AgentWorkspaceDemo({ autoPlay = false, loop = false, loopDelay = 3000 }: AgentWorkspaceDemoProps) {
   const { state } = useStoryPlayer(workspaceStory, { autoPlay, loop, loopDelay })
+  const prevTaskCountRef = useRef(state.tasks.length)
+
+  // Reset animation cache when story resets (tasks go from >0 to 0)
+  useEffect(() => {
+    if (prevTaskCountRef.current > 0 && state.tasks.length === 0) {
+      resetTaskAnimationCache()
+    }
+    prevTaskCountRef.current = state.tasks.length
+  }, [state.tasks.length])
 
   // Convert messages to ChatState format (single channel view)
   const chatState: ChatState = {
     channels: [
       { id: 'project', name: 'project-baap-inventory', messages: state.messages }
     ],
-    activeChannelId: 'project'
+    activeChannelId: 'project',
+    typing: state.typing
   }
 
   return (

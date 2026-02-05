@@ -1,5 +1,5 @@
 import type { TaskPriority } from '../../task-board/types'
-import styles from './PriorityBadge.module.css'
+import { Badge, type BadgeVariant } from '../Badge'
 
 interface PriorityBadgeProps {
   priority: TaskPriority
@@ -12,10 +12,17 @@ const priorityLabels: Record<TaskPriority, string> = {
   critical: 'Critical'
 }
 
+const priorityVariants: Record<TaskPriority, BadgeVariant> = {
+  low: 'green',
+  medium: 'orange',
+  high: 'red',
+  critical: 'pink'
+}
+
 export function PriorityBadge({ priority }: PriorityBadgeProps) {
   return (
-    <span className={`${styles.badge} ${styles[priority]}`}>
+    <Badge variant={priorityVariants[priority]} size="sm">
       {priorityLabels[priority]}
-    </span>
+    </Badge>
   )
 }

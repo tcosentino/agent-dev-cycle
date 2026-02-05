@@ -1,5 +1,5 @@
 import type { TaskType } from '../../task-board/types'
-import styles from './TypeBadge.module.css'
+import { Badge } from '../Badge'
 
 interface TypeBadgeProps {
   type: TaskType
@@ -15,8 +15,8 @@ const typeLabels: Record<TaskType, string> = {
 
 export function TypeBadge({ type }: TypeBadgeProps) {
   return (
-    <span className={styles.badge}>
+    <Badge variant="red" size="sm">
       {typeLabels[type]}
-    </span>
+    </Badge>
   )
 }

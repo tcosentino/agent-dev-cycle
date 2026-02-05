@@ -36,7 +36,7 @@ const chatStory: Story<ChatState> = {
         type: 'agent',
         sender: 'pm',
         content: 'Starting work on the inventory system. First up: product database schema.',
-        taskRef: 'BAAP-1'
+        action: { type: 'assigned', status: 'success', label: 'Assigned', subject: 'BAAP-1' }
       })
     },
     {
@@ -44,7 +44,8 @@ const chatStory: Story<ChatState> = {
       state: addMessage({
         type: 'agent',
         sender: 'engineer',
-        content: 'On it. Setting up the PostgreSQL schema with proper indexing for product lookups.'
+        content: 'On it. Setting up the PostgreSQL schema with proper indexing for product lookups.',
+        action: { type: 'started', status: 'pending', label: 'Started', subject: 'BAAP-1' }
       })
     },
     {
@@ -53,8 +54,7 @@ const chatStory: Story<ChatState> = {
         type: 'agent',
         sender: 'engineer',
         content: 'Database schema complete. Tables created: products, inventory_levels, warehouses, and stock_movements.',
-        taskRef: 'BAAP-1',
-        action: { label: 'Created database schema', status: 'success' }
+        action: { type: 'completed', status: 'success', label: 'Completed', subject: 'BAAP-1' }
       })
     },
     {
@@ -62,9 +62,8 @@ const chatStory: Story<ChatState> = {
       state: addMessage({
         type: 'agent',
         sender: 'pm',
-        content: 'Great progress! Moving BAAP-1 to done. Starting the inventory tracking API next.',
-        taskRef: 'BAAP-2',
-        action: { label: 'Moved BAAP-1 to Done', status: 'success' }
+        content: 'Great progress! Starting the inventory tracking API next.',
+        action: { type: 'created', status: 'success', label: 'Created', subject: 'BAAP-2' }
       })
     },
     {
@@ -72,7 +71,8 @@ const chatStory: Story<ChatState> = {
       state: addMessage({
         type: 'agent',
         sender: 'engineer',
-        content: 'Building REST endpoints for inventory CRUD operations. Using Express with TypeScript.'
+        content: 'Building REST endpoints for inventory CRUD operations. Using Express with TypeScript.',
+        action: { type: 'started', status: 'pending', label: 'Started', subject: 'BAAP-2' }
       })
     }
   ]
