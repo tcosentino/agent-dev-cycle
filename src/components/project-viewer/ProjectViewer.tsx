@@ -330,6 +330,7 @@ function ContentPreview({ path, content }: { path: string; content: string }) {
 }
 
 type TabType = 'file' | 'table'
+type PaneId = 'left' | 'right'
 
 interface OpenTab {
   id: string
@@ -337,6 +338,7 @@ interface OpenTab {
   path: string // file path or table name
   label: string
   icon?: ReactNode
+  pane: PaneId
 }
 
 const TABLE_NAMES: DbTableName[] = ['projects', 'tasks', 'channels', 'messages', 'agentStatus', 'sessions']
@@ -486,13 +488,19 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const projectNames = useMemo(() => Object.keys(projects).sort(), [projects])
   const [activeProject, setActiveProject] = useState(projectNames[0] || '')
   const [openTabs, setOpenTabs] = useState<OpenTab[]>([])
-  const [activeTabId, setActiveTabId] = useState<string | null>(null)
+  const [activeTabIds, setActiveTabIds] = useState<Record<PaneId, string | null>>({ left: null, right: null })
+  const [activePane, setActivePane] = useState<PaneId>('left')
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
   const [selectedDbRows, setSelectedDbRows] = useState<Record<string, number | null>>({})
 
   const files = projects[activeProject] || {}
   const snapshot = dbData[activeProject]
   const tree = useMemo(() => buildFileTree(files), [files])
+
+  // Split tabs by pane
+  const leftTabs = useMemo(() => openTabs.filter(t => t.pane === 'left'), [openTabs])
+  const rightTabs = useMemo(() => openTabs.filter(t => t.pane === 'right'), [openTabs])
+  const hasRightPane = rightTabs.length > 0
 
   // Set default expanded folders when tree changes
   useMemo(() => {
@@ -508,87 +516,181 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     })
   }, [])
 
+  const openInPane = useCallback((type: TabType, path: string, targetPane: PaneId) => {
+    const tabId = `${type}:${path}`
+
+    // Check if tab already exists in any pane
+    const existingTab = openTabs.find(t => t.id === tabId)
+    if (existingTab) {
+      // Just activate it
+      setActiveTabIds(prev => ({ ...prev, [existingTab.pane]: tabId }))
+      setActivePane(existingTab.pane)
+      return
+    }
+
+    // Create new tab
+    const label = type === 'file'
+      ? (path.split('/').pop() || path)
+      : TABLE_LABELS[path as DbTableName]
+    const icon = type === 'file'
+      ? getFileIcon(path, categorizeFile(path))
+      : <DatabaseIcon />
+
+    setOpenTabs(prev => [...prev, {
+      id: tabId,
+      type,
+      path,
+      label,
+      icon,
+      pane: targetPane,
+    }])
+    setActiveTabIds(prev => ({ ...prev, [targetPane]: tabId }))
+    setActivePane(targetPane)
+  }, [openTabs])
+
   const openFile = useCallback((path: string) => {
-    const tabId = `file:${path}`
-    setOpenTabs(prev => {
-      if (prev.some(t => t.id === tabId)) return prev
-      const category = categorizeFile(path)
-      const label = path.split('/').pop() || path
-      return [...prev, {
-        id: tabId,
-        type: 'file' as const,
-        path,
-        label,
-        icon: getFileIcon(path, category),
-      }]
-    })
-    setActiveTabId(tabId)
-  }, [])
+    openInPane('file', path, activePane)
+  }, [openInPane, activePane])
 
   const openTable = useCallback((tableName: DbTableName) => {
-    const tabId = `table:${tableName}`
-    setOpenTabs(prev => {
-      if (prev.some(t => t.id === tabId)) return prev
-      return [...prev, {
-        id: tabId,
-        type: 'table' as const,
-        path: tableName,
-        label: TABLE_LABELS[tableName],
-        icon: <DatabaseIcon />,
-      }]
-    })
-    setActiveTabId(tabId)
+    openInPane('table', tableName, activePane)
+  }, [openInPane, activePane])
+
+  const splitToRight = useCallback((tabId: string) => {
+    setOpenTabs(prev => prev.map(t =>
+      t.id === tabId ? { ...t, pane: 'right' as PaneId } : t
+    ))
+    setActiveTabIds(prev => ({ ...prev, right: tabId }))
+    setActivePane('right')
   }, [])
 
-  const closeTab = useCallback((tabId: string) => {
+  const closeTab = useCallback((tabId: string, pane: PaneId) => {
     setOpenTabs(prev => {
-      const idx = prev.findIndex(t => t.id === tabId)
+      const paneTabs = prev.filter(t => t.pane === pane)
+      const idx = paneTabs.findIndex(t => t.id === tabId)
       const newTabs = prev.filter(t => t.id !== tabId)
-      if (activeTabId === tabId && newTabs.length > 0) {
-        // Activate adjacent tab
-        const newIdx = Math.min(idx, newTabs.length - 1)
-        setActiveTabId(newTabs[newIdx].id)
-      } else if (newTabs.length === 0) {
-        setActiveTabId(null)
+      const newPaneTabs = newTabs.filter(t => t.pane === pane)
+
+      if (activeTabIds[pane] === tabId) {
+        if (newPaneTabs.length > 0) {
+          const newIdx = Math.min(idx, newPaneTabs.length - 1)
+          setActiveTabIds(p => ({ ...p, [pane]: newPaneTabs[newIdx].id }))
+        } else {
+          setActiveTabIds(p => ({ ...p, [pane]: null }))
+          // If closing right pane's last tab, switch focus to left
+          if (pane === 'right') {
+            setActivePane('left')
+          }
+        }
       }
       return newTabs
     })
-  }, [activeTabId])
+  }, [activeTabIds])
 
   const handleProjectChange = useCallback((name: string) => {
     setActiveProject(name)
     setOpenTabs([])
-    setActiveTabId(null)
+    setActiveTabIds({ left: null, right: null })
+    setActivePane('left')
     setSelectedDbRows({})
   }, [])
 
-  const activeTab = openTabs.find(t => t.id === activeTabId)
-  const selectedFilePath = activeTab?.type === 'file' ? activeTab.path : null
+  const selectTab = useCallback((tabId: string, pane: PaneId) => {
+    setActiveTabIds(prev => ({ ...prev, [pane]: tabId }))
+    setActivePane(pane)
+  }, [])
 
-  // Convert OpenTab[] to Tab[] for TabbedPane
-  const tabs: Tab[] = openTabs.map(t => ({
+  // Reorder tab within the same pane
+  const reorderTab = useCallback((pane: PaneId, tabId: string, targetIndex: number) => {
+    setOpenTabs(prev => {
+      const paneTabs = prev.filter(t => t.pane === pane)
+      const otherTabs = prev.filter(t => t.pane !== pane)
+      const tabToMove = paneTabs.find(t => t.id === tabId)
+      if (!tabToMove) return prev
+
+      const filteredPaneTabs = paneTabs.filter(t => t.id !== tabId)
+      const newPaneTabs = [
+        ...filteredPaneTabs.slice(0, targetIndex),
+        tabToMove,
+        ...filteredPaneTabs.slice(targetIndex),
+      ]
+      return [...otherTabs, ...newPaneTabs]
+    })
+  }, [])
+
+  // Move tab from one pane to another
+  const moveTabToPane = useCallback((tabId: string, sourcePane: string, targetPane: PaneId, targetIndex: number) => {
+    setOpenTabs(prev => {
+      const tab = prev.find(t => t.id === tabId)
+      if (!tab) return prev
+
+      // Remove from source, add to target at index
+      const withoutTab = prev.filter(t => t.id !== tabId)
+      const targetPaneTabs = withoutTab.filter(t => t.pane === targetPane)
+      const otherTabs = withoutTab.filter(t => t.pane !== targetPane)
+
+      const updatedTab = { ...tab, pane: targetPane }
+      const newTargetTabs = [
+        ...targetPaneTabs.slice(0, targetIndex),
+        updatedTab,
+        ...targetPaneTabs.slice(targetIndex),
+      ]
+
+      // Update active tab for source pane if needed
+      if (sourcePane === 'left' || sourcePane === 'right') {
+        const sourcePaneTabs = withoutTab.filter(t => t.pane === sourcePane)
+        if (activeTabIds[sourcePane as PaneId] === tabId) {
+          if (sourcePaneTabs.length > 0) {
+            setActiveTabIds(p => ({ ...p, [sourcePane]: sourcePaneTabs[0].id }))
+          } else {
+            setActiveTabIds(p => ({ ...p, [sourcePane]: null }))
+            if (sourcePane === 'right') {
+              setActivePane('left')
+            }
+          }
+        }
+      }
+
+      // Set active tab in target pane
+      setActiveTabIds(p => ({ ...p, [targetPane]: tabId }))
+      setActivePane(targetPane)
+
+      return [...otherTabs, ...newTargetTabs]
+    })
+  }, [activeTabIds])
+
+  // Get active tabs for each pane
+  const activeLeftTab = leftTabs.find(t => t.id === activeTabIds.left)
+  const activeRightTab = rightTabs.find(t => t.id === activeTabIds.right)
+
+  // Selected file is from the currently focused pane
+  const focusedTab = activePane === 'left' ? activeLeftTab : activeRightTab
+  const selectedFilePath = focusedTab?.type === 'file' ? focusedTab.path : null
+
+  // Convert to Tab[] for TabbedPane
+  const toTabs = (tabs: OpenTab[]): Tab[] => tabs.map(t => ({
     id: t.id,
     label: t.label,
     icon: t.icon,
     closable: true,
   }))
 
-  // Render active tab content
-  const renderTabContent = () => {
-    if (!activeTab) return null
+  // Render tab content for a given tab
+  const renderTabContent = (tab: OpenTab | undefined) => {
+    if (!tab) return null
 
-    if (activeTab.type === 'file') {
-      const content = files[activeTab.path]
+    if (tab.type === 'file') {
+      const content = files[tab.path]
       if (content == null) return <div className={styles.emptyState}>File not found</div>
       return (
         <div className={styles.tabContentInner}>
-          <ContentPreview path={activeTab.path} content={content} />
+          <ContentPreview path={tab.path} content={content} />
         </div>
       )
     }
 
-    if (activeTab.type === 'table' && snapshot) {
-      const tableName = activeTab.path as DbTableName
+    if (tab.type === 'table' && snapshot) {
+      const tableName = tab.path as DbTableName
       const selectedRow = selectedDbRows[tableName] ?? null
       return (
         <DatabaseTableView
@@ -642,7 +744,7 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
                 {TABLE_NAMES.map(name => (
                   <button
                     key={name}
-                    className={`${styles.tableItem} ${activeTab?.type === 'table' && activeTab.path === name ? styles.tableItemActive : ''}`}
+                    className={`${styles.tableItem} ${focusedTab?.type === 'table' && focusedTab.path === name ? styles.tableItemActive : ''}`}
                     onClick={() => openTable(name)}
                   >
                     <span className={styles.tableName}>{TABLE_LABELS[name]}</span>
@@ -653,16 +755,47 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
             </div>
           )}
         </div>
-        <div className={styles.mainContent}>
-          <TabbedPane
-            tabs={tabs}
-            activeTabId={activeTabId}
-            onTabSelect={setActiveTabId}
-            onTabClose={closeTab}
-            emptyState="Select a file or table to view"
+        <div className={styles.editorArea}>
+          <div
+            className={`${styles.editorPane} ${activePane === 'left' ? styles.editorPaneActive : ''}`}
+            onClick={() => setActivePane('left')}
           >
-            {renderTabContent()}
-          </TabbedPane>
+            <TabbedPane
+              tabs={toTabs(leftTabs)}
+              activeTabId={activeTabIds.left}
+              onTabSelect={(id) => selectTab(id, 'left')}
+              onTabClose={(id) => closeTab(id, 'left')}
+              emptyState="Select a file or table to view"
+              onSplitRight={splitToRight}
+              paneId="left"
+              onTabDrop={(tabId, targetIndex) => reorderTab('left', tabId, targetIndex)}
+              onTabDropFromOtherPane={(tabId, sourcePane, targetIndex) => moveTabToPane(tabId, sourcePane, 'left', targetIndex)}
+            >
+              {renderTabContent(activeLeftTab)}
+            </TabbedPane>
+          </div>
+          {hasRightPane && (
+            <>
+              <div className={styles.editorSplitter} />
+              <div
+                className={`${styles.editorPane} ${activePane === 'right' ? styles.editorPaneActive : ''}`}
+                onClick={() => setActivePane('right')}
+              >
+                <TabbedPane
+                  tabs={toTabs(rightTabs)}
+                  activeTabId={activeTabIds.right}
+                  onTabSelect={(id) => selectTab(id, 'right')}
+                  onTabClose={(id) => closeTab(id, 'right')}
+                  emptyState="Drop tabs here"
+                  paneId="right"
+                  onTabDrop={(tabId, targetIndex) => reorderTab('right', tabId, targetIndex)}
+                  onTabDropFromOtherPane={(tabId, sourcePane, targetIndex) => moveTabToPane(tabId, sourcePane, 'right', targetIndex)}
+                >
+                  {renderTabContent(activeRightTab)}
+                </TabbedPane>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

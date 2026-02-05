@@ -5,6 +5,11 @@
   min-height: 0;
 }
 
+.containerDragOver {
+  outline: 2px dashed var(--accent-tertiary);
+  outline-offset: -2px;
+}
+
 .tabBar {
   display: flex;
   align-items: stretch;
@@ -25,11 +30,20 @@
   background: transparent;
   border: none;
   border-right: 1px solid var(--border-color);
-  cursor: pointer;
+  cursor: grab;
   white-space: nowrap;
   transition: all var(--transition-fast);
   min-width: 0;
   max-width: 200px;
+}
+
+.tab:active {
+  cursor: grabbing;
+}
+
+.tabDragOver {
+  border-left: 2px solid var(--accent-tertiary);
+  padding-left: 10px;
 }
 
 .tab:hover {
@@ -64,6 +78,7 @@
   white-space: nowrap;
 }
 
+.tabSplit,
 .tabClose {
   display: flex;
   align-items: center;
@@ -71,7 +86,7 @@
   width: 16px;
   height: 16px;
   padding: 0;
-  margin-left: 4px;
+  margin-left: 2px;
   background: transparent;
   border: none;
   border-radius: var(--radius-xs);
@@ -82,19 +97,33 @@
   flex-shrink: 0;
 }
 
+.tab:hover .tabSplit,
 .tab:hover .tabClose,
+.tabActive .tabSplit,
 .tabActive .tabClose {
   opacity: 1;
 }
 
+.tabSplit:hover,
 .tabClose:hover {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
 }
 
+.tabSplitIcon,
 .tabCloseIcon {
   width: 12px;
   height: 12px;
+}
+
+.tabDropZone {
+  flex: 1;
+  min-width: 20px;
+}
+
+.tabDropZoneActive {
+  background: rgba(14, 165, 233, 0.1);
+  border-left: 2px solid var(--accent-tertiary);
 }
 
 .content {

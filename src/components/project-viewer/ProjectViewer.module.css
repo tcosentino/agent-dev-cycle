@@ -508,7 +508,34 @@
   border-bottom-color: var(--accent-tertiary);
 }
 
-/* Main content area (right of sidebar) */
+/* Editor area (right of sidebar) */
+.editorArea {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+}
+
+.editorPane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0.85;
+  transition: opacity var(--transition-fast);
+}
+
+.editorPaneActive {
+  opacity: 1;
+}
+
+.editorSplitter {
+  width: 1px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
+/* Legacy - keeping for compatibility */
 .mainContent {
   flex: 1;
   min-width: 0;
