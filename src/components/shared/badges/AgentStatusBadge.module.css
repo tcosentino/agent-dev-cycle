@@ -1,0 +1,26 @@
+@import '../tokens.css';
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* Size variants for label only */
+.sm .label {
+  font-size: 0.7rem;
+}
+
+.md .label {
+  font-size: 0.8rem;
+}
+
+.lg .label {
+  font-size: 0.9rem;
+}
+
+.label {
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-weight: 500;
+}

@@ -1,0 +1,204 @@
+@import '../shared/tokens.css';
+
+/* Search input */
+.searchInput {
+  width: 100%;
+  max-width: 300px;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
+
+.searchInput:focus {
+  border-color: var(--accent-primary);
+}
+
+/* Category icons in sidebar */
+.categoryIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.categoryIcon.codebase {
+  color: var(--engineer-color);
+}
+
+.categoryIcon.external {
+  color: var(--accent-tertiary);
+}
+
+.categoryIcon.decision {
+  color: var(--lead-color);
+}
+
+.categoryIcon.blocker {
+  color: var(--accent-red);
+}
+
+/* Empty state */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: var(--space-sm);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+.emptyIcon {
+  width: 48px;
+  height: 48px;
+  opacity: 0.5;
+}
+
+/* Entry card */
+.entryCard {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.entryCard:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-tertiary);
+}
+
+.entryHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.entryCategoryBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.entryCategoryBadge.codebase {
+  background: rgba(14, 165, 233, 0.15);
+  color: var(--engineer-color);
+}
+
+.entryCategoryBadge.external {
+  background: rgba(14, 165, 233, 0.15);
+  color: var(--accent-tertiary);
+}
+
+.entryCategoryBadge.decision {
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--lead-color);
+}
+
+.entryCategoryBadge.blocker {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--accent-red);
+}
+
+.entryTitle {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.entrySummary {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.entryMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.entryAgent {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.entrySource {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--accent-tertiary);
+}
+
+.entrySourceIcon {
+  width: 12px;
+  height: 12px;
+}
+
+.entryTags {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.entryTag {
+  padding: 2px 6px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+/* Related tasks */
+.entryRelatedTasks {
+  display: flex;
+  gap: 4px;
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-color);
+}
+
+.taskLink {
+  padding: 2px 8px;
+  background: rgba(96, 165, 250, 0.15);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+
+.taskLink:hover {
+  background: rgba(96, 165, 250, 0.25);
+}
