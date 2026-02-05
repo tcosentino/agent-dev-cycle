@@ -50,7 +50,8 @@ export function Nav({ currentPage = 'demo' }: NavProps) {
             </svg>
           </button>
           <div className={`nav-dropdown-menu ${dropdownOpen ? 'open' : ''}`}>
-            <a href="/component-preview.html" className="nav-dropdown-item">Task Board</a>
+            <a href="/component-preview.html" className="nav-dropdown-item">Component Preview</a>
+            <a href="/mockups.html" className="nav-dropdown-item">UI Mockups</a>
           </div>
         </div>
       </div>
