@@ -1,0 +1,11 @@
+name: 'TaskFlow - Personal Task Manager'
+key: 'TF'
+customer: 'Acme Consulting'
+created: '2026-01-20'
+phase: 'building'
+tier: 'starter'
+stack:
+  language: 'typescript'
+  framework: 'next'
+  database: 'sqlite'
+  deployment: 'vercel'

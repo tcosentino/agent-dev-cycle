@@ -1,0 +1,18 @@
+phase: 'building'
+currentSprint: 1
+milestones:
+  - id: 'discovery'
+    status: 'completed'
+    completedAt: '2026-01-20T08:00:00Z'
+  - id: 'shaping'
+    status: 'completed'
+    completedAt: '2026-01-20T12:00:00Z'
+  - id: 'building'
+    status: 'in-progress'
+  - id: 'delivery'
+    status: 'pending'
+nextActions:
+  - 'Implement task CRUD API routes'
+  - 'Build list view UI component'
+lastAgent: 'engineer'
+lastRunAt: '2026-01-20T14:30:00Z'

@@ -1,0 +1,12 @@
+pm:
+  model: 'sonnet'
+  maxTokens: 50000
+engineer:
+  model: 'sonnet'
+  maxTokens: 50000
+qa:
+  model: 'haiku'
+  maxTokens: 20000
+lead:
+  model: 'opus'
+  maxTokens: 100000
