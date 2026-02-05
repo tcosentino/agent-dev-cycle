@@ -10,7 +10,7 @@
   ],
   "tasks": [
     {
-      "id": "task-1",
+      "id": "st-task-1",
       "projectId": "proj-st",
       "key": "ST-1",
       "title": "Design SKU encoding scheme",
@@ -23,7 +23,7 @@
       "updatedAt": "2026-01-10T09:30:00Z"
     },
     {
-      "id": "task-2",
+      "id": "st-task-2",
       "projectId": "proj-st",
       "key": "ST-2",
       "title": "Create database schema and migrations",
@@ -36,7 +36,7 @@
       "updatedAt": "2026-01-11T15:00:00Z"
     },
     {
-      "id": "task-3",
+      "id": "st-task-3",
       "projectId": "proj-st",
       "key": "ST-3",
       "title": "Implement barcode scanning input",
@@ -49,7 +49,7 @@
       "updatedAt": "2026-01-13T09:45:00Z"
     },
     {
-      "id": "task-4",
+      "id": "st-task-4",
       "projectId": "proj-st",
       "key": "ST-4",
       "title": "Build inventory lookup API",
@@ -62,7 +62,7 @@
       "updatedAt": "2026-01-13T09:45:00Z"
     },
     {
-      "id": "task-5",
+      "id": "st-task-5",
       "projectId": "proj-st",
       "key": "ST-5",
       "title": "Build stock transfer workflow",
@@ -75,7 +75,7 @@
       "updatedAt": "2026-01-14T08:10:00Z"
     },
     {
-      "id": "task-6",
+      "id": "st-task-6",
       "projectId": "proj-st",
       "key": "ST-6",
       "title": "Implement low-stock email alerts",
@@ -87,7 +87,7 @@
       "updatedAt": "2026-01-14T08:10:00Z"
     },
     {
-      "id": "task-7",
+      "id": "st-task-7",
       "projectId": "proj-st",
       "key": "ST-7",
       "title": "Build reporting dashboard",
@@ -99,7 +99,7 @@
       "updatedAt": "2026-01-14T08:10:00Z"
     },
     {
-      "id": "task-8",
+      "id": "st-task-8",
       "projectId": "proj-st",
       "key": "ST-8",
       "title": "Test concurrent stock adjustments",
@@ -114,13 +114,13 @@
   ],
   "channels": [
     {
-      "id": "ch-general",
+      "id": "st-ch-general",
       "projectId": "proj-st",
       "name": "general",
       "createdAt": "2026-01-10T08:00:00Z"
     },
     {
-      "id": "ch-engineering",
+      "id": "st-ch-engineering",
       "projectId": "proj-st",
       "name": "engineering",
       "createdAt": "2026-01-10T08:00:00Z"
@@ -128,16 +128,16 @@
   ],
   "messages": [
     {
-      "id": "msg-1",
-      "channelId": "ch-general",
+      "id": "st-msg-1",
+      "channelId": "st-ch-general",
       "projectId": "proj-st",
       "type": "system",
       "content": "Project SoleTrack created. Starting discovery phase.",
       "createdAt": "2026-01-10T08:00:00Z"
     },
     {
-      "id": "msg-2",
-      "channelId": "ch-general",
+      "id": "st-msg-2",
+      "channelId": "st-ch-general",
       "projectId": "proj-st",
       "type": "agent",
       "sender": "pm",
@@ -149,8 +149,8 @@
       "createdAt": "2026-01-10T09:00:00Z"
     },
     {
-      "id": "msg-3",
-      "channelId": "ch-general",
+      "id": "st-msg-3",
+      "channelId": "st-ch-general",
       "projectId": "proj-st",
       "type": "agent",
       "sender": "lead",
@@ -163,8 +163,8 @@
       "createdAt": "2026-01-10T09:30:00Z"
     },
     {
-      "id": "msg-4",
-      "channelId": "ch-engineering",
+      "id": "st-msg-4",
+      "channelId": "st-ch-engineering",
       "projectId": "proj-st",
       "type": "agent",
       "sender": "engineer",
@@ -177,8 +177,8 @@
       "createdAt": "2026-01-11T15:00:00Z"
     },
     {
-      "id": "msg-5",
-      "channelId": "ch-engineering",
+      "id": "st-msg-5",
+      "channelId": "st-ch-engineering",
       "projectId": "proj-st",
       "type": "agent",
       "sender": "qa",
@@ -191,8 +191,8 @@
       "createdAt": "2026-01-12T09:00:00Z"
     },
     {
-      "id": "msg-6",
-      "channelId": "ch-engineering",
+      "id": "st-msg-6",
+      "channelId": "st-ch-engineering",
       "projectId": "proj-st",
       "type": "agent",
       "sender": "engineer",
@@ -205,8 +205,8 @@
       "createdAt": "2026-01-12T14:00:00Z"
     },
     {
-      "id": "msg-7",
-      "channelId": "ch-general",
+      "id": "st-msg-7",
+      "channelId": "st-ch-general",
       "projectId": "proj-st",
       "type": "agent",
       "sender": "engineer",
@@ -219,8 +219,8 @@
       "createdAt": "2026-01-13T09:45:00Z"
     },
     {
-      "id": "msg-8",
-      "channelId": "ch-general",
+      "id": "st-msg-8",
+      "channelId": "st-ch-general",
       "projectId": "proj-st",
       "type": "agent",
       "sender": "pm",
@@ -234,14 +234,14 @@
   ],
   "agentStatus": [
     {
-      "id": "as-1",
+      "id": "st-as-1",
       "projectId": "proj-st",
       "role": "pm",
       "status": "away",
       "lastActiveAt": "2026-01-14T08:10:00Z"
     },
     {
-      "id": "as-2",
+      "id": "st-as-2",
       "projectId": "proj-st",
       "role": "engineer",
       "status": "active",
@@ -249,14 +249,14 @@
       "lastActiveAt": "2026-01-14T16:00:00Z"
     },
     {
-      "id": "as-3",
+      "id": "st-as-3",
       "projectId": "proj-st",
       "role": "qa",
       "status": "away",
       "lastActiveAt": "2026-01-12T14:00:00Z"
     },
     {
-      "id": "as-4",
+      "id": "st-as-4",
       "projectId": "proj-st",
       "role": "lead",
       "status": "away",
@@ -265,7 +265,7 @@
   ],
   "sessions": [
     {
-      "id": "ses-1",
+      "id": "st-ses-1",
       "projectId": "proj-st",
       "runId": "run-001",
       "agent": "engineer",
@@ -275,7 +275,7 @@
       "completedAt": "2026-01-11T11:00:00Z"
     },
     {
-      "id": "ses-2",
+      "id": "st-ses-2",
       "projectId": "proj-st",
       "runId": "run-002",
       "agent": "engineer",
@@ -285,7 +285,7 @@
       "completedAt": "2026-01-11T15:00:00Z"
     },
     {
-      "id": "ses-3",
+      "id": "st-ses-3",
       "projectId": "proj-st",
       "runId": "run-003",
       "agent": "engineer",
@@ -295,7 +295,7 @@
       "completedAt": "2026-01-13T09:45:30Z"
     },
     {
-      "id": "ses-4",
+      "id": "st-ses-4",
       "projectId": "proj-st",
       "runId": "run-004",
       "agent": "pm",

@@ -18,3 +18,16 @@ export interface FileNode {
 }
 
 export type ProjectData = Record<string, Record<string, string>>
+
+export interface DbSnapshot {
+  projects: Record<string, unknown>[]
+  tasks: Record<string, unknown>[]
+  channels: Record<string, unknown>[]
+  messages: Record<string, unknown>[]
+  agentStatus: Record<string, unknown>[]
+  sessions: Record<string, unknown>[]
+}
+
+export type ProjectDbData = Record<string, DbSnapshot>
+
+export type DbTableName = keyof DbSnapshot

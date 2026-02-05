@@ -34,6 +34,37 @@
   border-color: var(--accent-tertiary);
 }
 
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.tab {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab:hover {
+  color: var(--text-secondary);
+}
+
+.tabActive {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
 .breadcrumb {
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -388,4 +419,87 @@
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Database table list */
+.tableItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  padding: 8px var(--space-md);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.tableItem:hover {
+  background: var(--bg-tertiary);
+}
+
+.tableItemActive {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.tableName {
+  font-weight: 500;
+}
+
+.tableCount {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+/* Data grid */
+.dataGrid {
+  overflow: auto;
+  max-height: 100%;
+}
+
+.dataTable {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.dataTable th,
+.dataTable td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dataTable th {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dataTable td {
+  color: var(--text-secondary);
+}
+
+.dataTable tr:hover td {
+  background: var(--bg-secondary);
 }

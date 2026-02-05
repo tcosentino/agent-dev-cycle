@@ -10,7 +10,7 @@ import {
   ClockIcon,
   CodeIcon,
 } from '../shared/icons'
-import type { FileNode, FileCategory, ProjectData } from './types'
+import type { FileNode, FileCategory, ProjectData, ProjectDbData, DbSnapshot, DbTableName } from './types'
 import styles from './ProjectViewer.module.css'
 
 // --- Utilities ---
@@ -342,19 +342,98 @@ function Breadcrumb({ path }: { path: string }) {
   )
 }
 
+type ViewMode = 'files' | 'database'
+
+const TABLE_NAMES: DbTableName[] = ['projects', 'tasks', 'channels', 'messages', 'agentStatus', 'sessions']
+
+const TABLE_LABELS: Record<DbTableName, string> = {
+  projects: 'Projects',
+  tasks: 'Tasks',
+  channels: 'Channels',
+  messages: 'Messages',
+  agentStatus: 'Agent Status',
+  sessions: 'Sessions',
+}
+
+function DatabaseView({ snapshot }: { snapshot: DbSnapshot }) {
+  const [selectedTable, setSelectedTable] = useState<DbTableName>('tasks')
+
+  const rows = snapshot[selectedTable] || []
+  const columns = useMemo(() => {
+    if (rows.length === 0) return []
+    return Object.keys(rows[0])
+  }, [rows])
+
+  const formatCell = (value: unknown): string => {
+    if (value === null || value === undefined) return ''
+    if (typeof value === 'string') {
+      // Truncate long strings
+      return value.length > 50 ? value.slice(0, 50) + '...' : value
+    }
+    return String(value)
+  }
+
+  return (
+    <>
+      <div className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>Tables</div>
+        {TABLE_NAMES.map(name => (
+          <button
+            key={name}
+            className={`${styles.tableItem} ${selectedTable === name ? styles.tableItemActive : ''}`}
+            onClick={() => setSelectedTable(name)}
+          >
+            <span className={styles.tableName}>{TABLE_LABELS[name]}</span>
+            <span className={styles.tableCount}>{snapshot[name]?.length || 0}</span>
+          </button>
+        ))}
+      </div>
+      <div className={styles.contentPane}>
+        {rows.length > 0 ? (
+          <div className={styles.dataGrid}>
+            <table className={styles.dataTable}>
+              <thead>
+                <tr>
+                  {columns.map(col => (
+                    <th key={col}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, i) => (
+                  <tr key={i}>
+                    {columns.map(col => (
+                      <td key={col}>{formatCell(row[col])}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className={styles.emptyState}>No rows in this table</div>
+        )}
+      </div>
+    </>
+  )
+}
+
 // --- Main Component ---
 
 interface ProjectViewerProps {
   projects: ProjectData
+  dbData: ProjectDbData
 }
 
-export function ProjectViewer({ projects }: ProjectViewerProps) {
+export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const projectNames = useMemo(() => Object.keys(projects).sort(), [projects])
   const [activeProject, setActiveProject] = useState(projectNames[0] || '')
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
+  const [viewMode, setViewMode] = useState<ViewMode>('files')
 
   const files = projects[activeProject] || {}
+  const snapshot = dbData[activeProject]
   const tree = useMemo(() => buildFileTree(files), [files])
 
   // Set default expanded folders when tree changes
@@ -394,30 +473,52 @@ export function ProjectViewer({ projects }: ProjectViewerProps) {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
-        {selectedFile && <Breadcrumb path={selectedFile} />}
+        <div className={styles.tabs}>
+          <button
+            className={`${styles.tab} ${viewMode === 'files' ? styles.tabActive : ''}`}
+            onClick={() => setViewMode('files')}
+          >
+            Files
+          </button>
+          <button
+            className={`${styles.tab} ${viewMode === 'database' ? styles.tabActive : ''}`}
+            onClick={() => setViewMode('database')}
+          >
+            Database
+          </button>
+        </div>
+        {viewMode === 'files' && selectedFile && <Breadcrumb path={selectedFile} />}
       </div>
       <div className={styles.splitPane}>
-        <div className={styles.sidebar}>
-          <div className={styles.sidebarHeader}>Files</div>
-          {tree.map(node => (
-            <FileTreeNode
-              key={node.path}
-              node={node}
-              depth={0}
-              expandedFolders={expandedFolders}
-              selectedFile={selectedFile}
-              onToggle={toggleFolder}
-              onSelect={selectFile}
-            />
-          ))}
-        </div>
-        <div className={styles.contentPane}>
-          {selectedFile && selectedContent != null ? (
-            <ContentPreview path={selectedFile} content={selectedContent} />
-          ) : (
-            <div className={styles.emptyState}>Select a file to preview</div>
-          )}
-        </div>
+        {viewMode === 'files' ? (
+          <>
+            <div className={styles.sidebar}>
+              <div className={styles.sidebarHeader}>Files</div>
+              {tree.map(node => (
+                <FileTreeNode
+                  key={node.path}
+                  node={node}
+                  depth={0}
+                  expandedFolders={expandedFolders}
+                  selectedFile={selectedFile}
+                  onToggle={toggleFolder}
+                  onSelect={selectFile}
+                />
+              ))}
+            </div>
+            <div className={styles.contentPane}>
+              {selectedFile && selectedContent != null ? (
+                <ContentPreview path={selectedFile} content={selectedContent} />
+              ) : (
+                <div className={styles.emptyState}>Select a file to preview</div>
+              )}
+            </div>
+          </>
+        ) : snapshot ? (
+          <DatabaseView snapshot={snapshot} />
+        ) : (
+          <div className={styles.emptyState}>No database snapshot for this project</div>
+        )}
       </div>
     </div>
   )
