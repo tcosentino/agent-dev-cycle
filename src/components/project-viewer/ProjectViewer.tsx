@@ -342,7 +342,12 @@ function Breadcrumb({ path }: { path: string }) {
   )
 }
 
-type ViewMode = 'files' | 'database'
+type SelectionType = 'file' | 'table'
+
+interface Selection {
+  type: SelectionType
+  path: string // file path or table name
+}
 
 const TABLE_NAMES: DbTableName[] = ['projects', 'tasks', 'channels', 'messages', 'agentStatus', 'sessions']
 
@@ -355,10 +360,62 @@ const TABLE_LABELS: Record<DbTableName, string> = {
   sessions: 'Sessions',
 }
 
-function DatabaseView({ snapshot }: { snapshot: DbSnapshot }) {
-  const [selectedTable, setSelectedTable] = useState<DbTableName>('tasks')
+function RecordDetailPanel({
+  record,
+  tableName,
+  onClose,
+}: {
+  record: Record<string, unknown>
+  tableName: string
+  onClose: () => void
+}) {
+  const formatValue = (value: unknown): string => {
+    if (value === null) return 'null'
+    if (value === undefined) return 'undefined'
+    if (typeof value === 'object') return JSON.stringify(value, null, 2)
+    return String(value)
+  }
 
-  const rows = snapshot[selectedTable] || []
+  return (
+    <div className={styles.detailPanel}>
+      <div className={styles.detailHeader}>
+        <span className={styles.detailTitle}>{tableName} Record</span>
+        <button className={styles.detailClose} onClick={onClose}>
+          <ChevronRightIcon className={styles.detailCloseIcon} />
+        </button>
+      </div>
+      <div className={styles.detailBody}>
+        {Object.entries(record).map(([key, value]) => (
+          <div key={key} className={styles.detailField}>
+            <div className={styles.detailLabel}>{key}</div>
+            <div className={styles.detailValue}>
+              {typeof value === 'object' && value !== null ? (
+                <pre className={styles.detailValueCode}>{formatValue(value)}</pre>
+              ) : (
+                formatValue(value)
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DatabaseTableView({
+  snapshot,
+  tableName,
+  selectedRow,
+  onSelectRow,
+  onCloseDetail,
+}: {
+  snapshot: DbSnapshot
+  tableName: DbTableName
+  selectedRow: number | null
+  onSelectRow: (row: number) => void
+  onCloseDetail: () => void
+}) {
+  const rows = snapshot[tableName] || []
   const columns = useMemo(() => {
     if (rows.length === 0) return []
     return Object.keys(rows[0])
@@ -367,28 +424,16 @@ function DatabaseView({ snapshot }: { snapshot: DbSnapshot }) {
   const formatCell = (value: unknown): string => {
     if (value === null || value === undefined) return ''
     if (typeof value === 'string') {
-      // Truncate long strings
       return value.length > 50 ? value.slice(0, 50) + '...' : value
     }
     return String(value)
   }
 
+  const selectedRecord = selectedRow !== null ? rows[selectedRow] : null
+
   return (
     <>
-      <div className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>Tables</div>
-        {TABLE_NAMES.map(name => (
-          <button
-            key={name}
-            className={`${styles.tableItem} ${selectedTable === name ? styles.tableItemActive : ''}`}
-            onClick={() => setSelectedTable(name)}
-          >
-            <span className={styles.tableName}>{TABLE_LABELS[name]}</span>
-            <span className={styles.tableCount}>{snapshot[name]?.length || 0}</span>
-          </button>
-        ))}
-      </div>
-      <div className={styles.contentPane}>
+      <div className={`${styles.contentPane} ${selectedRecord ? styles.contentPaneWithDetail : ''}`}>
         {rows.length > 0 ? (
           <div className={styles.dataGrid}>
             <table className={styles.dataTable}>
@@ -401,7 +446,11 @@ function DatabaseView({ snapshot }: { snapshot: DbSnapshot }) {
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={i}>
+                  <tr
+                    key={i}
+                    className={selectedRow === i ? styles.dataRowSelected : ''}
+                    onClick={() => onSelectRow(i)}
+                  >
                     {columns.map(col => (
                       <td key={col}>{formatCell(row[col])}</td>
                     ))}
@@ -414,6 +463,13 @@ function DatabaseView({ snapshot }: { snapshot: DbSnapshot }) {
           <div className={styles.emptyState}>No rows in this table</div>
         )}
       </div>
+      {selectedRecord && (
+        <RecordDetailPanel
+          record={selectedRecord}
+          tableName={TABLE_LABELS[tableName]}
+          onClose={onCloseDetail}
+        />
+      )}
     </>
   )
 }
@@ -428,9 +484,9 @@ interface ProjectViewerProps {
 export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const projectNames = useMemo(() => Object.keys(projects).sort(), [projects])
   const [activeProject, setActiveProject] = useState(projectNames[0] || '')
-  const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [selection, setSelection] = useState<Selection | null>(null)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
-  const [viewMode, setViewMode] = useState<ViewMode>('files')
+  const [selectedDbRow, setSelectedDbRow] = useState<number | null>(null)
 
   const files = projects[activeProject] || {}
   const snapshot = dbData[activeProject]
@@ -451,15 +507,29 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   }, [])
 
   const selectFile = useCallback((path: string) => {
-    setSelectedFile(path)
+    setSelection({ type: 'file', path })
+    setSelectedDbRow(null)
+  }, [])
+
+  const selectTable = useCallback((tableName: DbTableName) => {
+    setSelection({ type: 'table', path: tableName })
+    setSelectedDbRow(null)
   }, [])
 
   const handleProjectChange = useCallback((name: string) => {
     setActiveProject(name)
-    setSelectedFile(null)
+    setSelection(null)
+    setSelectedDbRow(null)
   }, [])
 
-  const selectedContent = selectedFile ? files[selectedFile] : null
+  const selectedContent = selection?.type === 'file' ? files[selection.path] : null
+
+  // Breadcrumb display
+  const breadcrumbText = selection?.type === 'file'
+    ? selection.path
+    : selection?.type === 'table'
+      ? `db / ${TABLE_LABELS[selection.path as DbTableName]}`
+      : null
 
   return (
     <div className={styles.container}>
@@ -473,51 +543,60 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
-        <div className={styles.tabs}>
-          <button
-            className={`${styles.tab} ${viewMode === 'files' ? styles.tabActive : ''}`}
-            onClick={() => setViewMode('files')}
-          >
-            Files
-          </button>
-          <button
-            className={`${styles.tab} ${viewMode === 'database' ? styles.tabActive : ''}`}
-            onClick={() => setViewMode('database')}
-          >
-            Database
-          </button>
-        </div>
-        {viewMode === 'files' && selectedFile && <Breadcrumb path={selectedFile} />}
+        {breadcrumbText && <Breadcrumb path={breadcrumbText} />}
       </div>
       <div className={styles.splitPane}>
-        {viewMode === 'files' ? (
-          <>
-            <div className={styles.sidebar}>
-              <div className={styles.sidebarHeader}>Files</div>
+        <div className={styles.sidebar}>
+          <div className={styles.sidebarSection}>
+            <div className={styles.sidebarHeader}>Files</div>
+            <div className={styles.sidebarContent}>
               {tree.map(node => (
                 <FileTreeNode
                   key={node.path}
                   node={node}
                   depth={0}
                   expandedFolders={expandedFolders}
-                  selectedFile={selectedFile}
+                  selectedFile={selection?.type === 'file' ? selection.path : null}
                   onToggle={toggleFolder}
                   onSelect={selectFile}
                 />
               ))}
             </div>
-            <div className={styles.contentPane}>
-              {selectedFile && selectedContent != null ? (
-                <ContentPreview path={selectedFile} content={selectedContent} />
-              ) : (
-                <div className={styles.emptyState}>Select a file to preview</div>
-              )}
+          </div>
+          {snapshot && (
+            <div className={styles.sidebarSection}>
+              <div className={styles.sidebarHeader}>Database</div>
+              <div className={styles.sidebarContent}>
+                {TABLE_NAMES.map(name => (
+                  <button
+                    key={name}
+                    className={`${styles.tableItem} ${selection?.type === 'table' && selection.path === name ? styles.tableItemActive : ''}`}
+                    onClick={() => selectTable(name)}
+                  >
+                    <span className={styles.tableName}>{TABLE_LABELS[name]}</span>
+                    <span className={styles.tableCount}>{snapshot[name]?.length || 0}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </>
-        ) : snapshot ? (
-          <DatabaseView snapshot={snapshot} />
+          )}
+        </div>
+        {selection?.type === 'file' && selectedContent != null ? (
+          <div className={styles.contentPane}>
+            <ContentPreview path={selection.path} content={selectedContent} />
+          </div>
+        ) : selection?.type === 'table' && snapshot ? (
+          <DatabaseTableView
+            snapshot={snapshot}
+            tableName={selection.path as DbTableName}
+            selectedRow={selectedDbRow}
+            onSelectRow={setSelectedDbRow}
+            onCloseDetail={() => setSelectedDbRow(null)}
+          />
         ) : (
-          <div className={styles.emptyState}>No database snapshot for this project</div>
+          <div className={styles.contentPane}>
+            <div className={styles.emptyState}>Select a file or table to view</div>
+          </div>
         )}
       </div>
     </div>
