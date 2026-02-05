@@ -52,6 +52,7 @@ export function Nav({ currentPage = 'demo' }: NavProps) {
           <div className={`nav-dropdown-menu ${dropdownOpen ? 'open' : ''}`}>
             <a href="/component-preview.html" className="nav-dropdown-item">Component Preview</a>
             <a href="/mockups.html" className="nav-dropdown-item">UI Mockups</a>
+            <a href="/project-viewer.html" className="nav-dropdown-item">Project Viewer</a>
           </div>
         </div>
       </div>

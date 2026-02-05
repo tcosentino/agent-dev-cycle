@@ -9,7 +9,8 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         'component-preview': resolve(__dirname, 'component-preview.html'),
-        mockups: resolve(__dirname, 'mockups.html')
+        mockups: resolve(__dirname, 'mockups.html'),
+        'project-viewer': resolve(__dirname, 'project-viewer.html')
       }
     }
   }

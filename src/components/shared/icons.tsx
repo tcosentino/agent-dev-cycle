@@ -143,6 +143,43 @@ export function LinkIcon(props: IconProps) {
 }
 
 // ============================================
+// Navigation / Tree Icons
+// ============================================
+
+export function ChevronRightIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  )
+}
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
+
+export function FolderIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+    </svg>
+  )
+}
+
+export function FolderOpenIcon(props: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <path d="M5 19a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 3h9a2 2 0 0 1 2 2v1" />
+      <path d="M5 12h16l-2 7H3l2-7z" />
+    </svg>
+  )
+}
+
+// ============================================
 // Knowledge Base Category Icons
 // ============================================
 
