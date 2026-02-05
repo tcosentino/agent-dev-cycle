@@ -289,6 +289,21 @@ function JsonlTimeline({ content }: { content: string }) {
   )
 }
 
+function JsonPreview({ content }: { content: string }) {
+  const html = useMemo(() => {
+    try {
+      const formatted = JSON.stringify(JSON.parse(content), null, 2)
+      return formatted
+        .replace(/("(?:\\.|[^"\\])*")\s*:/g, `<span class="${styles.yamlKey}">$1</span>:`)
+        .replace(/:\s*("(?:\\.|[^"\\])*")/g, `: <span class="${styles.yamlString}">$1</span>`)
+    } catch {
+      return content
+    }
+  }, [content])
+
+  return <pre className={styles.yamlContent} dangerouslySetInnerHTML={{ __html: html }} />
+}
+
 function RawTextPreview({ content }: { content: string }) {
   return <pre className={styles.rawContent}>{content}</pre>
 }
@@ -302,6 +317,8 @@ function ContentPreview({ path, content }: { path: string; content: string }) {
     case 'yaml':
     case 'yml':
       return <YamlPreview content={content} />
+    case 'json':
+      return <JsonPreview content={content} />
     case 'jsonl':
       return <JsonlTimeline content={content} />
     default:

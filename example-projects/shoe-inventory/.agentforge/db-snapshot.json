@@ -1,0 +1,308 @@
+{
+  "projects": [
+    {
+      "id": "proj-st",
+      "name": "SoleTrack - Shoe Inventory Management",
+      "key": "ST",
+      "repoUrl": "https://github.com/metro-kicks/soletrack",
+      "createdAt": "2026-01-10T08:00:00Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task-1",
+      "projectId": "proj-st",
+      "key": "ST-1",
+      "title": "Design SKU encoding scheme",
+      "description": "Define BRAND-MODEL-SIZE-COLOR format with half-size support",
+      "type": "backend",
+      "priority": "critical",
+      "status": "done",
+      "assignee": "lead",
+      "createdAt": "2026-01-10T09:00:00Z",
+      "updatedAt": "2026-01-10T09:30:00Z"
+    },
+    {
+      "id": "task-2",
+      "projectId": "proj-st",
+      "key": "ST-2",
+      "title": "Create database schema and migrations",
+      "description": "Brands, products, variants, locations, inventory, stock_movements tables with proper indexes",
+      "type": "database",
+      "priority": "critical",
+      "status": "done",
+      "assignee": "engineer",
+      "createdAt": "2026-01-10T10:00:00Z",
+      "updatedAt": "2026-01-11T15:00:00Z"
+    },
+    {
+      "id": "task-3",
+      "projectId": "proj-st",
+      "key": "ST-3",
+      "title": "Implement barcode scanning input",
+      "description": "Keyboard wedge pattern with 50ms debounce, wire to inventory lookup API",
+      "type": "frontend",
+      "priority": "high",
+      "status": "done",
+      "assignee": "engineer",
+      "createdAt": "2026-01-12T08:00:00Z",
+      "updatedAt": "2026-01-13T09:45:00Z"
+    },
+    {
+      "id": "task-4",
+      "projectId": "proj-st",
+      "key": "ST-4",
+      "title": "Build inventory lookup API",
+      "description": "GET /api/inventory/lookup?sku= returns variant + stock at all locations",
+      "type": "api",
+      "priority": "high",
+      "status": "done",
+      "assignee": "engineer",
+      "createdAt": "2026-01-12T08:00:00Z",
+      "updatedAt": "2026-01-13T09:45:00Z"
+    },
+    {
+      "id": "task-5",
+      "projectId": "proj-st",
+      "key": "ST-5",
+      "title": "Build stock transfer workflow",
+      "description": "UI and API for transferring stock between locations with ledger entries",
+      "type": "backend",
+      "priority": "high",
+      "status": "in-progress",
+      "assignee": "engineer",
+      "createdAt": "2026-01-14T08:10:00Z",
+      "updatedAt": "2026-01-14T08:10:00Z"
+    },
+    {
+      "id": "task-6",
+      "projectId": "proj-st",
+      "key": "ST-6",
+      "title": "Implement low-stock email alerts",
+      "description": "Configurable thresholds per variant, daily digest email to store managers",
+      "type": "backend",
+      "priority": "medium",
+      "status": "todo",
+      "createdAt": "2026-01-14T08:10:00Z",
+      "updatedAt": "2026-01-14T08:10:00Z"
+    },
+    {
+      "id": "task-7",
+      "projectId": "proj-st",
+      "key": "ST-7",
+      "title": "Build reporting dashboard",
+      "description": "Sales velocity, stock turnover, and low-stock frequency reports",
+      "type": "frontend",
+      "priority": "low",
+      "status": "todo",
+      "createdAt": "2026-01-14T08:10:00Z",
+      "updatedAt": "2026-01-14T08:10:00Z"
+    },
+    {
+      "id": "task-8",
+      "projectId": "proj-st",
+      "key": "ST-8",
+      "title": "Test concurrent stock adjustments",
+      "description": "Verify row-level locking prevents race conditions under concurrent writes",
+      "type": "testing",
+      "priority": "high",
+      "status": "done",
+      "assignee": "qa",
+      "createdAt": "2026-01-12T10:00:00Z",
+      "updatedAt": "2026-01-12T14:00:00Z"
+    }
+  ],
+  "channels": [
+    {
+      "id": "ch-general",
+      "projectId": "proj-st",
+      "name": "general",
+      "createdAt": "2026-01-10T08:00:00Z"
+    },
+    {
+      "id": "ch-engineering",
+      "projectId": "proj-st",
+      "name": "engineering",
+      "createdAt": "2026-01-10T08:00:00Z"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-1",
+      "channelId": "ch-general",
+      "projectId": "proj-st",
+      "type": "system",
+      "content": "Project SoleTrack created. Starting discovery phase.",
+      "createdAt": "2026-01-10T08:00:00Z"
+    },
+    {
+      "id": "msg-2",
+      "channelId": "ch-general",
+      "projectId": "proj-st",
+      "type": "agent",
+      "sender": "pm",
+      "senderName": "PM Agent",
+      "content": "Discovery complete. Metro Kicks needs real-time inventory across 2 stores + online. Key pain points: stockouts on popular sizes, day-long manual counts, no transfer tracking. Prioritizing: inventory tracking > transfers > alerts > reporting.",
+      "actionType": "analyzed",
+      "actionStatus": "success",
+      "actionLabel": "Discovery completed",
+      "createdAt": "2026-01-10T09:00:00Z"
+    },
+    {
+      "id": "msg-3",
+      "channelId": "ch-general",
+      "projectId": "proj-st",
+      "type": "agent",
+      "sender": "lead",
+      "senderName": "Lead Agent",
+      "content": "SKU encoding scheme defined: BRAND-MODEL-SIZE-COLOR (e.g., NK-AF1-10-WHT). Half sizes use H suffix. This enables barcode generation and consistent inventory lookups across all locations.",
+      "actionType": "created",
+      "actionStatus": "success",
+      "actionLabel": "Decision recorded",
+      "actionSubject": "ST-1",
+      "createdAt": "2026-01-10T09:30:00Z"
+    },
+    {
+      "id": "msg-4",
+      "channelId": "ch-engineering",
+      "projectId": "proj-st",
+      "type": "agent",
+      "sender": "engineer",
+      "senderName": "Engineer Agent",
+      "content": "Database schema complete. Six tables: brands, products, variants, locations, inventory, stock_movements. Using immutable ledger pattern for all stock changes. Row-level locking on inventory rows to prevent concurrent write issues.",
+      "actionType": "completed",
+      "actionStatus": "success",
+      "actionLabel": "Task completed",
+      "actionSubject": "ST-2",
+      "createdAt": "2026-01-11T15:00:00Z"
+    },
+    {
+      "id": "msg-5",
+      "channelId": "ch-engineering",
+      "projectId": "proj-st",
+      "type": "agent",
+      "sender": "qa",
+      "senderName": "QA Agent",
+      "content": "Found race condition in concurrent stock adjustments -- two staff adjusting same SKU simultaneously produced incorrect totals. Logged as blocker.",
+      "actionType": "created",
+      "actionStatus": "error",
+      "actionLabel": "Blocker found",
+      "actionSubject": "ST-2",
+      "createdAt": "2026-01-12T09:00:00Z"
+    },
+    {
+      "id": "msg-6",
+      "channelId": "ch-engineering",
+      "projectId": "proj-st",
+      "type": "agent",
+      "sender": "engineer",
+      "senderName": "Engineer Agent",
+      "content": "Fixed concurrency issue. Added SELECT FOR UPDATE locking and retry logic with exponential backoff. QA verified fix under concurrent load.",
+      "actionType": "completed",
+      "actionStatus": "success",
+      "actionLabel": "Blocker resolved",
+      "actionSubject": "ST-2",
+      "createdAt": "2026-01-12T14:00:00Z"
+    },
+    {
+      "id": "msg-7",
+      "channelId": "ch-general",
+      "projectId": "proj-st",
+      "type": "agent",
+      "sender": "engineer",
+      "senderName": "Engineer Agent",
+      "content": "Barcode scanning and inventory lookup are working end-to-end. Scanner input via keyboard wedge with 50ms debounce. Lookup returns variant details + stock at all locations. Ready for transfer workflow next.",
+      "actionType": "completed",
+      "actionStatus": "success",
+      "actionLabel": "Tasks completed",
+      "actionSubject": "ST-3, ST-4",
+      "createdAt": "2026-01-13T09:45:00Z"
+    },
+    {
+      "id": "msg-8",
+      "channelId": "ch-general",
+      "projectId": "proj-st",
+      "type": "agent",
+      "sender": "pm",
+      "senderName": "PM Agent",
+      "content": "Sprint 2 planning complete. Transfer workflow is the top priority -- Marcus specifically asked about it. Parking reporting for sprint 3. Created tasks ST-5, ST-6, ST-7.",
+      "actionType": "created",
+      "actionStatus": "success",
+      "actionLabel": "Sprint planned",
+      "createdAt": "2026-01-14T08:10:00Z"
+    }
+  ],
+  "agentStatus": [
+    {
+      "id": "as-1",
+      "projectId": "proj-st",
+      "role": "pm",
+      "status": "away",
+      "lastActiveAt": "2026-01-14T08:10:00Z"
+    },
+    {
+      "id": "as-2",
+      "projectId": "proj-st",
+      "role": "engineer",
+      "status": "active",
+      "currentTask": "ST-5",
+      "lastActiveAt": "2026-01-14T16:00:00Z"
+    },
+    {
+      "id": "as-3",
+      "projectId": "proj-st",
+      "role": "qa",
+      "status": "away",
+      "lastActiveAt": "2026-01-12T14:00:00Z"
+    },
+    {
+      "id": "as-4",
+      "projectId": "proj-st",
+      "role": "lead",
+      "status": "away",
+      "lastActiveAt": "2026-01-10T09:30:00Z"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "ses-1",
+      "projectId": "proj-st",
+      "runId": "run-001",
+      "agent": "engineer",
+      "phase": "building",
+      "summary": "Created database schema with 6 tables. Set up Drizzle ORM migrations.",
+      "startedAt": "2026-01-11T09:00:00Z",
+      "completedAt": "2026-01-11T11:00:00Z"
+    },
+    {
+      "id": "ses-2",
+      "projectId": "proj-st",
+      "runId": "run-002",
+      "agent": "engineer",
+      "phase": "building",
+      "summary": "Implemented core inventory CRUD. Added stock adjustment with row-level locking.",
+      "startedAt": "2026-01-11T13:00:00Z",
+      "completedAt": "2026-01-11T15:00:00Z"
+    },
+    {
+      "id": "ses-3",
+      "projectId": "proj-st",
+      "runId": "run-003",
+      "agent": "engineer",
+      "phase": "building",
+      "summary": "Implemented barcode scanning input component and inventory lookup API. Both working end-to-end.",
+      "startedAt": "2026-01-13T09:00:00Z",
+      "completedAt": "2026-01-13T09:45:30Z"
+    },
+    {
+      "id": "ses-4",
+      "projectId": "proj-st",
+      "runId": "run-004",
+      "agent": "pm",
+      "phase": "building",
+      "summary": "Daily planning. Reviewed engineering progress, updated daily log and task priorities.",
+      "startedAt": "2026-01-14T08:00:00Z",
+      "completedAt": "2026-01-14T08:10:30Z"
+    }
+  ]
+}
