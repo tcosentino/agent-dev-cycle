@@ -508,7 +508,39 @@
   border-bottom-color: var(--accent-tertiary);
 }
 
-/* Content pane with detail panel */
+/* Main content area (right of sidebar) */
+.mainContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabContentInner {
+  padding: var(--space-lg);
+  overflow: auto;
+  height: 100%;
+}
+
+/* Database view container (for tabbed content) */
+.dbViewContainer {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+}
+
+.dbTablePane {
+  flex: 1;
+  overflow: auto;
+  min-width: 0;
+}
+
+.dbTablePaneWithDetail {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Content pane with detail panel (legacy, keeping for compatibility) */
 .contentPaneWithDetail {
   flex: 1;
   min-width: 0;

@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
+import type { ReactNode } from 'react'
 import {
   ChevronRightIcon,
   ChevronDownIcon,
@@ -9,7 +10,9 @@ import {
   BookOpenIcon,
   ClockIcon,
   CodeIcon,
+  DatabaseIcon,
 } from '../shared/icons'
+import { TabbedPane, type Tab } from '../shared/TabbedPane'
 import type { FileNode, FileCategory, ProjectData, ProjectDbData, DbSnapshot, DbTableName } from './types'
 import styles from './ProjectViewer.module.css'
 
@@ -326,27 +329,14 @@ function ContentPreview({ path, content }: { path: string; content: string }) {
   }
 }
 
-function Breadcrumb({ path }: { path: string }) {
-  const parts = path.split('/')
-  return (
-    <span className={styles.breadcrumb}>
-      {parts.map((part, i) => (
-        <span key={i}>
-          {i > 0 && <span className={styles.breadcrumbSep}>/</span>}
-          <span className={i === parts.length - 1 ? styles.breadcrumbCurrent : ''}>
-            {part}
-          </span>
-        </span>
-      ))}
-    </span>
-  )
-}
+type TabType = 'file' | 'table'
 
-type SelectionType = 'file' | 'table'
-
-interface Selection {
-  type: SelectionType
+interface OpenTab {
+  id: string
+  type: TabType
   path: string // file path or table name
+  label: string
+  icon?: ReactNode
 }
 
 const TABLE_NAMES: DbTableName[] = ['projects', 'tasks', 'channels', 'messages', 'agentStatus', 'sessions']
@@ -432,8 +422,8 @@ function DatabaseTableView({
   const selectedRecord = selectedRow !== null ? rows[selectedRow] : null
 
   return (
-    <>
-      <div className={`${styles.contentPane} ${selectedRecord ? styles.contentPaneWithDetail : ''}`}>
+    <div className={styles.dbViewContainer}>
+      <div className={`${styles.dbTablePane} ${selectedRecord ? styles.dbTablePaneWithDetail : ''}`}>
         {rows.length > 0 ? (
           <div className={styles.dataGrid}>
             <table className={styles.dataTable}>
@@ -470,8 +460,19 @@ function DatabaseTableView({
           onClose={onCloseDetail}
         />
       )}
-    </>
+    </div>
   )
+}
+
+// --- Helper to get file icon for tabs ---
+
+function getFileIcon(path: string, category: FileCategory): ReactNode {
+  const extension = path.split('.').pop()
+  if (category === 'config') return <SettingsIcon />
+  if (category === 'briefing') return <BookOpenIcon />
+  if (category === 'session' && extension === 'jsonl') return <ClockIcon />
+  if (category === 'source') return <CodeIcon />
+  return <FileDocumentIcon />
 }
 
 // --- Main Component ---
@@ -484,9 +485,10 @@ interface ProjectViewerProps {
 export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const projectNames = useMemo(() => Object.keys(projects).sort(), [projects])
   const [activeProject, setActiveProject] = useState(projectNames[0] || '')
-  const [selection, setSelection] = useState<Selection | null>(null)
+  const [openTabs, setOpenTabs] = useState<OpenTab[]>([])
+  const [activeTabId, setActiveTabId] = useState<string | null>(null)
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
-  const [selectedDbRow, setSelectedDbRow] = useState<number | null>(null)
+  const [selectedDbRows, setSelectedDbRows] = useState<Record<string, number | null>>({})
 
   const files = projects[activeProject] || {}
   const snapshot = dbData[activeProject]
@@ -506,30 +508,101 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     })
   }, [])
 
-  const selectFile = useCallback((path: string) => {
-    setSelection({ type: 'file', path })
-    setSelectedDbRow(null)
+  const openFile = useCallback((path: string) => {
+    const tabId = `file:${path}`
+    setOpenTabs(prev => {
+      if (prev.some(t => t.id === tabId)) return prev
+      const category = categorizeFile(path)
+      const label = path.split('/').pop() || path
+      return [...prev, {
+        id: tabId,
+        type: 'file' as const,
+        path,
+        label,
+        icon: getFileIcon(path, category),
+      }]
+    })
+    setActiveTabId(tabId)
   }, [])
 
-  const selectTable = useCallback((tableName: DbTableName) => {
-    setSelection({ type: 'table', path: tableName })
-    setSelectedDbRow(null)
+  const openTable = useCallback((tableName: DbTableName) => {
+    const tabId = `table:${tableName}`
+    setOpenTabs(prev => {
+      if (prev.some(t => t.id === tabId)) return prev
+      return [...prev, {
+        id: tabId,
+        type: 'table' as const,
+        path: tableName,
+        label: TABLE_LABELS[tableName],
+        icon: <DatabaseIcon />,
+      }]
+    })
+    setActiveTabId(tabId)
   }, [])
+
+  const closeTab = useCallback((tabId: string) => {
+    setOpenTabs(prev => {
+      const idx = prev.findIndex(t => t.id === tabId)
+      const newTabs = prev.filter(t => t.id !== tabId)
+      if (activeTabId === tabId && newTabs.length > 0) {
+        // Activate adjacent tab
+        const newIdx = Math.min(idx, newTabs.length - 1)
+        setActiveTabId(newTabs[newIdx].id)
+      } else if (newTabs.length === 0) {
+        setActiveTabId(null)
+      }
+      return newTabs
+    })
+  }, [activeTabId])
 
   const handleProjectChange = useCallback((name: string) => {
     setActiveProject(name)
-    setSelection(null)
-    setSelectedDbRow(null)
+    setOpenTabs([])
+    setActiveTabId(null)
+    setSelectedDbRows({})
   }, [])
 
-  const selectedContent = selection?.type === 'file' ? files[selection.path] : null
+  const activeTab = openTabs.find(t => t.id === activeTabId)
+  const selectedFilePath = activeTab?.type === 'file' ? activeTab.path : null
 
-  // Breadcrumb display
-  const breadcrumbText = selection?.type === 'file'
-    ? selection.path
-    : selection?.type === 'table'
-      ? `db / ${TABLE_LABELS[selection.path as DbTableName]}`
-      : null
+  // Convert OpenTab[] to Tab[] for TabbedPane
+  const tabs: Tab[] = openTabs.map(t => ({
+    id: t.id,
+    label: t.label,
+    icon: t.icon,
+    closable: true,
+  }))
+
+  // Render active tab content
+  const renderTabContent = () => {
+    if (!activeTab) return null
+
+    if (activeTab.type === 'file') {
+      const content = files[activeTab.path]
+      if (content == null) return <div className={styles.emptyState}>File not found</div>
+      return (
+        <div className={styles.tabContentInner}>
+          <ContentPreview path={activeTab.path} content={content} />
+        </div>
+      )
+    }
+
+    if (activeTab.type === 'table' && snapshot) {
+      const tableName = activeTab.path as DbTableName
+      const selectedRow = selectedDbRows[tableName] ?? null
+      return (
+        <DatabaseTableView
+          snapshot={snapshot}
+          tableName={tableName}
+          selectedRow={selectedRow}
+          onSelectRow={(row) => setSelectedDbRows(prev => ({ ...prev, [tableName]: row }))}
+          onCloseDetail={() => setSelectedDbRows(prev => ({ ...prev, [tableName]: null }))}
+        />
+      )
+    }
+
+    return null
+  }
 
   return (
     <div className={styles.container}>
@@ -543,7 +616,6 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
             <option key={name} value={name}>{name}</option>
           ))}
         </select>
-        {breadcrumbText && <Breadcrumb path={breadcrumbText} />}
       </div>
       <div className={styles.splitPane}>
         <div className={styles.sidebar}>
@@ -556,9 +628,9 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
                   node={node}
                   depth={0}
                   expandedFolders={expandedFolders}
-                  selectedFile={selection?.type === 'file' ? selection.path : null}
+                  selectedFile={selectedFilePath}
                   onToggle={toggleFolder}
-                  onSelect={selectFile}
+                  onSelect={openFile}
                 />
               ))}
             </div>
@@ -570,8 +642,8 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
                 {TABLE_NAMES.map(name => (
                   <button
                     key={name}
-                    className={`${styles.tableItem} ${selection?.type === 'table' && selection.path === name ? styles.tableItemActive : ''}`}
-                    onClick={() => selectTable(name)}
+                    className={`${styles.tableItem} ${activeTab?.type === 'table' && activeTab.path === name ? styles.tableItemActive : ''}`}
+                    onClick={() => openTable(name)}
                   >
                     <span className={styles.tableName}>{TABLE_LABELS[name]}</span>
                     <span className={styles.tableCount}>{snapshot[name]?.length || 0}</span>
@@ -581,23 +653,17 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
             </div>
           )}
         </div>
-        {selection?.type === 'file' && selectedContent != null ? (
-          <div className={styles.contentPane}>
-            <ContentPreview path={selection.path} content={selectedContent} />
-          </div>
-        ) : selection?.type === 'table' && snapshot ? (
-          <DatabaseTableView
-            snapshot={snapshot}
-            tableName={selection.path as DbTableName}
-            selectedRow={selectedDbRow}
-            onSelectRow={setSelectedDbRow}
-            onCloseDetail={() => setSelectedDbRow(null)}
-          />
-        ) : (
-          <div className={styles.contentPane}>
-            <div className={styles.emptyState}>Select a file or table to view</div>
-          </div>
-        )}
+        <div className={styles.mainContent}>
+          <TabbedPane
+            tabs={tabs}
+            activeTabId={activeTabId}
+            onTabSelect={setActiveTabId}
+            onTabClose={closeTab}
+            emptyState="Select a file or table to view"
+          >
+            {renderTabContent()}
+          </TabbedPane>
+        </div>
       </div>
     </div>
   )
