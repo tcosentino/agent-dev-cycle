@@ -1,6 +1,7 @@
 pm:
   model: 'opus'
   maxTokens: 100000
+  orchestrator: true
 engineer:
   model: 'sonnet'
   maxTokens: 50000
