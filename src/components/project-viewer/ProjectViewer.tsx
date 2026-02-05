@@ -492,6 +492,8 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const [activePane, setActivePane] = useState<PaneId>('left')
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
   const [selectedDbRows, setSelectedDbRows] = useState<Record<string, number | null>>({})
+  const [isDragging, setIsDragging] = useState(false)
+  const [isOverDropZone, setIsOverDropZone] = useState(false)
 
   const files = projects[activeProject] || {}
   const snapshot = dbData[activeProject]
@@ -659,6 +661,33 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     })
   }, [activeTabIds])
 
+  // Handle drop zone for creating right pane
+  const handleDropZoneDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setIsOverDropZone(true)
+  }, [])
+
+  const handleDropZoneDragLeave = useCallback(() => {
+    setIsOverDropZone(false)
+  }, [])
+
+  const handleDropZoneDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsOverDropZone(false)
+    setIsDragging(false)
+
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json'))
+      if (data.tabId) {
+        // Move to right pane at index 0
+        moveTabToPane(data.tabId, data.sourcePane || 'left', 'right', 0)
+      }
+    } catch {
+      // Invalid data
+    }
+  }, [moveTabToPane])
+
   // Get active tabs for each pane
   const activeLeftTab = leftTabs.find(t => t.id === activeTabIds.left)
   const activeRightTab = rightTabs.find(t => t.id === activeTabIds.right)
@@ -770,11 +799,13 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
               paneId="left"
               onTabDrop={(tabId, targetIndex) => reorderTab('left', tabId, targetIndex)}
               onTabDropFromOtherPane={(tabId, sourcePane, targetIndex) => moveTabToPane(tabId, sourcePane, 'left', targetIndex)}
+              onDragStart={() => setIsDragging(true)}
+              onDragEnd={() => setIsDragging(false)}
             >
               {renderTabContent(activeLeftTab)}
             </TabbedPane>
           </div>
-          {hasRightPane && (
+          {hasRightPane ? (
             <>
               <div className={styles.editorSplitter} />
               <div
@@ -790,11 +821,22 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
                   paneId="right"
                   onTabDrop={(tabId, targetIndex) => reorderTab('right', tabId, targetIndex)}
                   onTabDropFromOtherPane={(tabId, sourcePane, targetIndex) => moveTabToPane(tabId, sourcePane, 'right', targetIndex)}
+                  onDragStart={() => setIsDragging(true)}
+                  onDragEnd={() => setIsDragging(false)}
                 >
                   {renderTabContent(activeRightTab)}
                 </TabbedPane>
               </div>
             </>
+          ) : isDragging && (
+            <div
+              className={`${styles.splitDropZone} ${isOverDropZone ? styles.splitDropZoneActive : ''}`}
+              onDragOver={handleDropZoneDragOver}
+              onDragLeave={handleDropZoneDragLeave}
+              onDrop={handleDropZoneDrop}
+            >
+              <span>Drop to split</span>
+            </div>
           )}
         </div>
       </div>

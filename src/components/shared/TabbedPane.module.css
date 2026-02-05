@@ -15,7 +15,6 @@
   align-items: stretch;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
-  overflow-x: auto;
   flex-shrink: 0;
 }
 
@@ -129,7 +128,7 @@
 .content {
   flex: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .emptyState {

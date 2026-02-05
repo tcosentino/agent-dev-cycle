@@ -26,6 +26,8 @@ interface TabbedPaneProps {
   paneId?: string
   onTabDrop?: (tabId: string, targetIndex: number) => void
   onTabDropFromOtherPane?: (tabId: string, sourcePane: string, targetIndex: number) => void
+  onDragStart?: () => void
+  onDragEnd?: () => void
 }
 
 export function TabbedPane({
@@ -39,6 +41,8 @@ export function TabbedPane({
   paneId,
   onTabDrop,
   onTabDropFromOtherPane,
+  onDragStart: notifyDragStart,
+  onDragEnd: notifyDragEnd,
 }: TabbedPaneProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
@@ -47,6 +51,7 @@ export function TabbedPane({
     const data: TabDragData = { tabId, sourcePane: paneId }
     e.dataTransfer.setData('application/json', JSON.stringify(data))
     e.dataTransfer.effectAllowed = 'move'
+    notifyDragStart?.()
   }
 
   const handleDragOver = (e: DragEvent, index: number) => {
@@ -126,6 +131,7 @@ export function TabbedPane({
             onClick={() => onTabSelect(tab.id)}
             draggable
             onDragStart={(e) => handleDragStart(e, tab.id)}
+            onDragEnd={() => notifyDragEnd?.()}
             onDragOver={(e) => handleDragOver(e, index)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, index)}

@@ -535,6 +535,27 @@
   flex-shrink: 0;
 }
 
+.splitDropZone {
+  width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  margin: var(--space-md);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  transition: all var(--transition-fast);
+}
+
+.splitDropZoneActive {
+  background: rgba(14, 165, 233, 0.1);
+  border-color: var(--accent-tertiary);
+  color: var(--accent-tertiary);
+}
+
 /* Legacy - keeping for compatibility */
 .mainContent {
   flex: 1;
