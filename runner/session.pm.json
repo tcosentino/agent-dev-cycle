@@ -1,0 +1,11 @@
+{
+  "runId": "pm-001",
+  "projectId": "shoe-inventory",
+  "agent": "pm",
+  "phase": "shaping",
+  "repoUrl": "https://github.com/tcosentino/agentforge-example-shoe-inventory.git",
+  "branch": "main",
+  "taskPrompt": "Review the project state in PROJECT.md and ARCHITECTURE.md. Based on the current phase and what has been built so far, create a prioritized backlog of tasks for the next sprint. Focus on the stock transfer workflow which is the highest customer priority. Create tasks using the agentforge CLI (note: the server is not running, so you can demonstrate the commands but they will fail - that's expected). Document your task breakdown and prioritization rationale in your session notepad.",
+  "assignedTasks": [],
+  "serverUrl": "http://localhost:3001"
+}

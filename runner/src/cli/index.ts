@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
-import { taskGet, taskUpdate, taskList } from './commands/task.js'
+import { taskGet, taskUpdate, taskList, taskCreate } from './commands/task.js'
+import type { CreateTaskOptions } from './commands/task.js'
 import { chatPost } from './commands/chat.js'
 import { statusSet } from './commands/status.js'
 
@@ -14,6 +15,12 @@ Usage:
 Commands:
   task get <key>                    Get task details
   task list                         List all tasks
+  task create "<title>" [options]   Create a new task
+    --description <text>            Task description
+    --type <type>                   Task type (story/task/bug/epic)
+    --priority <priority>           Priority (low/medium/high/critical)
+    --assignee <agent>              Assign to agent (pm/engineer/qa/lead)
+    --parent <key>                  Parent task key (for subtasks)
   task update <key> [options]       Update a task
     --status <status>               Set status (todo/in-progress/done)
     --summary <text>                Set summary
@@ -25,6 +32,8 @@ Commands:
     status: active, busy, away, offline
 
 Examples:
+  agentforge task create "Implement user auth" --type story --priority high
+  agentforge task create "Add login form" --parent ST-1 --assignee engineer
   agentforge task get ST-12
   agentforge task update ST-12 --status done --summary "Implemented API"
   agentforge chat post "Finished the feature"
@@ -83,6 +92,20 @@ async function main(): Promise<void> {
             break
           case 'list':
             await taskList()
+            break
+          case 'create':
+            if (!positional[0]) {
+              console.error('Error: task title required')
+              process.exit(1)
+            }
+            await taskCreate({
+              title: positional[0],
+              description: flags.description,
+              type: flags.type,
+              priority: flags.priority,
+              assignee: flags.assignee,
+              parentKey: flags.parent,
+            } as CreateTaskOptions)
             break
           case 'update':
             if (!positional[0]) {

@@ -52,6 +52,12 @@ function formatProgress(progress: ProjectProgress): string {
 export async function assembleContext(config: SessionConfig): Promise<string> {
   const sections: string[] = []
 
+  // Shared system prompt (all agents get this)
+  const systemPrompt = await readRepoFile('prompts/system.md')
+  if (systemPrompt) {
+    sections.push(systemPrompt)
+  }
+
   // Role-specific prompt
   const rolePrompt = await readRepoFile(`prompts/${config.agent}.md`)
   if (rolePrompt) {
@@ -107,23 +113,18 @@ export async function assembleContext(config: SessionConfig): Promise<string> {
 
   sections.push(sessionInfo.join('\n'))
 
-  // Instructions
-  const instructions = `## Instructions
+  // Session-specific instructions
+  const instructions = `## Your Task
 
-- Work on the assigned task(s). Be focused -- do one thing well.
-- Before finishing, write session notes to sessions/${config.agent}/${config.runId}/notepad.md
-- If you make architectural decisions, append to memory/decisions.md
-- If you hit blockers, append to memory/blockers.md
-- Update memory/daily-log.md with a timestamped entry of what you accomplished
+${config.taskPrompt}
 
-## Available Commands
+---
 
-You have access to the \`agentforge\` CLI for interacting with the project hub:
-
-- \`agentforge task update <key> --status <status>\` -- Update task status (todo/in-progress/done)
-- \`agentforge task get <key>\` -- Get task details
-- \`agentforge chat post "<message>"\` -- Post a message to the project chat
-- \`agentforge status set <status> "<message>"\` -- Update your agent status (busy/away)`
+**Remember:**
+1. Work on the task above. Be focused -- do one thing well.
+2. Write session notes to \`sessions/${config.agent}/${config.runId}/notepad.md\`
+3. Include a "Wishlist" section noting any tools or capabilities you wished you had.
+4. Update \`memory/daily-log.md\` with what you accomplished.`
 
   sections.push(instructions)
 

@@ -1,0 +1,10 @@
+{
+  "runId": "pm-001",
+  "projectId": "agentforge",
+  "agent": "pm",
+  "phase": "building",
+  "repoUrl": "file:///Users/troycosentino/Projects/agent-dev-cycle/runner/.workspace-dogfood",
+  "branch": "main",
+  "taskPrompt": "Review the AgentForge project state (PROJECT.md, ARCHITECTURE.md, memory files). You are building the system you are running on - use this meta-perspective to identify high-value improvements.\n\nCreate a prioritized task breakdown for Sprint 1 focused on:\n1. Server-side task persistence (so agents can actually create/update tasks)\n2. Orchestration logic (how to sequence agent runs)\n3. Agent handoff protocol (how PM hands off to Engineer, etc.)\n\nDocument your task breakdown in your session notepad. Include:\n- An epic for each major area\n- Stories with clear 'done when' criteria  \n- Implementation tasks assigned to engineer\n- Testing tasks assigned to qa\n- Priority using MoSCoW (critical/high/medium/low)\n\nNote: The agentforge CLI may not work since the server doesn't exist yet. Document the tasks in your notepad instead.",
+  "assignedTasks": []
+}

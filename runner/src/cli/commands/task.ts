@@ -4,9 +4,21 @@ interface Task {
   id: string
   key: string
   title: string
+  description?: string
   status: string
   assignee?: string
   priority?: string
+  type?: string
+  parentKey?: string
+}
+
+export interface CreateTaskOptions {
+  title: string
+  description?: string
+  type?: string
+  priority?: string
+  assignee?: string
+  parentKey?: string
 }
 
 export async function taskGet(key: string): Promise<void> {
@@ -50,4 +62,26 @@ export async function taskList(): Promise<void> {
     `/api/projects/${projectId}/tasks`
   )
   console.log(JSON.stringify(tasks, null, 2))
+}
+
+export async function taskCreate(options: CreateTaskOptions): Promise<void> {
+  const { projectId } = getApiConfig()
+
+  const body: Record<string, unknown> = {
+    title: options.title,
+  }
+  if (options.description) body.description = options.description
+  if (options.type) body.type = options.type
+  if (options.priority) body.priority = options.priority
+  if (options.assignee) body.assignee = options.assignee
+  if (options.parentKey) body.parentKey = options.parentKey
+
+  const task = await apiRequest<Task>(
+    'POST',
+    `/api/projects/${projectId}/tasks`,
+    body
+  )
+
+  console.log(`Created task ${task.key}`)
+  console.log(JSON.stringify(task, null, 2))
 }
