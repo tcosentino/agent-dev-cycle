@@ -23,6 +23,64 @@ function zodTypeToSqlite(zodType: unknown): string {
   }
 }
 
+// Get existing columns from a table
+function getExistingColumns(db: Database.Database, tableName: string): Set<string> {
+  const columns = new Set<string>()
+  try {
+    const rows = db.prepare(`PRAGMA table_info(${tableName})`).all() as Array<{ name: string }>
+    for (const row of rows) {
+      columns.add(row.name)
+    }
+  } catch {
+    // Table doesn't exist yet
+  }
+  return columns
+}
+
+// Migrate table by adding any missing columns
+export function migrateTableFromResource<T extends ZodObject<ZodRawShape>>(
+  db: Database.Database,
+  resource: ResourceDefinition<T>,
+  tableName?: string
+): { added: string[]; existed: string[] } {
+  const name = tableName ?? `${resource.name}s`
+  const shape = resource.schema.shape
+  const existingColumns = getExistingColumns(db, name)
+
+  const added: string[] = []
+  const existed: string[] = []
+
+  // If table doesn't exist, create it
+  if (existingColumns.size === 0) {
+    createTableFromResource(db, resource, tableName)
+    return { added: Object.keys(shape).map(toSnakeCase), existed: [] }
+  }
+
+  // Add any missing columns
+  for (const [key, zodType] of Object.entries(shape)) {
+    const columnName = toSnakeCase(key)
+
+    if (existingColumns.has(columnName)) {
+      existed.push(columnName)
+      continue
+    }
+
+    const sqlType = zodTypeToSqlite(zodType)
+    // New columns must be nullable or have a default in SQLite
+    const sql = `ALTER TABLE ${name} ADD COLUMN ${columnName} ${sqlType}`
+
+    try {
+      db.exec(sql)
+      added.push(columnName)
+      console.log(`[migration] Added column ${columnName} to ${name}`)
+    } catch (err) {
+      console.error(`[migration] Failed to add column ${columnName} to ${name}:`, err)
+    }
+  }
+
+  return { added, existed }
+}
+
 // Create table from resource schema
 export function createTableFromResource<T extends ZodObject<ZodRawShape>>(
   db: Database.Database,

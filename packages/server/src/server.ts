@@ -4,7 +4,7 @@ import {
   createOpenApiApp,
   registerOpenApiResource,
   createSqliteStore,
-  createTableFromResource,
+  migrateTableFromResource,
   createMemoryStore,
   pluralize,
   capitalize,
@@ -66,8 +66,11 @@ export function createServer(
     let store: ResourceStore<Record<string, unknown>>
 
     if (storage === 'sqlite' && db) {
-      // Create table and SQLite store
-      createTableFromResource(db, resource, pluralName)
+      // Migrate table (creates if not exists, adds missing columns)
+      const { added } = migrateTableFromResource(db, resource, pluralName)
+      if (added.length > 0) {
+        console.log(`[${pluralName}] Migrated: added columns ${added.join(', ')}`)
+      }
       store = createSqliteStore({
         db,
         tableName: pluralName,

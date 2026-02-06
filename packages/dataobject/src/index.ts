@@ -14,7 +14,7 @@ export type { ResourceHandler, HandlerContext } from './handler'
 
 // Stores
 export { createMemoryStore } from './stores/memory'
-export { createSqliteStore, createTableFromResource } from './stores/sqlite'
+export { createSqliteStore, createTableFromResource, migrateTableFromResource } from './stores/sqlite'
 export type { ResourceStore } from './stores/types'
 
 // Hono integration (basic)
