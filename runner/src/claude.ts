@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import type { SessionConfig, ModelTier } from './types.js'
 import { MODEL_MAP, WORKSPACE_PATH, DEFAULT_TIMEOUT_MS } from './types.js'
+import { reportLog, reportProgress } from './progress.js'
 
 export interface ClaudeResult {
   success: boolean
@@ -60,6 +61,8 @@ export async function runClaude(
   return new Promise((resolve) => {
     const outputChunks: string[] = []
     const errorChunks: string[] = []
+    let lastProgressReport = Date.now()
+    let outputLineCount = 0
 
     console.log('Claude args:', args.join(' '))
 
@@ -69,8 +72,12 @@ export async function runClaude(
       stdio: ['ignore', 'pipe', 'pipe'], // ignore stdin - Claude doesn't need input
     })
 
+    // Report that Claude has started
+    reportLog({ level: 'info', message: 'Claude Code process started, waiting for output...' })
+
     const timeout = setTimeout(() => {
       proc.kill('SIGTERM')
+      reportLog({ level: 'error', message: 'Claude Code process timed out' })
       resolve({
         success: false,
         output: outputChunks.join(''),
@@ -82,23 +89,40 @@ export async function runClaude(
       const str = data.toString()
       process.stdout.write(str) // Stream output live
       outputChunks.push(str)
+      outputLineCount += str.split('\n').length
+
+      // Report progress periodically (every 5 seconds) to show activity
+      const now = Date.now()
+      if (now - lastProgressReport > 5000) {
+        lastProgressReport = now
+        // Calculate rough progress (30-75% during execution)
+        const estimatedProgress = Math.min(75, 30 + Math.floor(outputLineCount / 10))
+        reportProgress({ progress: estimatedProgress, currentStep: `Claude Code working... (${outputLineCount} lines output)` })
+      }
     })
 
     proc.stderr.on('data', (data: Buffer) => {
       const str = data.toString()
       process.stderr.write(str) // Stream errors live
       errorChunks.push(str)
+      // Report stderr as warnings
+      const trimmed = str.trim()
+      if (trimmed) {
+        reportLog({ level: 'warn', message: trimmed.slice(0, 500) })
+      }
     })
 
     proc.on('close', (code) => {
       clearTimeout(timeout)
 
       if (code === 0) {
+        reportLog({ level: 'info', message: `Claude Code completed successfully (${outputLineCount} lines output)` })
         resolve({
           success: true,
           output: outputChunks.join(''),
         })
       } else {
+        reportLog({ level: 'error', message: `Claude Code exited with code ${code}` })
         resolve({
           success: false,
           output: outputChunks.join(''),
@@ -109,6 +133,7 @@ export async function runClaude(
 
     proc.on('error', (err) => {
       clearTimeout(timeout)
+      reportLog({ level: 'error', message: `Failed to spawn Claude Code: ${err.message}` })
       resolve({
         success: false,
         output: outputChunks.join(''),
