@@ -23,4 +23,5 @@ export interface TaskBoardProps {
   minHeight?: string | number
   selectedTaskKey?: string | null
   onTaskClick?: (taskKey: string) => void
+  showHeader?: boolean
 }
