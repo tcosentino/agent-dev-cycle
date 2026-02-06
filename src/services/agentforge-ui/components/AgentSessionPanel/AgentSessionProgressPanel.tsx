@@ -3,7 +3,7 @@ import { useAgentSessionProgress, useAgentSession } from '../../hooks'
 import { api, type ApiAgentSessionLogEntry } from '../../api'
 import { Badge } from '../shared/Badge/Badge'
 import { Spinner } from '../shared/Spinner/Spinner'
-import { GitBranchIcon } from '../shared/icons'
+import { GitBranchIcon, ClipboardIcon } from '../shared/icons'
 import styles from './AgentSessionPanel.module.css'
 
 export interface AgentSessionProgressPanelProps {
@@ -79,6 +79,7 @@ export function AgentSessionProgressPanel({
   const logsEndRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -106,6 +107,27 @@ export function AgentSessionProgressPanel({
       console.error('Failed to retry session:', err)
     }
     setIsRetrying(false)
+  }
+
+  const handleCopyLogs = async () => {
+    const logsList = 'logs' in (progress || initialSession || {})
+      ? (progress || initialSession)!.logs
+      : []
+
+    const logText = logsList
+      .map(log => {
+        const time = new Date(log.timestamp).toISOString()
+        return `[${time}] [${log.level.toUpperCase()}] ${log.message}`
+      })
+      .join('\n')
+
+    try {
+      await navigator.clipboard.writeText(logText)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy logs:', err)
+    }
   }
 
   // Use progress from SSE if connected, otherwise use initial session data
@@ -199,6 +221,18 @@ export function AgentSessionProgressPanel({
               )}
             </div>
           )}
+
+          {/* Footer with copy button */}
+          <div className={styles.panelFooter}>
+            <button
+              className={styles.copyLogsButton}
+              onClick={handleCopyLogs}
+              title="Copy logs to clipboard"
+            >
+              <ClipboardIcon width={14} height={14} />
+              {copySuccess ? 'Copied!' : 'Copy Logs'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

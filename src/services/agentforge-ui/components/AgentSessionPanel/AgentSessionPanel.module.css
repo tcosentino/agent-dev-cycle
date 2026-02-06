@@ -552,3 +552,31 @@
   align-items: center;
   gap: 4px;
 }
+
+/* Footer */
+.panelFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.copyLogsButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.copyLogsButton:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-tertiary);
+  color: var(--text-primary);
+}
