@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { Nav } from '../demo-ui/components/nav'
 import { ProjectViewer } from './ProjectViewer'
 import { CreateProjectModal } from './components/CreateProjectModal'
-import { api, fetchProjectSnapshot, fetchProjectFiles, AuthError } from './api'
+import { api, fetchProjectSnapshot, fetchProjectFiles, fetchFileContent, AuthError } from './api'
 import type { ApiProject, ApiUser } from './api'
 import type { ProjectData, DbSnapshot, ProjectDbData } from './types'
 import './components/shared/tokens.css'
@@ -107,11 +107,33 @@ function ProjectViewerPage() {
     }
   }, [])
 
-  // Build display names for project selector
+  // Build display names and repo URLs for project selector
   const projectDisplayNames: Record<string, string> = {}
+  const projectRepoUrls: Record<string, string> = {}
   for (const project of projects) {
     projectDisplayNames[project.id] = `${project.name} (${project.key})`
+    if (project.repoUrl) {
+      projectRepoUrls[project.id] = project.repoUrl
+    }
   }
+
+  // Handler to load file content on demand
+  const handleLoadFileContent = useCallback(async (projectId: string, filePath: string): Promise<string> => {
+    const repoUrl = projectRepoUrls[projectId]
+    if (!repoUrl) {
+      throw new Error('No repo URL for project')
+    }
+    const content = await fetchFileContent(repoUrl, filePath)
+    // Update the cached content
+    setProjectFiles(prev => ({
+      ...prev,
+      [projectId]: {
+        ...prev[projectId],
+        [filePath]: content,
+      },
+    }))
+    return content
+  }, [projectRepoUrls])
 
   if (loading) {
     return (
@@ -194,8 +216,17 @@ function ProjectViewerPage() {
           projects={projectFiles}
           dbData={dbData}
           projectDisplayNames={projectDisplayNames}
+          onCreateProject={() => setShowCreateModal(true)}
+          onLoadFileContent={handleLoadFileContent}
         />
       </div>
+      {showCreateModal && user && (
+        <CreateProjectModal
+          userId={user.id}
+          onClose={() => setShowCreateModal(false)}
+          onProjectCreated={handleProjectCreated}
+        />
+      )}
     </div>
   )
 }

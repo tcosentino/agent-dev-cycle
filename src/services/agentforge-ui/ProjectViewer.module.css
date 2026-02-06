@@ -34,6 +34,23 @@
   border-color: var(--accent-tertiary);
 }
 
+.createProjectButton {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--accent-tertiary);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.createProjectButton:hover {
+  opacity: 0.9;
+}
+
 .breadcrumb {
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -139,6 +156,29 @@
   margin: 0;
   cursor: pointer;
   accent-color: var(--accent-tertiary);
+}
+
+.sidebarAddButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.sidebarAddButton:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.sidebarAddButton svg {
+  width: 12px;
+  height: 12px;
 }
 
 .sidebarContent {
@@ -288,6 +328,27 @@
   margin: var(--space-md) 0 var(--space-sm);
 }
 
+.markdownContent h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: var(--space-sm) 0 var(--space-xs);
+}
+
+.markdownContent h5 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: var(--space-sm) 0 var(--space-xs);
+}
+
+.markdownContent h6 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: var(--space-sm) 0 var(--space-xs);
+}
+
 .markdownContent p {
   margin: 0 0 var(--space-sm);
 }
@@ -335,6 +396,84 @@
 .markdownContent strong {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+.markdownContent ol {
+  margin: 0 0 var(--space-sm);
+  padding-left: var(--space-lg);
+}
+
+.markdownContent blockquote {
+  margin: var(--space-sm) 0;
+  padding: var(--space-sm) var(--space-md);
+  border-left: 3px solid var(--accent-tertiary);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.markdownContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: var(--space-sm) 0;
+  font-size: 0.85rem;
+}
+
+.markdownContent th,
+.markdownContent td {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-color);
+  text-align: left;
+}
+
+.markdownContent th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.markdownContent a {
+  color: var(--accent-tertiary);
+  text-decoration: none;
+}
+
+.markdownContent a:hover {
+  text-decoration: underline;
+}
+
+.markdownContent img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-md);
+}
+
+/* Mermaid diagrams */
+.mermaidContainer {
+  margin: var(--space-md) 0;
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+
+.mermaidContainer svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.mermaidError {
+  color: var(--status-error);
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+
+.codeBlock {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin: var(--space-sm) 0;
+  overflow-x: auto;
 }
 
 /* YAML preview */

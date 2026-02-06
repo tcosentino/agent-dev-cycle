@@ -1,5 +1,5 @@
 // Utils
-export { categorizeFile, buildFileTree, getDefaultExpanded, filterTreeForSimpleMode, markdownToHtml } from './utils'
+export { categorizeFile, buildFileTree, getDefaultExpanded, filterTreeForSimpleMode } from './utils'
 
 // Constants and types
 export {

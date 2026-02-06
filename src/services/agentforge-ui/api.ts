@@ -165,6 +165,18 @@ export class AuthError extends Error {
   }
 }
 
+export interface ApiGitHubRepo {
+  id: number
+  name: string
+  full_name: string
+  private: boolean
+  description: string | null
+  html_url: string
+  clone_url: string
+  default_branch: string
+  updated_at: string
+}
+
 export const api = {
   // Auth
   me: () => fetchJson<ApiUser>('/me'),
@@ -173,6 +185,7 @@ export const api = {
 
   // GitHub
   github: {
+    getRepos: () => fetchJson<{ repos: ApiGitHubRepo[] }>('/github/repos'),
     getTree: (owner: string, repo: string, branch?: string) => {
       const query = branch ? `?branch=${branch}` : ''
       return fetchJson<{ files: Array<{ path: string; size?: number }>; truncated: boolean }>(

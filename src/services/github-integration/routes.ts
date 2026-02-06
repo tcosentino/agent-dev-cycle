@@ -9,6 +9,7 @@ import {
   getUserEmail,
   getRepoTree,
   getFileContent,
+  getUserRepos,
 } from './github-api'
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || ''
@@ -255,6 +256,22 @@ export function registerGitHubRoutes(
     } catch (err) {
       console.error('Error fetching repo tree:', err)
       return c.json({ error: 'Failed to fetch repository tree' }, 500)
+    }
+  })
+
+  // API: Get user's repositories
+  app.get('/api/github/repos', async (c) => {
+    const user = getUser(c)
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401)
+    }
+
+    try {
+      const repos = await getUserRepos(user.githubAccessToken)
+      return c.json({ repos })
+    } catch (err) {
+      console.error('Error fetching user repos:', err)
+      return c.json({ error: 'Failed to fetch repositories' }, 500)
     }
   })
 

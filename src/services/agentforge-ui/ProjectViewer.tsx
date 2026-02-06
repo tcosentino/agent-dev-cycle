@@ -112,15 +112,84 @@ function getTabIcon(tab: SerializedTab): ReactNode {
   return <FileDocumentIcon />
 }
 
+// --- File Content Loader ---
+
+interface FileContentLoaderProps {
+  projectId: string
+  filePath: string
+  cachedContent: string | undefined
+  onLoadContent?: (projectId: string, filePath: string) => Promise<string>
+}
+
+function FileContentLoader({ projectId, filePath, cachedContent, onLoadContent }: FileContentLoaderProps) {
+  const [content, setContent] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const loadedRef = useRef(false)
+
+  // Use cached content if available
+  useEffect(() => {
+    if (cachedContent) {
+      setContent(cachedContent)
+      loadedRef.current = true
+    }
+  }, [cachedContent])
+
+  // Load content on demand if not cached
+  useEffect(() => {
+    // Skip if already loaded or loading or we have cached content
+    if (loadedRef.current || loading || cachedContent) {
+      return
+    }
+
+    // If no loader function, show error
+    if (!onLoadContent) {
+      setError('No content loader available')
+      return
+    }
+
+    // Load content on demand
+    setLoading(true)
+    setError(null)
+    loadedRef.current = true
+    onLoadContent(projectId, filePath)
+      .then(loadedContent => {
+        setContent(loadedContent)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('Failed to load file content:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load file')
+        setLoading(false)
+      })
+  }, [projectId, filePath, cachedContent, onLoadContent, loading])
+
+  if (loading) {
+    return <div className={styles.emptyState}>Loading...</div>
+  }
+
+  if (error) {
+    return <div className={styles.emptyState}>Error: {error}</div>
+  }
+
+  if (content === null) {
+    return <div className={styles.emptyState}>No content</div>
+  }
+
+  return <ContentPreview path={filePath} content={content} />
+}
+
 // --- Main Component ---
 
 interface ProjectViewerProps {
   projects: ProjectData
   dbData: ProjectDbData
   projectDisplayNames?: Record<string, string>
+  onCreateProject?: () => void
+  onLoadFileContent?: (projectId: string, filePath: string) => Promise<string>
 }
 
-export function ProjectViewer({ projects, dbData, projectDisplayNames }: ProjectViewerProps) {
+export function ProjectViewer({ projects, dbData, projectDisplayNames, onCreateProject, onLoadFileContent }: ProjectViewerProps) {
   const projectIds = useMemo(() => Object.keys(projects).sort(), [projects])
 
   // Load persisted state once on mount
@@ -666,11 +735,19 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
     if (!tab) return null
 
     if (tab.type === 'file') {
-      const content = files[tab.path]
-      if (content == null) return <div className={styles.emptyState}>File not found</div>
+      const cachedContent = files[tab.path]
+      // If cachedContent is undefined, file doesn't exist in the tree
+      if (cachedContent === undefined) {
+        return <div className={styles.emptyState}>File not found</div>
+      }
       return (
         <div className={styles.tabContentInner}>
-          <ContentPreview path={tab.path} content={content} />
+          <FileContentLoader
+            projectId={activeProject}
+            filePath={tab.path}
+            cachedContent={cachedContent || undefined}
+            onLoadContent={onLoadFileContent}
+          />
         </div>
       )
     }
@@ -777,6 +854,11 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
             </option>
           ))}
         </select>
+        {onCreateProject && (
+          <button className={styles.createProjectButton} onClick={onCreateProject}>
+            + New Project
+          </button>
+        )}
       </div>
       <div className={styles.splitPane}>
         <div className={styles.sidebar} style={{ width: sidebarWidth }}>

@@ -26,6 +26,15 @@ function mapId(oldId: string): string {
   return idMap[oldId]
 }
 
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`)
+  if (!res.ok) {
+    const error = await res.text()
+    throw new Error(`GET ${path} failed: ${res.status} ${error}`)
+  }
+  return res.json()
+}
+
 async function post(path: string, data: Record<string, unknown>) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
@@ -45,9 +54,9 @@ async function seed() {
   // Create projects
   console.log('Creating projects...')
   const projects = [
-    { name: 'TaskFlow - Personal Task Manager', key: 'TF', repoUrl: 'https://github.com/acme-consulting/taskflow' },
-    { name: 'ShoeVault Inventory System', key: 'SV', repoUrl: 'https://github.com/shoevault/inventory' },
-    { name: 'AgentForge Platform', key: 'AF', repoUrl: 'https://github.com/agentforge/platform' },
+    { name: 'TaskFlow - Personal Task Manager', key: 'TF', repoUrl: 'https://github.com/tcosentino/agentforge-example-todo-app.git' },
+    { name: 'ShoeVault Inventory System', key: 'SV', repoUrl: 'https://github.com/tcosentino/agentforge-example-shoe-inventory.git' },
+    { name: 'AgentForge Platform', key: 'AF', repoUrl: 'https://github.com/tcosentino/agent-dev-cycle.git' },
   ]
 
   const createdProjects: Record<string, { id: string; name: string }> = {}
@@ -57,7 +66,15 @@ async function seed() {
       createdProjects[project.key] = created
       console.log(`  Created project: ${project.name} (${created.id})`)
     } catch (err) {
-      console.log(`  Skipped project ${project.key}: ${err instanceof Error ? err.message : err}`)
+      // If project already exists, fetch it
+      const existing = await get<Array<{ id: string; name: string; key: string }>>('/api/projects')
+      const found = existing.find(p => p.key === project.key)
+      if (found) {
+        createdProjects[project.key] = found
+        console.log(`  Using existing project: ${project.name} (${found.id})`)
+      } else {
+        console.log(`  Skipped project ${project.key}: ${err instanceof Error ? err.message : err}`)
+      }
     }
   }
 

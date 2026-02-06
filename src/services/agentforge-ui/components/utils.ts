@@ -193,38 +193,3 @@ export function filterTreeForSimpleMode(tree: FileNode[]): FileNode[] {
       return true
     })
 }
-
-export function markdownToHtml(md: string): string {
-  // Strip YAML frontmatter blocks
-  let text = md.replace(/^---\n[\s\S]*?\n---\n?/gm, '<hr />\n')
-
-  // Fenced code blocks (must come before inline processing)
-  text = text.replace(/```[\w]*\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-
-  // Headings
-  text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>')
-  text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>')
-  text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>')
-
-  // Horizontal rules (standalone ---)
-  text = text.replace(/^---$/gm, '<hr />')
-
-  // Bold and italic
-  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>')
-
-  // Inline code
-  text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
-
-  // Unordered lists
-  text = text.replace(/^- (.+)$/gm, '<li>$1</li>')
-  text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
-
-  // Paragraphs for remaining non-tag lines
-  text = text.replace(/^(?!<[hluop]|<hr|<pre|<code|$)(.+)$/gm, '<p>$1</p>')
-
-  // Clean up extra whitespace
-  text = text.replace(/\n{3,}/g, '\n\n')
-
-  return text
-}

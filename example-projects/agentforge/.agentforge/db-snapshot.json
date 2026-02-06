@@ -148,6 +148,18 @@
       "assignee": "engineer",
       "createdAt": "2026-02-05T19:30:00Z",
       "updatedAt": "2026-02-05T19:30:00Z"
+    },
+    {
+      "id": "af-task-12",
+      "projectId": "proj-af",
+      "key": "AF-12",
+      "title": "Custom view for test files",
+      "description": "Create a specialized view for when test files are selected in the UI. Should include a code view option, but default to a 'nice' formatted view showing test run history with timestamps. For Playwright tests, display screenshots and visual artifacts from test runs.",
+      "type": "frontend",
+      "priority": "medium",
+      "status": "todo",
+      "createdAt": "2026-02-05T21:45:00Z",
+      "updatedAt": "2026-02-05T21:45:00Z"
     }
   ],
   "channels": [

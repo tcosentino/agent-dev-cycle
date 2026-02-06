@@ -1,10 +1,85 @@
-import { useMemo } from 'react'
-import { markdownToHtml } from './utils'
+import { useMemo, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
+import mermaid from 'mermaid'
 import styles from '../ProjectViewer.module.css'
 
+// Initialize mermaid with dark theme support
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  securityLevel: 'loose',
+})
+
+// Component to render mermaid diagrams
+function MermaidDiagram({ code }: { code: string }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const idRef = useRef(`mermaid-${Math.random().toString(36).substr(2, 9)}`)
+
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const renderDiagram = async () => {
+      try {
+        const { svg } = await mermaid.render(idRef.current, code)
+        if (containerRef.current) {
+          containerRef.current.innerHTML = svg
+        }
+      } catch (err) {
+        console.error('Mermaid render error:', err)
+        if (containerRef.current) {
+          containerRef.current.innerHTML = `<pre class="${styles.mermaidError}">Failed to render diagram:\n${code}</pre>`
+        }
+      }
+    }
+
+    renderDiagram()
+  }, [code])
+
+  return <div ref={containerRef} className={styles.mermaidContainer} />
+}
+
 function MarkdownPreview({ content }: { content: string }) {
-  const html = useMemo(() => markdownToHtml(content), [content])
-  return <div className={styles.markdownContent} dangerouslySetInnerHTML={{ __html: html }} />
+  return (
+    <div className={styles.markdownContent}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeRaw]}
+        components={{
+          // Custom code block handler for mermaid
+          code({ className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '')
+            const language = match ? match[1] : ''
+
+            // Handle mermaid code blocks
+            if (language === 'mermaid') {
+              const code = String(children).replace(/\n$/, '')
+              return <MermaidDiagram code={code} />
+            }
+
+            // Inline code
+            if (!className) {
+              return <code {...props}>{children}</code>
+            }
+
+            // Regular code blocks with syntax highlighting class
+            return (
+              <code className={className} {...props}>
+                {children}
+              </code>
+            )
+          },
+          // Wrap pre blocks for styling
+          pre({ children }) {
+            return <pre className={styles.codeBlock}>{children}</pre>
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  )
 }
 
 function YamlPreview({ content }: { content: string }) {

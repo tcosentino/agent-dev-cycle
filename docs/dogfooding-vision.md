@@ -2,7 +2,7 @@
 
 ## Overview
 
-The ultimate goal is to use AgentForge to build the next iterations of AgentForge itself. By using `@agentforge/resource` for our own internal data management, we:
+The ultimate goal is to use AgentForge to build the next iterations of AgentForge itself. By using `@agentforge/dataobject` for our own internal data management, we:
 
 1. **Validate the design** - If the system works for our own complex needs, it will work for users
 2. **Discover gaps early** - Real usage reveals missing features before users hit them
@@ -13,7 +13,7 @@ The ultimate goal is to use AgentForge to build the next iterations of AgentForg
 
 ### What We Have
 
-**@agentforge/resource** - Resource definition DSL
+**@agentforge/dataobject** - Resource definition DSL
 - `defineResource()` for declaring data objects
 - `createHonoRoutes()` for auto-generating REST endpoints
 - Pluggable store interface with in-memory implementation
@@ -33,7 +33,7 @@ The ultimate goal is to use AgentForge to build the next iterations of AgentForg
 
 ### What's Missing
 
-- SQLite store adapter for `@agentforge/resource`
+- SQLite store adapter for `@agentforge/dataobject`
 - Server API connecting frontend to live data
 - "Run" button to trigger deployments from ServiceView
 - Real-time updates for workload progression
@@ -41,7 +41,7 @@ The ultimate goal is to use AgentForge to build the next iterations of AgentForg
 ## Target Architecture
 
 ```
-@agentforge/resource
+@agentforge/dataobject
 ├── defineResource()           # DSL for data objects
 ├── createHonoRoutes()         # Auto REST endpoints
 ├── stores/
@@ -71,7 +71,7 @@ Frontend
 
 ```typescript
 // server/resources/workloads.ts
-import { defineResource } from '@agentforge/resource'
+import { defineResource } from '@agentforge/dataobject'
 
 export const workloadResource = defineResource({
   name: 'workload',
@@ -150,7 +150,7 @@ export const taskResource = defineResource({
 ## Implementation Plan
 
 ### Phase 1: SQLite Store
-Add a SQLite adapter to `@agentforge/resource` that:
+Add a SQLite adapter to `@agentforge/dataobject` that:
 - Auto-creates tables from resource definitions
 - Handles migrations when schema changes
 - Uses better-sqlite3 or drizzle under the hood

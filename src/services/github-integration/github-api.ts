@@ -188,6 +188,42 @@ export async function getFileContent(
   return Buffer.from(data.content, 'base64').toString('utf-8')
 }
 
+export interface GitHubRepo {
+  id: number
+  name: string
+  full_name: string
+  private: boolean
+  description: string | null
+  html_url: string
+  clone_url: string
+  default_branch: string
+  updated_at: string
+}
+
+// Get user's repositories
+export async function getUserRepos(
+  accessToken: string,
+  options: { perPage?: number; sort?: 'updated' | 'pushed' | 'full_name' } = {}
+): Promise<GitHubRepo[]> {
+  const { perPage = 100, sort = 'updated' } = options
+  const res = await fetch(
+    `${GITHUB_API_BASE}/user/repos?per_page=${perPage}&sort=${sort}&affiliation=owner,collaborator,organization_member`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    }
+  )
+
+  if (!res.ok) {
+    throw new Error(`Failed to get user repos: ${res.status}`)
+  }
+
+  return res.json()
+}
+
 // Parse GitHub repo URL to extract owner and repo
 export function parseRepoUrl(url: string): { owner: string; repo: string } | null {
   // Handle various GitHub URL formats:

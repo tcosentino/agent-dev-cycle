@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { api, type ApiProject } from '../api'
-import { XIcon } from './shared/icons'
-import styles from './CreateProjectModal.module.css'
+import { useState, useEffect, useRef, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { api, type ApiProject, type ApiGitHubRepo } from '../api'
+import { Modal, modalStyles as styles } from './shared/Modal'
+import { ChevronDownIcon } from './shared/icons'
 
 export interface CreateProjectModalProps {
   userId: string
@@ -16,9 +17,63 @@ export function CreateProjectModal({
 }: CreateProjectModalProps) {
   const [name, setName] = useState('')
   const [key, setKey] = useState('')
-  const [repoUrl, setRepoUrl] = useState('')
+  const [selectedRepo, setSelectedRepo] = useState<ApiGitHubRepo | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Repo dropdown state
+  const [repos, setRepos] = useState<ApiGitHubRepo[]>([])
+  const [reposLoading, setReposLoading] = useState(true)
+  const [reposError, setReposError] = useState<string | null>(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  // Load repos on mount
+  useEffect(() => {
+    async function loadRepos() {
+      try {
+        setReposLoading(true)
+        setReposError(null)
+        const { repos } = await api.github.getRepos()
+        setRepos(repos)
+      } catch (err) {
+        setReposError(err instanceof Error ? err.message : 'Failed to load repositories')
+      } finally {
+        setReposLoading(false)
+      }
+    }
+    loadRepos()
+  }, [])
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      const target = e.target as Node
+      if (
+        dropdownRef.current && !dropdownRef.current.contains(target) &&
+        inputRef.current && !inputRef.current.contains(target)
+      ) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Update dropdown position when open
+  useLayoutEffect(() => {
+    if (dropdownOpen && inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+      })
+    }
+  }, [dropdownOpen])
 
   // Auto-generate key from name
   const handleNameChange = (value: string) => {
@@ -26,6 +81,23 @@ export function CreateProjectModal({
     // Generate key: first letters of words, uppercase, max 10 chars
     if (!key || key === generateKey(name)) {
       setKey(generateKey(value))
+    }
+  }
+
+  // Filter repos by search query
+  const filteredRepos = repos.filter(repo =>
+    repo.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (repo.description?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
+  )
+
+  const handleRepoSelect = (repo: ApiGitHubRepo) => {
+    setSelectedRepo(repo)
+    setSearchQuery('')
+    setDropdownOpen(false)
+
+    // Auto-fill name if empty
+    if (!name.trim()) {
+      handleNameChange(repo.name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))
     }
   }
 
@@ -42,11 +114,6 @@ export function CreateProjectModal({
       return
     }
 
-    if (repoUrl && !isValidGitHubUrl(repoUrl)) {
-      setError('Please enter a valid GitHub repository URL')
-      return
-    }
-
     setIsSubmitting(true)
     setError(null)
 
@@ -55,7 +122,7 @@ export function CreateProjectModal({
         userId,
         name: name.trim(),
         key: key.toUpperCase().trim(),
-        repoUrl: repoUrl.trim() || undefined,
+        repoUrl: selectedRepo?.html_url,
       })
 
       onProjectCreated(project)
@@ -66,88 +133,128 @@ export function CreateProjectModal({
   }
 
   return (
-    <div className={styles.modalOverlay} onClick={onClose}>
-      <div className={styles.modal} onClick={e => e.stopPropagation()}>
-        <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>Create Project</h2>
-          <button className={styles.closeButton} onClick={onClose}>
-            <XIcon width={20} height={20} />
-          </button>
+    <Modal title="Create Project" onClose={onClose}>
+      <form onSubmit={handleSubmit} className={styles.modalContent}>
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor="projectName">
+            Project Name
+          </label>
+          <input
+            id="projectName"
+            type="text"
+            className={styles.input}
+            value={name}
+            onChange={e => handleNameChange(e.target.value)}
+            placeholder="My Awesome Project"
+            autoFocus
+          />
         </div>
 
-        <form onSubmit={handleSubmit} className={styles.modalContent}>
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor="projectName">
-              Project Name
-            </label>
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor="projectKey">
+            Project Key
+            <span className={styles.labelHint}>2-10 characters, used as prefix for tasks</span>
+          </label>
+          <input
+            id="projectKey"
+            type="text"
+            className={styles.input}
+            value={key}
+            onChange={e => setKey(e.target.value.toUpperCase().slice(0, 10))}
+            placeholder="MAP"
+            maxLength={10}
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label}>
+            GitHub Repository
+            <span className={styles.labelHint}>Optional - link to view source files</span>
+          </label>
+          <div className={styles.selectContainer}>
             <input
-              id="projectName"
+              ref={inputRef}
               type="text"
-              className={styles.input}
-              value={name}
-              onChange={e => handleNameChange(e.target.value)}
-              placeholder="My Awesome Project"
-              autoFocus
+              className={`${styles.selectInput} ${dropdownOpen ? styles.open : ''}`}
+              value={dropdownOpen ? searchQuery : (selectedRepo?.full_name ?? '')}
+              onChange={e => setSearchQuery(e.target.value)}
+              onClick={() => {
+                setDropdownOpen(true)
+                setSearchQuery('')
+              }}
+              placeholder="Search repositories..."
             />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor="projectKey">
-              Project Key
-              <span className={styles.labelHint}>2-10 characters, used as prefix for tasks</span>
-            </label>
-            <input
-              id="projectKey"
-              type="text"
-              className={styles.input}
-              value={key}
-              onChange={e => setKey(e.target.value.toUpperCase().slice(0, 10))}
-              placeholder="MAP"
-              maxLength={10}
+            <ChevronDownIcon
+              width={16}
+              height={16}
+              className={`${styles.selectChevron} ${dropdownOpen ? styles.open : ''}`}
             />
+            {dropdownOpen && createPortal(
+              <div
+                ref={dropdownRef}
+                className={styles.selectDropdownPortal}
+                style={{
+                  top: dropdownPosition.top,
+                  left: dropdownPosition.left,
+                  width: dropdownPosition.width,
+                }}
+              >
+                {reposLoading ? (
+                  <div className={styles.selectLoading}>Loading repositories...</div>
+                ) : reposError ? (
+                  <div className={styles.selectEmpty}>{reposError}</div>
+                ) : filteredRepos.length === 0 ? (
+                  <div className={styles.selectEmpty}>
+                    {searchQuery ? 'No matching repositories' : 'No repositories found'}
+                  </div>
+                ) : (
+                  filteredRepos.map(repo => (
+                    <div
+                      key={repo.id}
+                      className={`${styles.selectOption} ${selectedRepo?.id === repo.id ? styles.selected : ''}`}
+                      onClick={() => handleRepoSelect(repo)}
+                    >
+                      <div className={styles.selectOptionName}>
+                        {repo.full_name}
+                        {repo.private && <span className={styles.privateTag}>Private</span>}
+                      </div>
+                      {repo.description && (
+                        <div className={styles.selectOptionDescription}>{repo.description}</div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>,
+              document.body
+            )}
           </div>
+        </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label} htmlFor="repoUrl">
-              GitHub Repository
-              <span className={styles.labelHint}>Optional - link to view source files</span>
-            </label>
-            <input
-              id="repoUrl"
-              type="text"
-              className={styles.input}
-              value={repoUrl}
-              onChange={e => setRepoUrl(e.target.value)}
-              placeholder="https://github.com/owner/repo"
-            />
+        {error && (
+          <div className={styles.error}>
+            {error}
           </div>
+        )}
 
-          {error && (
-            <div className={styles.error}>
-              {error}
-            </div>
-          )}
-
-          <div className={styles.modalFooter}>
-            <button
-              type="button"
-              className={styles.cancelButton}
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className={styles.submitButton}
-              disabled={isSubmitting || !name.trim() || !key.trim()}
-            >
-              {isSubmitting ? 'Creating...' : 'Create Project'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className={styles.modalFooter}>
+          <button
+            type="button"
+            className={styles.cancelButton}
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className={styles.submitButton}
+            disabled={isSubmitting || !name.trim() || !key.trim()}
+          >
+            {isSubmitting ? 'Creating...' : 'Create Project'}
+          </button>
+        </div>
+      </form>
+    </Modal>
   )
 }
 
@@ -168,9 +275,4 @@ function generateKey(name: string): string {
   }
 
   return key
-}
-
-function isValidGitHubUrl(url: string): boolean {
-  return /^https:\/\/github\.com\/[\w-]+\/[\w.-]+\/?$/.test(url) ||
-    /^git@github\.com:[\w-]+\/[\w.-]+\.git$/.test(url)
 }

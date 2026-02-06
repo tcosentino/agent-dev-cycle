@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { DbTableName, ServiceMetadata } from '../types'
 
-export type TabType = 'file' | 'table' | 'record' | 'service'
+export type TabType = 'file' | 'table' | 'record' | 'service' | 'agentSession'
 export type PaneId = 'left' | 'right'
 export type ViewMode = 'table' | 'view'
 export type RecordViewMode = 'view' | 'raw'

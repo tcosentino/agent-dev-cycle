@@ -26,7 +26,7 @@ export const taskResource = defineResource({
   schema: z.object({
     id: z.string().uuid(),
     projectId: z.string().uuid(),
-    key: z.string().min(1).max(20), // e.g., 'AF-1'
+    key: z.string().min(1).max(20), // e.g., 'AF-1' - auto-generated from project.key
     title: z.string().min(1).max(200),
     description: z.string().optional(),
     type: taskTypeEnum.optional(),
@@ -41,5 +41,14 @@ export const taskResource = defineResource({
   searchable: ['title', 'key', 'assignee'],
   relations: {
     project: { type: 'belongsTo', resource: 'project', foreignKey: 'projectId' },
+  },
+
+  // Auto-generate key from project's key prefix (e.g., "AF-1", "AF-2")
+  autoIncrement: {
+    field: 'key',
+    prefixFrom: {
+      relation: 'project',
+      field: 'key',
+    },
   },
 })

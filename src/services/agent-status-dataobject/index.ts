@@ -13,7 +13,7 @@ export const agentStatusResource = defineResource({
     role: agentRoleEnum,
     status: agentStatusValueEnum.default('away'),
     currentTask: z.string().optional(), // task key being worked on
-    lastActiveAt: z.date(),
+    lastActiveAt: z.coerce.date(),
   }),
 
   createFields: ['projectId', 'role', 'status', 'currentTask', 'lastActiveAt'],
