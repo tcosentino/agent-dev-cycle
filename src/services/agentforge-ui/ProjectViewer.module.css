@@ -583,6 +583,30 @@
   background: var(--accent-green);
 }
 
+.typeUser {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--accent-purple, #a855f7);
+}
+
+.typeUser .timelineMarker {
+  background: var(--accent-purple, #a855f7);
+}
+
+.timelineToolCall {
+  margin-top: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(249, 115, 22, 0.1);
+  border-radius: var(--radius-sm);
+  border-left: 2px solid var(--accent-orange);
+}
+
+.timelineToolName {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-orange);
+}
+
 .timelineTool {
   font-family: var(--font-mono);
   font-size: 0.7rem;
