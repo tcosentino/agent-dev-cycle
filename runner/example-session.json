@@ -1,0 +1,11 @@
+{
+  "runId": "run-001",
+  "projectId": "shoe-inventory",
+  "agent": "engineer",
+  "phase": "building",
+  "repoUrl": "https://github.com/your-org/shoe-inventory.git",
+  "branch": "main",
+  "taskPrompt": "Implement the barcode scanning component. Create a BarcodeInput component that detects keyboard wedge scanner input (fast character entry followed by Enter). Add a 50ms debounce to differentiate scanner from human typing. Wire it up to the inventory lookup API.",
+  "assignedTasks": ["ST-12", "ST-13"],
+  "serverUrl": "http://host.docker.internal:3001"
+}
