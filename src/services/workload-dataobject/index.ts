@@ -38,20 +38,10 @@ export const workloadResource = defineResource({
   unique: [],
   searchable: ['servicePath', 'stage'],
 
-  // Custom actions for the deployment pipeline
-  actions: {
-    run: {
-      description: 'Start the deployment pipeline',
-      handler: async (workload, ctx) => {
-        // Will be wired to @agentforge/runtime Deployer
-        return ctx.deployer?.start(workload)
-      },
-    },
-    stop: {
-      description: 'Stop a running workload',
-      handler: async (workload, ctx) => {
-        return ctx.deployer?.stop(workload)
-      },
-    },
-  },
+  // TODO: Custom actions for the deployment pipeline will be added
+  // when @agentforge/resource supports the actions API
+  // actions: {
+  //   run: { handler: (workload, ctx) => ctx.deployer?.start(workload) },
+  //   stop: { handler: (workload, ctx) => ctx.deployer?.stop(workload) },
+  // },
 })

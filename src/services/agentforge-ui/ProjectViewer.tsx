@@ -12,8 +12,8 @@ import {
   MessageSquareIcon,
   RocketIcon,
   BoxIcon,
-} from '../shared/icons'
-import { TabbedPane, type Tab } from '../shared/TabbedPane'
+} from './components/shared/icons'
+import { TabbedPane, type Tab } from './components/shared/TabbedPane'
 import type { FileCategory, ProjectData, ProjectDbData, DbTableName, Workload, ServiceMetadata } from './types'
 import {
   categorizeFile,

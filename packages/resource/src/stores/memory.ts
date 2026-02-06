@@ -50,7 +50,7 @@ export function createMemoryStore<T extends Record<string, unknown>>(): Resource
         id,
         createdAt: now,
         updatedAt: now,
-      } as T
+      } as unknown as T
       data.set(id, record)
       return record
     },

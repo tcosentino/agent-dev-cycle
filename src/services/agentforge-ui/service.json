@@ -1,0 +1,19 @@
+{
+  "name": "agentforge-ui",
+  "type": "ui",
+  "version": "0.1.0",
+  "description": "AgentForge web interface. Project viewer with file browser, database explorer, and service management.",
+  "entry": "index.tsx",
+  "endpoints": [],
+  "dependencies": [
+    "project-dataobject",
+    "task-dataobject",
+    "channel-dataobject",
+    "message-dataobject",
+    "agent-status-dataobject",
+    "session-dataobject",
+    "deployment-dataobject",
+    "workload-dataobject"
+  ],
+  "tags": ["ui", "frontend", "core"]
+}

@@ -9,7 +9,7 @@ import {
   ClockIcon,
   CodeIcon,
   BoxIcon,
-} from '../../shared/icons'
+} from './shared/icons'
 import type { FileNode, FileCategory } from '../types'
 import styles from '../ProjectViewer.module.css'
 
