@@ -36,6 +36,7 @@ export interface UseAgentSessionProgressResult {
   error: string | null
   connect: () => void
   disconnect: () => void
+  reconnect: () => void
 }
 
 export function useAgentSessionProgress(

@@ -43,6 +43,9 @@ export const agentSessionResource = defineResource({
     commitSha: z.string().optional(),
     error: z.string().optional(),
 
+    // Retry lineage
+    retriedFromId: z.string().uuid().optional(),
+
     // Timing
     startedAt: z.coerce.date().optional(),
     completedAt: z.coerce.date().optional(),

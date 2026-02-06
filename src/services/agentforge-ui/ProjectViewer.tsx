@@ -750,6 +750,11 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
           <AgentSessionProgressPanel
             sessionId={tab.path}
             onClose={() => closeTab(tab.id, tab.pane)}
+            onRetry={(newSessionId) => {
+              // Close the current failed session tab and open the new retry session
+              closeTab(tab.id, tab.pane)
+              openAgentSession(newSessionId)
+            }}
           />
         </div>
       )

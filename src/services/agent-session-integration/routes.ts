@@ -19,6 +19,7 @@ interface AgentSession {
   summary?: string
   commitSha?: string
   error?: string
+  retriedFromId?: string
   startedAt?: Date
   completedAt?: Date
   createdAt: Date
@@ -428,7 +429,7 @@ export function registerAgentSessionRoutes(
     return c.json({ ok: true, message: 'Session cancelled' })
   })
 
-  // Retry a failed session
+  // Retry a failed session by creating a new session
   app.post('/api/agentSessions/:id/retry', async (c) => {
     const { id } = c.req.param()
 
@@ -441,21 +442,25 @@ export function registerAgentSessionRoutes(
       return c.json({ error: 'Can only retry failed sessions' }, 400)
     }
 
-    // Reset session state for retry
-    await agentSessionStore.update(id, {
+    // Generate a new sessionId for the retry
+    const newSessionId = await generateSessionId(agentSessionStore, session.projectId, session.agent)
+
+    // Create a new session with the same parameters, linked to the failed one
+    const newSession = await agentSessionStore.create({
+      projectId: session.projectId,
+      sessionId: newSessionId,
+      agent: session.agent,
+      phase: session.phase,
+      taskPrompt: session.taskPrompt,
       stage: 'pending',
       progress: 0,
-      currentStep: undefined,
-      error: undefined,
-      startedAt: undefined,
-      completedAt: undefined,
       logs: [
-        ...session.logs,
-        { timestamp: new Date(), level: 'info', message: 'Session retry requested' },
+        { timestamp: new Date(), level: 'info', message: `Retry of failed session ${session.sessionId}` },
       ],
+      retriedFromId: session.id,
     })
 
-    return c.json({ ok: true, message: 'Session reset for retry' })
+    return c.json(newSession, 201)
   })
 
   // Append log entry (called by runner)

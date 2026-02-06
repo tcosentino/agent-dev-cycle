@@ -10,12 +10,14 @@ import {
   PlayIcon,
   XIcon,
   GitBranchIcon,
+  ClipboardIcon,
 } from '../shared/icons'
 import styles from './AgentSessionPanel.module.css'
 
 export interface AgentSessionProgressPanelProps {
   sessionId: string
   onClose?: () => void
+  onRetry?: (newSessionId: string) => void
 }
 
 const stages = [
@@ -119,13 +121,15 @@ function ElapsedTime({ startedAt }: { startedAt?: string }) {
 export function AgentSessionProgressPanel({
   sessionId,
   onClose,
+  onRetry,
 }: AgentSessionProgressPanelProps) {
-  const { progress, isLoading, error, reconnect } = useAgentSessionProgress(sessionId)
+  const { progress, isLoading, error } = useAgentSessionProgress(sessionId)
   const { session: initialSession } = useAgentSession(sessionId)
   const logsEndRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [isCancelling, setIsCancelling] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -155,15 +159,39 @@ export function AgentSessionProgressPanel({
     if (!sessionId) return
     setIsRetrying(true)
     try {
-      await api.agentSessions.retry(sessionId)
-      // After retry resets the session, start it again
-      await api.agentSessions.start(sessionId)
-      // Reconnect to SSE stream to get live updates
-      reconnect()
+      // Create a new session (retry returns the new session object)
+      const newSession = await api.agentSessions.retry(sessionId)
+      // Start the new session
+      await api.agentSessions.start(newSession.id)
+      // Navigate to the new session
+      if (onRetry) {
+        onRetry(newSession.id)
+      }
     } catch (err) {
       console.error('Failed to retry session:', err)
     }
     setIsRetrying(false)
+  }
+
+  const handleCopyLogs = async () => {
+    const logs = 'logs' in (progress || initialSession || {})
+      ? (progress || initialSession)!.logs
+      : []
+
+    const logText = logs
+      .map(log => {
+        const time = new Date(log.timestamp).toISOString()
+        return `[${time}] [${log.level.toUpperCase()}] ${log.message}`
+      })
+      .join('\n')
+
+    try {
+      await navigator.clipboard.writeText(logText)
+      setCopySuccess(true)
+      setTimeout(() => setCopySuccess(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy logs:', err)
+    }
   }
 
   // Use progress from SSE if connected, otherwise use initial session data
@@ -271,6 +299,17 @@ export function AgentSessionProgressPanel({
         />
       </div>
 
+      <div className={styles.logsHeader}>
+        <span className={styles.logsTitle}>Logs</span>
+        <button
+          className={styles.copyLogsButton}
+          onClick={handleCopyLogs}
+          title="Copy logs to clipboard"
+        >
+          <ClipboardIcon width={14} height={14} />
+          {copySuccess ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
       <div className={styles.logsContainer} onScroll={handleScroll}>
         {logs.length === 0 ? (
           <div className={styles.noLogs}>No logs yet...</div>

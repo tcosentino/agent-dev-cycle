@@ -130,6 +130,7 @@ export interface ApiAgentSession {
   summary?: string
   commitSha?: string
   error?: string
+  retriedFromId?: string
   startedAt?: string
   completedAt?: string
   createdAt: string
@@ -264,7 +265,7 @@ export const api = {
         method: 'POST',
       }),
     retry: (id: string) =>
-      fetchJson<{ ok: boolean; message: string }>(`/agentSessions/${id}/retry`, {
+      fetchJson<ApiAgentSession>(`/agentSessions/${id}/retry`, {
         method: 'POST',
       }),
     streamUrl: (id: string) => `${API_BASE}/agentSessions/${id}/stream`,
