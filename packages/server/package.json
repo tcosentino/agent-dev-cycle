@@ -11,8 +11,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "start": "tsx src/cli.ts",
-    "dev": "tsx watch src/cli.ts",
+    "start": "tsx src/cli.ts --services ../../src/services",
+    "dev": "tsx watch src/cli.ts --services ../../src/services",
     "test": "vitest run",
     "test:watch": "vitest"
   },
