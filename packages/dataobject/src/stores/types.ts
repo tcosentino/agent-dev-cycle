@@ -8,4 +8,6 @@ export interface ResourceStore<T extends Record<string, unknown> = Record<string
   create(data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>): Promise<T>
   update(id: string, data: Partial<T>): Promise<T | null>
   delete(id: string): Promise<boolean>
+  // Optional: Clear all data (useful for testing)
+  clear?(): Promise<void>
 }

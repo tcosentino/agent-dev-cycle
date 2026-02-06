@@ -12,7 +12,9 @@
   },
   "scripts": {
     "start": "tsx src/cli.ts",
-    "dev": "tsx watch src/cli.ts"
+    "dev": "tsx watch src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@agentforge/dataobject": "0.1.0",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.11",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "vitest": "^2.0.0"
   }
 }

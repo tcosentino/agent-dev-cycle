@@ -6,3 +6,7 @@ export type { ServiceInfo, DataObjectModule } from './discover'
 
 export { createServer } from './server'
 export type { ServerOptions, ServerInstance } from './server'
+
+// Test utilities
+export { createTestServer, createTestContext } from './test-utils'
+export type { TestServerOptions, TestServerInstance } from './test-utils'

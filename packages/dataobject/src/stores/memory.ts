@@ -43,7 +43,9 @@ export function createMemoryStore<T extends Record<string, unknown>>(): Resource
     },
 
     async create(input) {
-      const id = crypto.randomUUID()
+      // Allow passing in an explicit id (useful for testing/seeding)
+      const inputWithId = input as Record<string, unknown>
+      const id = typeof inputWithId.id === 'string' ? inputWithId.id : crypto.randomUUID()
       const now = new Date()
       const record = {
         ...input,
@@ -72,6 +74,10 @@ export function createMemoryStore<T extends Record<string, unknown>>(): Resource
 
     async delete(id) {
       return data.delete(id)
+    },
+
+    async clear() {
+      data.clear()
     },
   }
 }
