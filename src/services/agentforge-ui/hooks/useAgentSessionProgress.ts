@@ -165,6 +165,7 @@ export function useAgentSessionProgress(
     error,
     connect,
     disconnect,
+    reconnect: connect, // Alias for clarity when reconnecting after retry
   }
 }
 

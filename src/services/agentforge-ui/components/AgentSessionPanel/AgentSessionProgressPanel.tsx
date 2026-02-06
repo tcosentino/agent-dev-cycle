@@ -120,7 +120,7 @@ export function AgentSessionProgressPanel({
   sessionId,
   onClose,
 }: AgentSessionProgressPanelProps) {
-  const { progress, isLoading, error } = useAgentSessionProgress(sessionId)
+  const { progress, isLoading, error, reconnect } = useAgentSessionProgress(sessionId)
   const { session: initialSession } = useAgentSession(sessionId)
   const logsEndRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
@@ -158,6 +158,8 @@ export function AgentSessionProgressPanel({
       await api.agentSessions.retry(sessionId)
       // After retry resets the session, start it again
       await api.agentSessions.start(sessionId)
+      // Reconnect to SSE stream to get live updates
+      reconnect()
     } catch (err) {
       console.error('Failed to retry session:', err)
     }

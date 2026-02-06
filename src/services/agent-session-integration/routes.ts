@@ -135,7 +135,9 @@ export function registerAgentSessionRoutes(
     })
 
     // Create session config for runner
-    const runnerConfigDir = join(process.cwd(), '.data', 'runner-configs')
+    // Navigate from packages/server to project root for .data directory
+    const projectRoot = join(process.cwd(), '..', '..')
+    const runnerConfigDir = join(projectRoot, '.data', 'runner-configs')
     if (!existsSync(runnerConfigDir)) {
       mkdirSync(runnerConfigDir, { recursive: true })
     }
@@ -156,7 +158,7 @@ export function registerAgentSessionRoutes(
 
     // Spawn Docker container or local runner
     const useDocker = process.env.RUNNER_MODE !== 'local'
-    const runnerPath = join(process.cwd(), 'runner')
+    const runnerPath = join(projectRoot, 'runner')
 
     try {
       let proc: ReturnType<typeof spawn>
@@ -180,19 +182,50 @@ export function registerAgentSessionRoutes(
         })
       } else {
         // Local execution (for development)
-        proc = spawn('npx', ['tsx', 'src/index.ts'], {
-          cwd: runnerPath,
-          env: {
-            ...process.env,
-            SESSION_CONFIG_PATH: configPath,
-            AGENTFORGE_SERVER_URL: sessionConfig.serverUrl,
-            AGENTFORGE_SESSION_ID: id,
-          },
-          stdio: ['ignore', 'pipe', 'pipe'],
-          detached: true,
-          shell: true,
-        })
+        // Use the tsx binary directly from runner's node_modules
+        const tsxBinPath = join(runnerPath, 'node_modules', '.bin', 'tsx')
+
+        if (existsSync(tsxBinPath)) {
+          // Create a local workspace directory for this session
+          const localWorkspace = join(projectRoot, '.data', 'workspaces', id)
+          if (!existsSync(localWorkspace)) {
+            mkdirSync(localWorkspace, { recursive: true })
+          }
+
+          // Execute tsx binary directly
+          proc = spawn(tsxBinPath, ['src/index.ts'], {
+            cwd: runnerPath,
+            env: {
+              ...process.env,
+              SESSION_CONFIG_PATH: configPath,
+              AGENTFORGE_SERVER_URL: sessionConfig.serverUrl,
+              AGENTFORGE_SESSION_ID: id,
+              AGENTFORGE_PROJECT_ID: session.projectId,
+              AGENTFORGE_RUN_ID: session.sessionId,
+              WORKSPACE_PATH: localWorkspace,
+            },
+            stdio: ['ignore', 'pipe', 'pipe'],
+            detached: true,
+          })
+        } else {
+          throw new Error(`tsx not found at ${tsxBinPath}. Run 'yarn install' in the runner directory.`)
+        }
       }
+
+      // Handle spawn errors to prevent server crash
+      proc.on('error', async (err) => {
+        console.error(`Failed to spawn runner process: ${err.message}`)
+        runningContainers.delete(id)
+        await agentSessionStore.update(id, {
+          stage: 'failed',
+          completedAt: new Date(),
+          error: `Failed to start runner: ${err.message}`,
+          logs: [
+            ...session.logs,
+            { timestamp: new Date(), level: 'error', message: `Spawn error: ${err.message}` },
+          ],
+        })
+      })
 
       // Track the process
       runningContainers.set(id, { process: proc })
