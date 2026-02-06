@@ -1,4 +1,4 @@
-import type { AgentStatus } from '../../../../../components/task-board/types'
+import type { AgentStatus } from '../../../../demo-ui/components/task-board/types'
 import { StatusIndicator } from '../StatusIndicator'
 import styles from './AgentStatusBadge.module.css'
 

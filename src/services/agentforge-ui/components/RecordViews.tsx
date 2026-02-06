@@ -1,5 +1,5 @@
 import { PriorityBadge, TypeBadge, AssigneeBadge } from './shared/badges'
-import type { TaskStatus, TaskPriority, TaskType, AgentRole } from '../../../components/task-board/types'
+import type { TaskStatus, TaskPriority, TaskType, AgentRole } from '../../demo-ui/components/task-board/types'
 import type { DbTableName, Workload } from '../types'
 import { TABLE_LABELS, TABLES_WITH_DETAIL_VIEW } from './constants'
 import type { RecordViewMode } from './constants'

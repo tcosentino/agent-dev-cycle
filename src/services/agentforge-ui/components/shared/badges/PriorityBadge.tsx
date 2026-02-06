@@ -1,4 +1,4 @@
-import type { TaskPriority } from '../../../../../components/task-board/types'
+import type { TaskPriority } from '../../../../demo-ui/components/task-board/types'
 import { Badge, type BadgeVariant } from '../Badge'
 
 interface PriorityBadgeProps {

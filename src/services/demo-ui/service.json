@@ -1,0 +1,10 @@
+{
+  "name": "demo-ui",
+  "type": "ui",
+  "version": "0.1.0",
+  "description": "Demo UI components and mockups. Landing page, task board, chat, and component previews.",
+  "entry": "main.ts",
+  "endpoints": [],
+  "dependencies": [],
+  "tags": ["ui", "demo", "mockups"]
+}

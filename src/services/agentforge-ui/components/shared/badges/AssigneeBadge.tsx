@@ -1,4 +1,4 @@
-import type { AgentRole } from '../../../../../components/task-board/types'
+import type { AgentRole } from '../../../../demo-ui/components/task-board/types'
 import { CodeIcon, PenIcon, CheckCircleIcon, SettingsIcon } from '../icons'
 import styles from './AssigneeBadge.module.css'
 

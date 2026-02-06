@@ -1,4 +1,4 @@
-import type { TaskType } from '../../../../../components/task-board/types'
+import type { TaskType } from '../../../../demo-ui/components/task-board/types'
 import { Badge } from '../Badge'
 
 interface TypeBadgeProps {

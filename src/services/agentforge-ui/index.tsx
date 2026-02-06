@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Nav } from '../../components/nav'
+import { Nav } from '../demo-ui/components/nav'
 import { ProjectViewer } from './ProjectViewer'
 import type { ProjectData, DbSnapshot, ProjectDbData } from './types'
 import './components/shared/tokens.css'
