@@ -5,13 +5,17 @@ export const projectResource = defineResource({
 
   schema: z.object({
     id: z.string().uuid(),
+    userId: z.string().uuid(),
     name: z.string().min(1).max(200),
     key: z.string().min(2).max(10).toUpperCase(), // e.g., 'AF' for AgentForge
     repoUrl: z.string().url().optional(),
   }),
 
-  createFields: ['name', 'key', 'repoUrl'],
+  createFields: ['userId', 'name', 'key', 'repoUrl'],
   updateFields: ['name', 'repoUrl'],
   unique: ['key'],
   searchable: ['name', 'key'],
+  relations: {
+    user: { type: 'belongsTo', resource: 'user', foreignKey: 'userId' },
+  },
 })

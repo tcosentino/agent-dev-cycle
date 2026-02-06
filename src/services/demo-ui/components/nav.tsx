@@ -1,11 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
 import './nav.css'
 
-interface NavProps {
-  currentPage?: 'demo' | 'docs' | 'components'
+interface User {
+  id: string
+  githubLogin: string
+  avatarUrl?: string
 }
 
-export function Nav({ currentPage = 'demo' }: NavProps) {
+interface NavProps {
+  currentPage?: 'demo' | 'docs' | 'components'
+  user?: User | null
+}
+
+export function Nav({ currentPage = 'demo', user }: NavProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -55,6 +62,15 @@ export function Nav({ currentPage = 'demo' }: NavProps) {
             <a href="/project-viewer.html" className="nav-dropdown-item">Project Viewer</a>
           </div>
         </div>
+        {user && (
+          <div className="nav-user">
+            {user.avatarUrl && (
+              <img src={user.avatarUrl} alt={user.githubLogin} className="nav-avatar" />
+            )}
+            <span className="nav-username">{user.githubLogin}</span>
+            <a href="/auth/github/logout" className="nav-logout">Logout</a>
+          </div>
+        )}
       </div>
     </nav>
   )

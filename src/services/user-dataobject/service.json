@@ -1,0 +1,28 @@
+{
+  "name": "user-dataobject",
+  "type": "dataobject",
+  "version": "0.1.0",
+  "description": "User data object. Represents a user authenticated via GitHub OAuth.",
+  "entry": "index.ts",
+  "schema": {
+    "fields": [
+      { "name": "id", "type": "uuid", "auto": true },
+      { "name": "githubId", "type": "string", "required": true, "unique": true },
+      { "name": "githubLogin", "type": "string", "required": true },
+      { "name": "githubEmail", "type": "string" },
+      { "name": "githubAccessToken", "type": "string", "required": true },
+      { "name": "avatarUrl", "type": "string" },
+      { "name": "createdAt", "type": "date", "auto": true },
+      { "name": "updatedAt", "type": "date", "auto": true }
+    ]
+  },
+  "endpoints": [
+    { "method": "GET", "path": "/users", "description": "List all users" },
+    { "method": "GET", "path": "/users/:id", "description": "Get user by ID" },
+    { "method": "POST", "path": "/users", "description": "Create a new user" },
+    { "method": "PUT", "path": "/users/:id", "description": "Update a user" },
+    { "method": "DELETE", "path": "/users/:id", "description": "Delete a user" }
+  ],
+  "dependencies": [],
+  "tags": ["core", "auth"]
+}

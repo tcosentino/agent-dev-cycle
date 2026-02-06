@@ -1,7 +1,18 @@
 #!/usr/bin/env node
+import { config } from 'dotenv'
+import { resolve, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+// Load .env from project root (3 levels up from packages/server/src/cli.ts)
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const envPath = resolve(__dirname, '..', '..', '..', '.env')
+const result = config({ path: envPath })
+if (result.error) {
+  console.warn('Note: No .env file found at', envPath)
+}
+
 import { serve } from '@hono/node-server'
-import { resolve } from 'node:path'
-import { loadAllDataObjects } from './discover'
+import { loadAllDataObjects, loadAllIntegrations } from './discover'
 import { createServer } from './server'
 
 // Parse CLI arguments
@@ -40,10 +51,18 @@ async function main() {
     process.exit(1)
   }
 
-  console.log(`\nFound ${modules.length} dataobject service(s):\n`)
+  console.log(`Found ${modules.length} dataobject service(s)`)
+
+  // Discover and load all integration modules
+  const integrations = await loadAllIntegrations(servicesDir)
+  if (integrations.length > 0) {
+    console.log(`Found ${integrations.length} integration service(s)`)
+  }
+
+  console.log()
 
   // Create server
-  const { app } = createServer(modules, {
+  const { app } = createServer(modules, integrations, {
     title,
     storage,
     dbPath,

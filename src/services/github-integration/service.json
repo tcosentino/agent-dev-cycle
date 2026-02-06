@@ -1,0 +1,7 @@
+{
+  "name": "github-integration",
+  "type": "integration",
+  "version": "0.1.0",
+  "description": "GitHub OAuth and API integration for repository access",
+  "entry": "index.ts"
+}

@@ -12,7 +12,13 @@ import {
   MessageSquareIcon,
   RocketIcon,
   BoxIcon,
+  PlayIcon,
 } from './components/shared/icons'
+import {
+  AgentSessionList,
+  AgentSessionProgressPanel,
+  StartAgentSessionModal,
+} from './components/AgentSessionPanel'
 import { TabbedPane, type Tab } from './components/shared/TabbedPane'
 import type { FileCategory, ProjectData, ProjectDbData, DbTableName, Workload, ServiceMetadata } from './types'
 import {
@@ -100,6 +106,9 @@ function getTabIcon(tab: SerializedTab): ReactNode {
   if (tab.type === 'service') {
     return <BoxIcon />
   }
+  if (tab.type === 'agentSession') {
+    return <PlayIcon />
+  }
   return <FileDocumentIcon />
 }
 
@@ -179,6 +188,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
   }, [])
   const [isDragging, setIsDragging] = useState(false)
   const [isOverDropZone, setIsOverDropZone] = useState(false)
+  const [showStartSessionModal, setShowStartSessionModal] = useState(false)
   const [leftPaneWidth, setLeftPaneWidth] = useState(() => persistedState?.leftPaneWidth ?? 50)
   const [sidebarWidth, setSidebarWidth] = useState(() => persistedState?.sidebarWidth ?? 260)
   const isResizing = useRef(false)
@@ -236,7 +246,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
   const hasRightPane = rightTabs.length > 0
 
   // Set default expanded folders when tree changes
-  useMemo(() => {
+  useEffect(() => {
     setExpandedFolders(getDefaultExpanded(tree))
   }, [tree])
 
@@ -367,6 +377,29 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
     }])
     setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
   }, [openTabs, files, activePane, openFile])
+
+  const openAgentSession = useCallback((sessionId: string) => {
+    const tabId = `agentSession:${sessionId}`
+
+    // Check if tab already exists
+    const existingTab = openTabs.find(t => t.id === tabId)
+    if (existingTab) {
+      setActiveTabIds(prev => ({ ...prev, [existingTab.pane]: tabId }))
+      setActivePane(existingTab.pane)
+      return
+    }
+
+    // Create new tab
+    setOpenTabs(prev => [...prev, {
+      id: tabId,
+      type: 'agentSession',
+      path: sessionId,
+      label: `Session ${sessionId.slice(0, 8)}`,
+      icon: <PlayIcon />,
+      pane: activePane,
+    }])
+    setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
+  }, [openTabs, activePane])
 
   const splitToRight = useCallback((tabId: string) => {
     setOpenTabs(prev => prev.map(t =>
@@ -711,6 +744,17 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
       )
     }
 
+    if (tab.type === 'agentSession') {
+      return (
+        <div className={styles.tabContentInner}>
+          <AgentSessionProgressPanel
+            sessionId={tab.path}
+            onClose={() => closeTab(tab.id, tab.pane)}
+          />
+        </div>
+      )
+    }
+
     return null
   }
 
@@ -775,6 +819,24 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
               </div>
             </div>
           )}
+          <div className={styles.sidebarSection}>
+            <div className={styles.sidebarHeader}>
+              <span>Agent Sessions</span>
+              <button
+                className={styles.sidebarAddButton}
+                onClick={() => setShowStartSessionModal(true)}
+                title="Start new agent session"
+              >
+                <PlayIcon />
+              </button>
+            </div>
+            <div className={styles.sidebarContent}>
+              <AgentSessionList
+                projectId={activeProject}
+                onSessionSelect={openAgentSession}
+              />
+            </div>
+          </div>
         </div>
         <div
           className={styles.sidebarResizer}
@@ -841,6 +903,17 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames }: Project
           )}
         </div>
       </div>
+      {showStartSessionModal && (
+        <StartAgentSessionModal
+          projectId={activeProject}
+          projectName={projectDisplayNames?.[activeProject] || activeProject}
+          onClose={() => setShowStartSessionModal(false)}
+          onSessionCreated={(sessionId) => {
+            setShowStartSessionModal(false)
+            openAgentSession(sessionId)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -10,7 +10,7 @@ import {
   capitalize,
   type ResourceStore,
 } from '@agentforge/dataobject'
-import type { DataObjectModule } from './discover'
+import type { DataObjectModule, IntegrationModule } from './discover'
 
 export interface ServerOptions {
   title?: string
@@ -28,9 +28,10 @@ export interface ServerInstance {
   stores: Map<string, ResourceStore<Record<string, unknown>>>
 }
 
-// Create an API server from dataobject modules
+// Create an API server from dataobject modules and integration services
 export function createServer(
   modules: DataObjectModule[],
+  integrations: IntegrationModule[] = [],
   options: ServerOptions = {}
 ): ServerInstance {
   const {
@@ -53,11 +54,11 @@ export function createServer(
     db = new Database(dbPath)
   }
 
-  // Create stores for each module
+  // Create stores for each module (first pass - create all stores)
   const stores = new Map<string, ResourceStore<Record<string, unknown>>>()
 
   for (const module of modules) {
-    const { resource, serviceInfo } = module
+    const { resource } = module
     const resourceName = resource.name
     const pluralName = resource.plural ?? pluralize(resourceName)
 
@@ -77,14 +78,29 @@ export function createServer(
     }
 
     stores.set(resourceName, store)
+  }
 
-    // Register OpenAPI routes
+  // Register OpenAPI routes (second pass - now all stores exist for auto-increment lookups)
+  for (const module of modules) {
+    const { resource, serviceInfo } = module
+    const resourceName = resource.name
+    const pluralName = resource.plural ?? pluralize(resourceName)
+    const store = stores.get(resourceName)!
+
     registerOpenApiResource(app, resource, store, {
       basePath: `/api/${pluralName}`,
       tags: [capitalize(resourceName)],
+      stores, // Pass all stores for auto-increment lookups
     })
 
     console.log(`Registered: /api/${pluralName} (${serviceInfo.name})`)
+  }
+
+  // Register integration services
+  for (const integration of integrations) {
+    const { service, serviceInfo } = integration
+    service.register(app, { stores })
+    console.log(`Registered integration: ${service.name} (${serviceInfo.name})`)
   }
 
   // Health check endpoint
