@@ -1,0 +1,25 @@
+{
+  "name": "brand-dataobject",
+  "type": "dataobject",
+  "version": "0.1.0",
+  "description": "Brand data object for shoe inventory. Stores brand information like Nike, Adidas, etc.",
+  "entry": "index.ts",
+  "schema": {
+    "fields": [
+      { "name": "id", "type": "uuid", "auto": true },
+      { "name": "name", "type": "string", "required": true, "max": 100 },
+      { "name": "code", "type": "string", "required": true, "min": 2, "max": 4, "unique": true },
+      { "name": "createdAt", "type": "date", "auto": true },
+      { "name": "updatedAt", "type": "date", "auto": true }
+    ]
+  },
+  "endpoints": [
+    { "method": "GET", "path": "/brands", "description": "List all brands" },
+    { "method": "GET", "path": "/brands/:id", "description": "Get brand by ID" },
+    { "method": "POST", "path": "/brands", "description": "Create a new brand" },
+    { "method": "PUT", "path": "/brands/:id", "description": "Update a brand" },
+    { "method": "DELETE", "path": "/brands/:id", "description": "Delete a brand" }
+  ],
+  "dependencies": [],
+  "tags": ["inventory", "master-data"]
+}

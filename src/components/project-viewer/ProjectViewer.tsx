@@ -1,10 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from 'react'
 import type { ReactNode } from 'react'
 import {
-  ChevronRightIcon,
-  ChevronDownIcon,
-  FolderIcon,
-  FolderOpenIcon,
   FileDocumentIcon,
   SettingsIcon,
   BookOpenIcon,
@@ -13,620 +9,29 @@ import {
   DatabaseIcon,
   TableIcon,
   KanbanIcon,
+  MessageSquareIcon,
+  RocketIcon,
+  BoxIcon,
 } from '../shared/icons'
-import { TaskBoard } from '../task-board/TaskBoard'
-import type { Task, TaskStatus, TaskPriority, TaskType, AgentRole } from '../task-board/types'
-import { PriorityBadge, TypeBadge, AssigneeBadge } from '../shared/badges'
 import { TabbedPane, type Tab } from '../shared/TabbedPane'
-import type { FileNode, FileCategory, ProjectData, ProjectDbData, DbSnapshot, DbTableName } from './types'
+import type { FileCategory, ProjectData, ProjectDbData, DbTableName, Workload, ServiceMetadata } from './types'
+import {
+  categorizeFile,
+  buildFileTree,
+  getDefaultExpanded,
+  filterTreeForSimpleMode,
+  TABLE_NAMES,
+  TABLE_LABELS,
+  TABLES_WITH_VIEW,
+  TABLES_WITH_DETAIL_VIEW,
+  FileTreeNode,
+  ContentPreview,
+  DatabaseTableView,
+  RecordDetailView,
+  ServiceView,
+} from './components'
+import type { TabType, PaneId, ViewMode, RecordViewMode, OpenTab } from './components'
 import styles from './ProjectViewer.module.css'
-
-// --- Utilities ---
-
-function categorizeFile(path: string): FileCategory {
-  if (path.startsWith('.agentforge/')) return 'config'
-  if (path === 'PROJECT.md' || path === 'ARCHITECTURE.md') return 'briefing'
-  if (path.startsWith('prompts/')) return 'prompt'
-  if (path.startsWith('memory/')) return 'memory'
-  if (path.startsWith('sessions/')) return 'session'
-  if (path.startsWith('state/')) return 'state'
-  if (path.startsWith('src/')) return 'source'
-  return 'other'
-}
-
-function buildFileTree(files: Record<string, string>): FileNode[] {
-  const root: FileNode[] = []
-
-  for (const filePath of Object.keys(files).sort()) {
-    const parts = filePath.split('/')
-    let current = root
-    let builtPath = ''
-
-    for (let i = 0; i < parts.length; i++) {
-      const part = parts[i]
-      builtPath = builtPath ? `${builtPath}/${part}` : part
-      const isFile = i === parts.length - 1
-
-      let existing = current.find(n => n.name === part)
-      if (!existing) {
-        existing = {
-          name: part,
-          path: builtPath,
-          type: isFile ? 'file' : 'folder',
-          category: categorizeFile(builtPath),
-          ...(isFile
-            ? { extension: part.includes('.') ? part.split('.').pop() : undefined }
-            : { children: [] }),
-        }
-        current.push(existing)
-      }
-      if (!isFile && existing.children) {
-        current = existing.children
-      }
-    }
-  }
-
-  const sortNodes = (nodes: FileNode[]) => {
-    nodes.sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'folder' ? -1 : 1
-      return a.name.localeCompare(b.name)
-    })
-    nodes.forEach(n => {
-      if (n.children) sortNodes(n.children)
-    })
-  }
-  sortNodes(root)
-  return root
-}
-
-function getDefaultExpanded(tree: FileNode[]): Set<string> {
-  return new Set(tree.filter(n => n.type === 'folder').map(n => n.path))
-}
-
-const categoryClass: Record<FileCategory, string> = {
-  config: styles.catConfig,
-  briefing: styles.catBriefing,
-  prompt: styles.catPrompt,
-  memory: styles.catMemory,
-  session: styles.catSession,
-  state: styles.catState,
-  source: styles.catSource,
-  other: styles.catOther,
-}
-
-// --- Simple Markdown to HTML ---
-
-function markdownToHtml(md: string): string {
-  // Strip YAML frontmatter blocks
-  let text = md.replace(/^---\n[\s\S]*?\n---\n?/gm, '<hr />\n')
-
-  // Fenced code blocks (must come before inline processing)
-  text = text.replace(/```[\w]*\n([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-
-  // Headings
-  text = text.replace(/^### (.+)$/gm, '<h3>$1</h3>')
-  text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>')
-  text = text.replace(/^# (.+)$/gm, '<h1>$1</h1>')
-
-  // Horizontal rules (standalone ---)
-  text = text.replace(/^---$/gm, '<hr />')
-
-  // Bold and italic
-  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>')
-
-  // Inline code
-  text = text.replace(/`([^`]+)`/g, '<code>$1</code>')
-
-  // Unordered lists
-  text = text.replace(/^- (.+)$/gm, '<li>$1</li>')
-  text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
-
-  // Paragraphs for remaining non-tag lines
-  text = text.replace(/^(?!<[hluop]|<hr|<pre|<code|$)(.+)$/gm, '<p>$1</p>')
-
-  // Clean up extra whitespace
-  text = text.replace(/\n{3,}/g, '\n\n')
-
-  return text
-}
-
-// --- Sub-components ---
-
-function FileIcon({ category, extension }: { category: FileCategory; extension?: string }) {
-  const cls = `${styles.nodeIcon} ${categoryClass[category]}`
-
-  if (category === 'config') return <SettingsIcon className={cls} />
-  if (category === 'briefing') return <BookOpenIcon className={cls} />
-  if (category === 'session' && extension === 'jsonl') return <ClockIcon className={cls} />
-  if (category === 'source') return <CodeIcon className={cls} />
-  return <FileDocumentIcon className={cls} />
-}
-
-function FileTreeNode({
-  node,
-  depth,
-  expandedFolders,
-  selectedFile,
-  onToggle,
-  onSelect,
-}: {
-  node: FileNode
-  depth: number
-  expandedFolders: Set<string>
-  selectedFile: string | null
-  onToggle: (path: string) => void
-  onSelect: (path: string) => void
-}) {
-  const isExpanded = expandedFolders.has(node.path)
-  const isSelected = node.path === selectedFile
-
-  const className = [
-    styles.treeNode,
-    node.type === 'folder' ? styles.treeNodeFolder : '',
-    isSelected ? styles.treeNodeSelected : '',
-  ].filter(Boolean).join(' ')
-
-  return (
-    <>
-      <button
-        className={className}
-        style={{ paddingLeft: `${depth * 16 + 8}px` }}
-        onClick={() => node.type === 'folder' ? onToggle(node.path) : onSelect(node.path)}
-      >
-        {node.type === 'folder' ? (
-          <>
-            {isExpanded
-              ? <ChevronDownIcon className={styles.nodeChevron} />
-              : <ChevronRightIcon className={styles.nodeChevron} />
-            }
-            {isExpanded
-              ? <FolderOpenIcon className={`${styles.nodeIcon} ${categoryClass[node.category]}`} />
-              : <FolderIcon className={`${styles.nodeIcon} ${categoryClass[node.category]}`} />
-            }
-          </>
-        ) : (
-          <>
-            <span className={styles.nodeChevron} />
-            <FileIcon category={node.category} extension={node.extension} />
-          </>
-        )}
-        <span className={styles.nodeName}>{node.name}</span>
-      </button>
-      {node.type === 'folder' && isExpanded && node.children?.map(child => (
-        <FileTreeNode
-          key={child.path}
-          node={child}
-          depth={depth + 1}
-          expandedFolders={expandedFolders}
-          selectedFile={selectedFile}
-          onToggle={onToggle}
-          onSelect={onSelect}
-        />
-      ))}
-    </>
-  )
-}
-
-function MarkdownPreview({ content }: { content: string }) {
-  const html = useMemo(() => markdownToHtml(content), [content])
-  return <div className={styles.markdownContent} dangerouslySetInnerHTML={{ __html: html }} />
-}
-
-function YamlPreview({ content }: { content: string }) {
-  const html = useMemo(() => {
-    return content
-      .split('\n')
-      .map(line =>
-        line
-          .replace(/^(\s*)([\w-]+)(:)/g, `$1<span class="${styles.yamlKey}">$2</span>$3`)
-          .replace(/'([^']+)'/g, `<span class="${styles.yamlString}">'$1'</span>`)
-      )
-      .join('\n')
-  }, [content])
-
-  return <pre className={styles.yamlContent} dangerouslySetInnerHTML={{ __html: html }} />
-}
-
-interface TranscriptEntry {
-  type?: string
-  content?: string
-  output?: string
-  input?: unknown
-  tool?: string
-  timestamp?: string
-  summary?: string
-  [key: string]: unknown
-}
-
-function JsonlTimeline({ content }: { content: string }) {
-  const entries = useMemo<TranscriptEntry[]>(() => {
-    return content
-      .split('\n')
-      .filter(line => line.trim())
-      .map(line => {
-        try { return JSON.parse(line) as TranscriptEntry }
-        catch { return null }
-      })
-      .filter((e): e is TranscriptEntry => e !== null)
-  }, [content])
-
-  const typeClass = (type?: string) => {
-    switch (type) {
-      case 'system': return styles.typeSystem
-      case 'assistant': return styles.typeAssistant
-      case 'tool_call': return styles.typeToolCall
-      case 'tool_result': return styles.typeToolResult
-      default: return styles.typeSystem
-    }
-  }
-
-  return (
-    <div className={styles.timeline}>
-      {entries.map((entry, i) => {
-        const body = entry.content
-          || entry.output
-          || entry.summary
-          || (typeof entry.input === 'string' ? entry.input : null)
-        const codeBody = typeof entry.input === 'object' && entry.input !== null
-          ? JSON.stringify(entry.input, null, 2)
-          : null
-
-        return (
-          <div key={i} className={`${styles.timelineEntry} ${typeClass(entry.type)}`}>
-            <div className={styles.timelineMarker} />
-            <div className={styles.timelineContent}>
-              <div className={styles.timelineHeader}>
-                <span className={`${styles.timelineType} ${typeClass(entry.type)}`}>
-                  {entry.type || 'unknown'}
-                </span>
-                {entry.tool && <span className={styles.timelineTool}>{entry.tool}</span>}
-                {entry.timestamp && (
-                  <span className={styles.timelineTime}>
-                    {new Date(entry.timestamp).toLocaleTimeString()}
-                  </span>
-                )}
-              </div>
-              {body && <div className={styles.timelineBody}>{body}</div>}
-              {codeBody && <code className={styles.timelineBodyCode}>{codeBody}</code>}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-function JsonPreview({ content }: { content: string }) {
-  const html = useMemo(() => {
-    try {
-      const formatted = JSON.stringify(JSON.parse(content), null, 2)
-      return formatted
-        .replace(/("(?:\\.|[^"\\])*")\s*:/g, `<span class="${styles.yamlKey}">$1</span>:`)
-        .replace(/:\s*("(?:\\.|[^"\\])*")/g, `: <span class="${styles.yamlString}">$1</span>`)
-    } catch {
-      return content
-    }
-  }, [content])
-
-  return <pre className={styles.yamlContent} dangerouslySetInnerHTML={{ __html: html }} />
-}
-
-function RawTextPreview({ content }: { content: string }) {
-  return <pre className={styles.rawContent}>{content}</pre>
-}
-
-function ContentPreview({ path, content }: { path: string; content: string }) {
-  const ext = path.split('.').pop()?.toLowerCase()
-
-  switch (ext) {
-    case 'md':
-      return <MarkdownPreview content={content} />
-    case 'yaml':
-    case 'yml':
-      return <YamlPreview content={content} />
-    case 'json':
-      return <JsonPreview content={content} />
-    case 'jsonl':
-      return <JsonlTimeline content={content} />
-    default:
-      return <RawTextPreview content={content} />
-  }
-}
-
-type TabType = 'file' | 'table' | 'record'
-type PaneId = 'left' | 'right'
-
-interface OpenTab {
-  id: string
-  type: TabType
-  path: string // file path, table name, or record id (table:key)
-  label: string
-  icon?: ReactNode
-  pane: PaneId
-  // For record tabs, store the record data
-  record?: Record<string, unknown>
-  tableName?: DbTableName
-}
-
-const TABLE_NAMES: DbTableName[] = ['projects', 'tasks', 'channels', 'messages', 'agentStatus', 'sessions']
-
-const TABLE_LABELS: Record<DbTableName, string> = {
-  projects: 'Projects',
-  tasks: 'Tasks',
-  channels: 'Channels',
-  messages: 'Messages',
-  agentStatus: 'Agent Status',
-  sessions: 'Sessions',
-}
-
-type ViewMode = 'table' | 'view'
-
-// Tables that have a rich view mode
-const TABLES_WITH_VIEW: DbTableName[] = ['tasks']
-
-type RecordViewMode = 'view' | 'raw'
-
-// --- Task Board View (for rich task display) ---
-
-function TaskBoardView({
-  snapshot,
-  onTaskClick,
-}: {
-  snapshot: DbSnapshot
-  onTaskClick: (taskKey: string) => void
-}) {
-  const tasks = useMemo(() => {
-    return (snapshot.tasks || []).map(row => ({
-      key: String(row.key || ''),
-      title: String(row.title || ''),
-      type: (row.type as TaskType) || 'backend',
-      priority: (row.priority as TaskPriority) || 'medium',
-      status: (row.status as TaskStatus) || 'todo',
-      assignee: row.assignee as Task['assignee'],
-    }))
-  }, [snapshot.tasks])
-
-  const project = snapshot.projects?.[0]
-  const projectName = project ? String(project.name || 'Project') : 'Project'
-  const projectKey = project ? String(project.key || 'PRJ') : 'PRJ'
-
-  return (
-    <div className={styles.taskBoardContainer}>
-      <TaskBoard
-        projectName={projectName}
-        projectKey={projectKey}
-        phase="Building"
-        tasks={tasks}
-        onTaskClick={onTaskClick}
-      />
-    </div>
-  )
-}
-
-// --- Nice Task Detail View ---
-
-function TaskDetailView({ record }: { record: Record<string, unknown> }) {
-  const task = {
-    key: String(record.key || ''),
-    title: String(record.title || ''),
-    description: String(record.description || ''),
-    type: (record.type as TaskType) || 'backend',
-    priority: (record.priority as TaskPriority) || 'medium',
-    status: (record.status as TaskStatus) || 'todo',
-    assignee: record.assignee as AgentRole | undefined,
-    createdAt: record.createdAt ? String(record.createdAt) : undefined,
-    updatedAt: record.updatedAt ? String(record.updatedAt) : undefined,
-  }
-
-  const statusLabels: Record<TaskStatus, string> = {
-    'todo': 'To Do',
-    'in-progress': 'In Progress',
-    'done': 'Done',
-  }
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return null
-    try {
-      return new Date(dateStr).toLocaleString()
-    } catch {
-      return dateStr
-    }
-  }
-
-  return (
-    <div className={styles.taskDetailView}>
-      <div className={styles.taskDetailHeader}>
-        <span className={styles.taskDetailKey}>{task.key}</span>
-        <span className={styles.taskDetailStatus}>{statusLabels[task.status]}</span>
-      </div>
-      <h2 className={styles.taskDetailTitle}>{task.title}</h2>
-      {task.description && (
-        <p className={styles.taskDetailDescription}>{task.description}</p>
-      )}
-      <div className={styles.taskDetailMeta}>
-        <div className={styles.taskDetailMetaItem}>
-          <span className={styles.taskDetailMetaLabel}>Type</span>
-          <TypeBadge type={task.type} />
-        </div>
-        <div className={styles.taskDetailMetaItem}>
-          <span className={styles.taskDetailMetaLabel}>Priority</span>
-          <PriorityBadge priority={task.priority} />
-        </div>
-        {task.assignee && (
-          <div className={styles.taskDetailMetaItem}>
-            <span className={styles.taskDetailMetaLabel}>Assignee</span>
-            <AssigneeBadge role={task.assignee} />
-          </div>
-        )}
-      </div>
-      {(task.createdAt || task.updatedAt) && (
-        <div className={styles.taskDetailTimestamps}>
-          {task.createdAt && (
-            <div className={styles.taskDetailTimestamp}>
-              <span className={styles.taskDetailMetaLabel}>Created</span>
-              <span>{formatDate(task.createdAt)}</span>
-            </div>
-          )}
-          {task.updatedAt && (
-            <div className={styles.taskDetailTimestamp}>
-              <span className={styles.taskDetailMetaLabel}>Updated</span>
-              <span>{formatDate(task.updatedAt)}</span>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// --- Raw Record View ---
-
-function RawRecordView({ record, tableName }: { record: Record<string, unknown>; tableName: string }) {
-  const formatValue = (value: unknown): string => {
-    if (value === null) return 'null'
-    if (value === undefined) return 'undefined'
-    if (typeof value === 'object') return JSON.stringify(value, null, 2)
-    return String(value)
-  }
-
-  return (
-    <div className={styles.recordView}>
-      <div className={styles.recordHeader}>{tableName} Record</div>
-      <div className={styles.recordFields}>
-        {Object.entries(record).map(([key, value]) => (
-          <div key={key} className={styles.detailField}>
-            <div className={styles.detailLabel}>{key}</div>
-            <div className={styles.detailValue}>
-              {typeof value === 'object' && value !== null ? (
-                <pre className={styles.detailValueCode}>{formatValue(value)}</pre>
-              ) : (
-                formatValue(value)
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// --- Record Detail View with Toggle ---
-
-// Tables that have a nice detail view
-const TABLES_WITH_DETAIL_VIEW: DbTableName[] = ['tasks']
-
-function RecordDetailView({
-  record,
-  tableName,
-  viewMode,
-}: {
-  record: Record<string, unknown>
-  tableName: DbTableName | string
-  viewMode: RecordViewMode
-}) {
-  const tableNameStr = typeof tableName === 'string' && tableName in TABLE_LABELS
-    ? TABLE_LABELS[tableName as DbTableName]
-    : String(tableName)
-
-  const hasNiceView = typeof tableName === 'string' && TABLES_WITH_DETAIL_VIEW.includes(tableName as DbTableName)
-
-  // If no nice view available, just show raw
-  if (!hasNiceView) {
-    return <RawRecordView record={record} tableName={tableNameStr} />
-  }
-
-  if (viewMode === 'view' && tableName === 'tasks') {
-    return <TaskDetailView record={record} />
-  }
-
-  return <RawRecordView record={record} tableName={tableNameStr} />
-}
-
-function DatabaseTableView({
-  snapshot,
-  tableName,
-  viewMode,
-  onRowClick,
-}: {
-  snapshot: DbSnapshot
-  tableName: DbTableName
-  viewMode: ViewMode
-  onRowClick: (record: Record<string, unknown>, key: string) => void
-}) {
-  const rows = snapshot[tableName] || []
-  const columns = useMemo(() => {
-    if (rows.length === 0) return []
-    return Object.keys(rows[0])
-  }, [rows])
-
-  const formatCell = (value: unknown): string => {
-    if (value === null || value === undefined) return ''
-    if (typeof value === 'string') {
-      return value.length > 50 ? value.slice(0, 50) + '...' : value
-    }
-    return String(value)
-  }
-
-  // Get a unique key for a row (use 'key', 'id', or index)
-  const getRowKey = (row: Record<string, unknown>, index: number): string => {
-    if (row.key !== undefined) return String(row.key)
-    if (row.id !== undefined) return String(row.id)
-    return String(index)
-  }
-
-  // Show rich view for tasks when in 'view' mode
-  if (viewMode === 'view' && tableName === 'tasks') {
-    const handleTaskClick = (taskKey: string) => {
-      const row = rows.find(r => String(r.key) === taskKey)
-      if (row) onRowClick(row, taskKey)
-    }
-
-    return (
-      <TaskBoardView
-        snapshot={snapshot}
-        onTaskClick={handleTaskClick}
-      />
-    )
-  }
-
-  return (
-    <div className={styles.dbViewContainer}>
-      <div className={styles.dbTablePane}>
-        {rows.length > 0 ? (
-          <div className={styles.dataGrid}>
-            <table className={styles.dataTable}>
-              <thead>
-                <tr>
-                  {columns.map(col => (
-                    <th key={col}>{col}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, i) => {
-                  const rowKey = getRowKey(row, i)
-                  return (
-                    <tr
-                      key={rowKey}
-                      onClick={() => onRowClick(row, rowKey)}
-                    >
-                      {columns.map(col => (
-                        <td key={col}>{formatCell(row[col])}</td>
-                      ))}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className={styles.emptyState}>No rows in this table</div>
-        )}
-      </div>
-    </div>
-  )
-}
 
 // --- Helper to get file icon for tabs ---
 
@@ -655,6 +60,7 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
   const [viewModes, setViewModes] = useState<Record<DbTableName, ViewMode>>({} as Record<DbTableName, ViewMode>)
   const [recordViewModes, setRecordViewModes] = useState<Record<string, RecordViewMode>>({})
+  const [simpleMode, setSimpleMode] = useState(true)
 
   const getRecordViewMode = useCallback((tabId: string): RecordViewMode => {
     return recordViewModes[tabId] || 'view'
@@ -666,12 +72,19 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [isOverDropZone, setIsOverDropZone] = useState(false)
   const [leftPaneWidth, setLeftPaneWidth] = useState(50) // percentage
+  const [sidebarWidth, setSidebarWidth] = useState(260) // pixels
   const isResizing = useRef(false)
+  const isResizingSidebar = useRef(false)
   const editorAreaRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const files = projects[activeProject] || {}
   const snapshot = dbData[activeProject]
-  const tree = useMemo(() => buildFileTree(files), [files])
+  const fullTree = useMemo(() => buildFileTree(files), [files])
+  const tree = useMemo(
+    () => simpleMode ? filterTreeForSimpleMode(fullTree) : fullTree,
+    [fullTree, simpleMode]
+  )
 
   // Split tabs by pane
   const leftTabs = useMemo(() => openTabs.filter(t => t.pane === 'left'), [openTabs])
@@ -761,7 +174,55 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
       tableName,
     }])
     setActiveTabIds(prev => ({ ...prev, [targetPane]: tabId }))
-  }, [openTabs, activePane])
+  }, [openTabs])
+
+  const openService = useCallback((servicePath: string) => {
+    const tabId = `service:${servicePath}`
+
+    // Check if tab already exists
+    const existingTab = openTabs.find(t => t.id === tabId)
+    if (existingTab) {
+      setActiveTabIds(prev => ({ ...prev, [existingTab.pane]: tabId }))
+      setActivePane(existingTab.pane)
+      return
+    }
+
+    // Try to load service.json and README.md
+    const serviceJsonPath = `${servicePath}/service.json`
+    const readmePath = `${servicePath}/README.md`
+
+    const serviceJsonContent = files[serviceJsonPath]
+    const readmeContent = files[readmePath]
+
+    let metadata: ServiceMetadata | undefined
+    try {
+      if (serviceJsonContent) {
+        metadata = JSON.parse(serviceJsonContent)
+      }
+    } catch {
+      // Invalid JSON
+    }
+
+    if (!metadata) {
+      // Fallback - just open as a regular file view
+      openFile(serviceJsonPath)
+      return
+    }
+
+    const label = metadata.name || servicePath.split('/').pop() || 'Service'
+
+    setOpenTabs(prev => [...prev, {
+      id: tabId,
+      type: 'service',
+      path: servicePath,
+      label,
+      icon: <BoxIcon />,
+      pane: activePane,
+      serviceMetadata: metadata,
+      serviceReadme: readmeContent,
+    }])
+    setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
+  }, [openTabs, files, activePane, openFile])
 
   const splitToRight = useCallback((tabId: string) => {
     setOpenTabs(prev => prev.map(t =>
@@ -892,6 +353,33 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     document.addEventListener('mouseup', handleMouseUp)
   }, [])
 
+  // Handle sidebar resize
+  const handleSidebarMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    isResizingSidebar.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizingSidebar.current || !containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const newWidth = moveEvent.clientX - rect.left
+      // Clamp between 150px and 500px
+      setSidebarWidth(Math.min(500, Math.max(150, newWidth)))
+    }
+
+    const handleMouseUp = () => {
+      isResizingSidebar.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [])
+
   // Handle drop zone for creating right pane
   const handleDropZoneDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -935,7 +423,13 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     // Table tabs with rich view support
     if (t.type === 'table' && TABLES_WITH_VIEW.includes(t.path as DbTableName)) {
       const tableName = t.path as DbTableName
-      const currentMode = viewModes[tableName] || 'table'
+      const defaultMode = tableName === 'tasks' ? 'view' : 'table'
+      const currentMode = viewModes[tableName] || defaultMode
+
+      // Customize view labels based on table type
+      const viewLabel = tableName === 'channels' ? 'Chat' : tableName === 'deployments' ? 'Pipeline' : 'Board'
+      const ViewIcon = tableName === 'channels' ? MessageSquareIcon : tableName === 'deployments' ? RocketIcon : KanbanIcon
+
       menuContent = (
         <div className={styles.tabMenuContent}>
           <div className={styles.tabMenuLabel}>View</div>
@@ -950,8 +444,8 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
             className={`${styles.tabMenuOption} ${currentMode === 'view' ? styles.tabMenuOptionActive : ''}`}
             onClick={() => setViewModes(prev => ({ ...prev, [tableName]: 'view' }))}
           >
-            <KanbanIcon className={styles.tabMenuOptionIcon} />
-            <span>Board</span>
+            <ViewIcon className={styles.tabMenuOptionIcon} />
+            <span>{viewLabel}</span>
           </button>
         </div>
       )
@@ -1006,13 +500,15 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
 
     if (tab.type === 'table' && snapshot) {
       const tableName = tab.path as DbTableName
-      const viewMode = viewModes[tableName] || 'table'
+      const defaultMode = tableName === 'tasks' ? 'view' : 'table'
+      const viewMode = viewModes[tableName] || defaultMode
       return (
         <DatabaseTableView
           snapshot={snapshot}
           tableName={tableName}
           viewMode={viewMode}
           onRowClick={(record, key) => openRecord(tableName, record, key)}
+          onWorkloadClick={(workload: Workload) => openRecord('workloads', workload as unknown as Record<string, unknown>, workload.id)}
         />
       )
     }
@@ -1029,11 +525,24 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
       )
     }
 
+    if (tab.type === 'service' && tab.serviceMetadata) {
+      return (
+        <div className={styles.tabContentInner}>
+          <ServiceView
+            metadata={tab.serviceMetadata}
+            readme={tab.serviceReadme}
+            servicePath={tab.path}
+            onFileClick={openFile}
+          />
+        </div>
+      )
+    }
+
     return null
   }
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} ref={containerRef}>
       <div className={styles.toolbar}>
         <select
           className={styles.projectSelect}
@@ -1046,9 +555,19 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
         </select>
       </div>
       <div className={styles.splitPane}>
-        <div className={styles.sidebar}>
+        <div className={styles.sidebar} style={{ width: sidebarWidth }}>
           <div className={styles.sidebarSection}>
-            <div className={styles.sidebarHeader}>Files</div>
+            <div className={styles.sidebarHeader}>
+              <span>Files</span>
+              <label className={styles.simpleModeToggle}>
+                <input
+                  type="checkbox"
+                  checked={simpleMode}
+                  onChange={e => setSimpleMode(e.target.checked)}
+                />
+                <span>Simple</span>
+              </label>
+            </div>
             <div className={styles.sidebarContent}>
               {tree.map(node => (
                 <FileTreeNode
@@ -1059,6 +578,7 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
                   selectedFile={selectedFilePath}
                   onToggle={toggleFolder}
                   onSelect={openFile}
+                  onServiceSelect={openService}
                 />
               ))}
             </div>
@@ -1081,6 +601,10 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
             </div>
           )}
         </div>
+        <div
+          className={styles.sidebarResizer}
+          onMouseDown={handleSidebarMouseDown}
+        />
         <div className={styles.editorArea} ref={editorAreaRef}>
           <div
             className={`${styles.editorPane} ${activePane === 'left' ? styles.editorPaneActive : ''}`}
