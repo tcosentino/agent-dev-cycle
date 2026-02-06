@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import type { ReactNode } from 'react'
 import {
   ChevronRightIcon,
@@ -11,7 +11,11 @@ import {
   ClockIcon,
   CodeIcon,
   DatabaseIcon,
+  TableIcon,
+  KanbanIcon,
 } from '../shared/icons'
+import { TaskBoard } from '../task-board/TaskBoard'
+import type { Task, TaskStatus, TaskPriority, TaskType } from '../task-board/types'
 import { TabbedPane, type Tab } from '../shared/TabbedPane'
 import type { FileNode, FileCategory, ProjectData, ProjectDbData, DbSnapshot, DbTableName } from './types'
 import styles from './ProjectViewer.module.css'
@@ -329,16 +333,19 @@ function ContentPreview({ path, content }: { path: string; content: string }) {
   }
 }
 
-type TabType = 'file' | 'table'
+type TabType = 'file' | 'table' | 'record'
 type PaneId = 'left' | 'right'
 
 interface OpenTab {
   id: string
   type: TabType
-  path: string // file path or table name
+  path: string // file path, table name, or record id (table:key)
   label: string
   icon?: ReactNode
   pane: PaneId
+  // For record tabs, store the record data
+  record?: Record<string, unknown>
+  tableName?: DbTableName
 }
 
 const TABLE_NAMES: DbTableName[] = ['projects', 'tasks', 'channels', 'messages', 'agentStatus', 'sessions']
@@ -352,14 +359,83 @@ const TABLE_LABELS: Record<DbTableName, string> = {
   sessions: 'Sessions',
 }
 
-function RecordDetailPanel({
+type ViewMode = 'table' | 'view'
+
+// Tables that have a rich view mode
+const TABLES_WITH_VIEW: DbTableName[] = ['tasks']
+
+// --- View Mode Toggle ---
+
+function ViewModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: ViewMode
+  onChange: (mode: ViewMode) => void
+}) {
+  return (
+    <div className={styles.viewModeToggle}>
+      <button
+        className={`${styles.viewModeBtn} ${mode === 'table' ? styles.viewModeBtnActive : ''}`}
+        onClick={() => onChange('table')}
+        title="Table view"
+      >
+        <TableIcon className={styles.viewModeIcon} />
+      </button>
+      <button
+        className={`${styles.viewModeBtn} ${mode === 'view' ? styles.viewModeBtnActive : ''}`}
+        onClick={() => onChange('view')}
+        title="Board view"
+      >
+        <KanbanIcon className={styles.viewModeIcon} />
+      </button>
+    </div>
+  )
+}
+
+// --- Task Board View (for rich task display) ---
+
+function TaskBoardView({
+  snapshot,
+  onTaskClick,
+}: {
+  snapshot: DbSnapshot
+  onTaskClick: (taskKey: string) => void
+}) {
+  const tasks = useMemo(() => {
+    return (snapshot.tasks || []).map(row => ({
+      key: String(row.key || ''),
+      title: String(row.title || ''),
+      type: (row.type as TaskType) || 'backend',
+      priority: (row.priority as TaskPriority) || 'medium',
+      status: (row.status as TaskStatus) || 'todo',
+      assignee: row.assignee as Task['assignee'],
+    }))
+  }, [snapshot.tasks])
+
+  const project = snapshot.projects?.[0]
+  const projectName = project ? String(project.name || 'Project') : 'Project'
+  const projectKey = project ? String(project.key || 'PRJ') : 'PRJ'
+
+  return (
+    <div className={styles.taskBoardContainer}>
+      <TaskBoard
+        projectName={projectName}
+        projectKey={projectKey}
+        phase="Building"
+        tasks={tasks}
+        onTaskClick={onTaskClick}
+      />
+    </div>
+  )
+}
+
+function RecordDetailView({
   record,
   tableName,
-  onClose,
 }: {
   record: Record<string, unknown>
-  tableName: string
-  onClose: () => void
+  tableName: DbTableName | string
 }) {
   const formatValue = (value: unknown): string => {
     if (value === null) return 'null'
@@ -368,15 +444,14 @@ function RecordDetailPanel({
     return String(value)
   }
 
+  const label = typeof tableName === 'string' && tableName in TABLE_LABELS
+    ? TABLE_LABELS[tableName as DbTableName]
+    : tableName
+
   return (
-    <div className={styles.detailPanel}>
-      <div className={styles.detailHeader}>
-        <span className={styles.detailTitle}>{tableName} Record</span>
-        <button className={styles.detailClose} onClick={onClose}>
-          <ChevronRightIcon className={styles.detailCloseIcon} />
-        </button>
-      </div>
-      <div className={styles.detailBody}>
+    <div className={styles.recordView}>
+      <div className={styles.recordHeader}>{label} Record</div>
+      <div className={styles.recordFields}>
         {Object.entries(record).map(([key, value]) => (
           <div key={key} className={styles.detailField}>
             <div className={styles.detailLabel}>{key}</div>
@@ -397,15 +472,15 @@ function RecordDetailPanel({
 function DatabaseTableView({
   snapshot,
   tableName,
-  selectedRow,
-  onSelectRow,
-  onCloseDetail,
+  viewMode,
+  onViewModeChange,
+  onRowClick,
 }: {
   snapshot: DbSnapshot
   tableName: DbTableName
-  selectedRow: number | null
-  onSelectRow: (row: number) => void
-  onCloseDetail: () => void
+  viewMode: ViewMode
+  onViewModeChange: (mode: ViewMode) => void
+  onRowClick: (record: Record<string, unknown>, key: string) => void
 }) {
   const rows = snapshot[tableName] || []
   const columns = useMemo(() => {
@@ -421,11 +496,45 @@ function DatabaseTableView({
     return String(value)
   }
 
-  const selectedRecord = selectedRow !== null ? rows[selectedRow] : null
+  // Get a unique key for a row (use 'key', 'id', or index)
+  const getRowKey = (row: Record<string, unknown>, index: number): string => {
+    if (row.key !== undefined) return String(row.key)
+    if (row.id !== undefined) return String(row.id)
+    return String(index)
+  }
+
+  const hasRichView = TABLES_WITH_VIEW.includes(tableName)
+
+  // Show rich view for tasks when in 'view' mode
+  if (viewMode === 'view' && tableName === 'tasks') {
+    const handleTaskClick = (taskKey: string) => {
+      const row = rows.find(r => String(r.key) === taskKey)
+      if (row) onRowClick(row, taskKey)
+    }
+
+    return (
+      <div className={styles.dbViewContainer}>
+        <div className={styles.dbToolbar}>
+          <span className={styles.dbToolbarTitle}>{TABLE_LABELS[tableName]}</span>
+          <ViewModeToggle mode={viewMode} onChange={onViewModeChange} />
+        </div>
+        <TaskBoardView
+          snapshot={snapshot}
+          onTaskClick={handleTaskClick}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className={styles.dbViewContainer}>
-      <div className={`${styles.dbTablePane} ${selectedRecord ? styles.dbTablePaneWithDetail : ''}`}>
+      {hasRichView && (
+        <div className={styles.dbToolbar}>
+          <span className={styles.dbToolbarTitle}>{TABLE_LABELS[tableName]}</span>
+          <ViewModeToggle mode={viewMode} onChange={onViewModeChange} />
+        </div>
+      )}
+      <div className={styles.dbTablePane}>
         {rows.length > 0 ? (
           <div className={styles.dataGrid}>
             <table className={styles.dataTable}>
@@ -437,17 +546,19 @@ function DatabaseTableView({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, i) => (
-                  <tr
-                    key={i}
-                    className={selectedRow === i ? styles.dataRowSelected : ''}
-                    onClick={() => onSelectRow(i)}
-                  >
-                    {columns.map(col => (
-                      <td key={col}>{formatCell(row[col])}</td>
-                    ))}
-                  </tr>
-                ))}
+                {rows.map((row, i) => {
+                  const rowKey = getRowKey(row, i)
+                  return (
+                    <tr
+                      key={rowKey}
+                      onClick={() => onRowClick(row, rowKey)}
+                    >
+                      {columns.map(col => (
+                        <td key={col}>{formatCell(row[col])}</td>
+                      ))}
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
@@ -455,13 +566,6 @@ function DatabaseTableView({
           <div className={styles.emptyState}>No rows in this table</div>
         )}
       </div>
-      {selectedRecord && (
-        <RecordDetailPanel
-          record={selectedRecord}
-          tableName={TABLE_LABELS[tableName]}
-          onClose={onCloseDetail}
-        />
-      )}
     </div>
   )
 }
@@ -491,9 +595,12 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const [activeTabIds, setActiveTabIds] = useState<Record<PaneId, string | null>>({ left: null, right: null })
   const [activePane, setActivePane] = useState<PaneId>('left')
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
-  const [selectedDbRows, setSelectedDbRows] = useState<Record<string, number | null>>({})
+  const [viewModes, setViewModes] = useState<Record<DbTableName, ViewMode>>({} as Record<DbTableName, ViewMode>)
   const [isDragging, setIsDragging] = useState(false)
   const [isOverDropZone, setIsOverDropZone] = useState(false)
+  const [leftPaneWidth, setLeftPaneWidth] = useState(50) // percentage
+  const isResizing = useRef(false)
+  const editorAreaRef = useRef<HTMLDivElement>(null)
 
   const files = projects[activeProject] || {}
   const snapshot = dbData[activeProject]
@@ -558,6 +665,37 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     openInPane('table', tableName, activePane)
   }, [openInPane, activePane])
 
+  const openRecord = useCallback((tableName: DbTableName, record: Record<string, unknown>, key: string) => {
+    const tabId = `record:${tableName}:${key}`
+
+    // Check if tab already exists
+    const existingTab = openTabs.find(t => t.id === tabId)
+    if (existingTab) {
+      setActiveTabIds(prev => ({ ...prev, [existingTab.pane]: tabId }))
+      setActivePane(existingTab.pane)
+      return
+    }
+
+    // Open in the opposite pane (detail view pattern)
+    // If right pane doesn't exist yet, create it
+    const targetPane: PaneId = 'right'
+
+    // Create label from key or title field
+    const label = record.title ? String(record.title).slice(0, 30) : `${TABLE_LABELS[tableName]} ${key}`
+
+    setOpenTabs(prev => [...prev, {
+      id: tabId,
+      type: 'record',
+      path: `${tableName}:${key}`,
+      label,
+      icon: <DatabaseIcon />,
+      pane: targetPane,
+      record,
+      tableName,
+    }])
+    setActiveTabIds(prev => ({ ...prev, [targetPane]: tabId }))
+  }, [openTabs, activePane])
+
   const splitToRight = useCallback((tabId: string) => {
     setOpenTabs(prev => prev.map(t =>
       t.id === tabId ? { ...t, pane: 'right' as PaneId } : t
@@ -594,7 +732,6 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     setOpenTabs([])
     setActiveTabIds({ left: null, right: null })
     setActivePane('left')
-    setSelectedDbRows({})
   }, [])
 
   const selectTab = useCallback((tabId: string, pane: PaneId) => {
@@ -661,6 +798,33 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     })
   }, [activeTabIds])
 
+  // Handle splitter resize
+  const handleSplitterMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    isResizing.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizing.current || !editorAreaRef.current) return
+      const rect = editorAreaRef.current.getBoundingClientRect()
+      const newWidth = ((moveEvent.clientX - rect.left) / rect.width) * 100
+      // Clamp between 20% and 80%
+      setLeftPaneWidth(Math.min(80, Math.max(20, newWidth)))
+    }
+
+    const handleMouseUp = () => {
+      isResizing.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }, [])
+
   // Handle drop zone for creating right pane
   const handleDropZoneDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -720,15 +884,23 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
 
     if (tab.type === 'table' && snapshot) {
       const tableName = tab.path as DbTableName
-      const selectedRow = selectedDbRows[tableName] ?? null
+      const viewMode = viewModes[tableName] || 'table'
       return (
         <DatabaseTableView
           snapshot={snapshot}
           tableName={tableName}
-          selectedRow={selectedRow}
-          onSelectRow={(row) => setSelectedDbRows(prev => ({ ...prev, [tableName]: row }))}
-          onCloseDetail={() => setSelectedDbRows(prev => ({ ...prev, [tableName]: null }))}
+          viewMode={viewMode}
+          onViewModeChange={(mode) => setViewModes(prev => ({ ...prev, [tableName]: mode }))}
+          onRowClick={(record, key) => openRecord(tableName, record, key)}
         />
+      )
+    }
+
+    if (tab.type === 'record' && tab.record) {
+      return (
+        <div className={styles.tabContentInner}>
+          <RecordDetailView record={tab.record} tableName={tab.tableName || 'Record'} />
+        </div>
       )
     }
 
@@ -784,9 +956,10 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
             </div>
           )}
         </div>
-        <div className={styles.editorArea}>
+        <div className={styles.editorArea} ref={editorAreaRef}>
           <div
             className={`${styles.editorPane} ${activePane === 'left' ? styles.editorPaneActive : ''}`}
+            style={hasRightPane ? { flex: `0 0 ${leftPaneWidth}%` } : undefined}
             onClick={() => setActivePane('left')}
           >
             <TabbedPane
@@ -807,9 +980,13 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
           </div>
           {hasRightPane ? (
             <>
-              <div className={styles.editorSplitter} />
+              <div
+                className={styles.editorSplitter}
+                onMouseDown={handleSplitterMouseDown}
+              />
               <div
                 className={`${styles.editorPane} ${activePane === 'right' ? styles.editorPaneActive : ''}`}
+                style={{ flex: `0 0 ${100 - leftPaneWidth}%` }}
                 onClick={() => setActivePane('right')}
               >
                 <TabbedPane

@@ -6,6 +6,8 @@ interface TaskColumnProps {
   status: TaskStatus
   tasks: Task[]
   animate?: boolean
+  selectedTaskKey?: string | null
+  onTaskClick?: (taskKey: string) => void
 }
 
 const statusLabels: Record<TaskStatus, string> = {
@@ -14,7 +16,7 @@ const statusLabels: Record<TaskStatus, string> = {
   'done': 'Done'
 }
 
-export function TaskColumn({ status, tasks, animate = false }: TaskColumnProps) {
+export function TaskColumn({ status, tasks, animate = false, selectedTaskKey, onTaskClick }: TaskColumnProps) {
   return (
     <div className={styles.column}>
       <div className={styles.header}>
@@ -28,6 +30,8 @@ export function TaskColumn({ status, tasks, animate = false }: TaskColumnProps) 
             task={task}
             animate={animate}
             animationDelay={0.3 + index * 0.3}
+            selected={selectedTaskKey === task.key}
+            onClick={onTaskClick}
           />
         ))}
       </div>

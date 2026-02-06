@@ -21,4 +21,6 @@ export interface TaskBoardProps {
   tasks: Task[]
   animate?: boolean
   minHeight?: string | number
+  selectedTaskKey?: string | null
+  onTaskClick?: (taskKey: string) => void
 }

@@ -7,6 +7,8 @@ interface TaskCardProps {
   task: Task
   animate?: boolean
   animationDelay?: number
+  selected?: boolean
+  onClick?: (taskKey: string) => void
 }
 
 // Global position cache - persists across component unmount/remount
@@ -27,7 +29,7 @@ export function resetTaskAnimationCache() {
   enteredTasks.clear()
 }
 
-export function TaskCard({ task, animate = false, animationDelay = 0 }: TaskCardProps) {
+export function TaskCard({ task, animate = false, animationDelay = 0, selected = false, onClick }: TaskCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const style = animate ? { animationDelay: `${animationDelay}s` } : undefined
 
@@ -121,9 +123,10 @@ export function TaskCard({ task, animate = false, animationDelay = 0 }: TaskCard
   return (
     <div
       ref={cardRef}
-      className={`${styles.card} ${animate ? styles.animate : ''}`}
+      className={`${styles.card} ${animate ? styles.animate : ''} ${selected ? styles.selected : ''}`}
       style={style}
       data-task-key={task.key}
+      onClick={() => onClick?.(task.key)}
     >
       <div className={styles.key}>{task.key}</div>
       <div className={styles.title}>{task.title}</div>

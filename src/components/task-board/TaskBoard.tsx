@@ -5,7 +5,7 @@ import styles from './TaskBoard.module.css'
 
 const statusOrder: TaskStatus[] = ['todo', 'in-progress', 'done']
 
-export function TaskBoard({ projectName, projectKey, phase, tasks, animate = false, minHeight }: TaskBoardProps) {
+export function TaskBoard({ projectName, projectKey, phase, tasks, animate = false, minHeight, selectedTaskKey, onTaskClick }: TaskBoardProps) {
   const tasksByStatus = statusOrder.reduce((acc, status) => {
     acc[status] = tasks.filter(task => task.status === status)
     return acc
@@ -27,6 +27,8 @@ export function TaskBoard({ projectName, projectKey, phase, tasks, animate = fal
             status={status}
             tasks={tasksByStatus[status]}
             animate={animate}
+            selectedTaskKey={selectedTaskKey}
+            onTaskClick={onTaskClick}
           />
         ))}
       </div>

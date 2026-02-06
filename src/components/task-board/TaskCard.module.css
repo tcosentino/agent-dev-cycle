@@ -5,6 +5,17 @@
   padding: 0.75rem;
   margin-bottom: 0.5rem;
   transform-origin: top center;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.card:hover {
+  border-color: var(--accent-blue);
+}
+
+.card.selected {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 1px var(--accent-blue);
 }
 
 .card.animate {

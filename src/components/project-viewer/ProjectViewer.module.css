@@ -530,9 +530,25 @@
 }
 
 .editorSplitter {
-  width: 1px;
+  width: 5px;
   background: var(--border-color);
   flex-shrink: 0;
+  cursor: col-resize;
+  position: relative;
+  transition: background var(--transition-fast);
+}
+
+.editorSplitter::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -3px;
+  right: -3px;
+}
+
+.editorSplitter:hover {
+  background: var(--accent-tertiary);
 }
 
 .splitDropZone {
@@ -573,17 +589,111 @@
 /* Database view container (for tabbed content) */
 .dbViewContainer {
   display: flex;
+  flex-direction: column;
   height: 100%;
   min-height: 0;
+}
+
+/* Database toolbar with view mode toggle */
+.dbToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.dbToolbarTitle {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* View mode toggle button group */
+.viewModeToggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.viewModeBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.viewModeBtn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.viewModeBtnActive {
+  background: var(--accent-tertiary);
+  color: white;
+}
+
+.viewModeBtnActive:hover {
+  background: var(--accent-tertiary);
+  color: white;
+}
+
+.viewModeIcon {
+  width: 14px;
+  height: 14px;
+}
+
+/* Task board container */
+.taskBoardContainer {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+.taskBoardWithDetail {
+  display: flex;
+  flex-direction: row;
+}
+
+.taskBoardPane {
+  flex: 1;
+  overflow: auto;
+  min-width: 0;
+}
+
+.taskBoardWithDetail .taskBoardPane {
+  flex: 1;
+  min-width: 0;
 }
 
 .dbTablePane {
   flex: 1;
   overflow: auto;
   min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: row;
 }
 
 .dbTablePaneWithDetail {
+  flex: 1;
+  min-width: 0;
+}
+
+.dbTablePane .dataGrid {
   flex: 1;
   min-width: 0;
 }
@@ -686,4 +796,25 @@
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* Record view (for record tabs) */
+.recordView {
+  max-width: 600px;
+}
+
+.recordHeader {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.recordFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
 }
