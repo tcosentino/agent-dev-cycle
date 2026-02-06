@@ -142,6 +142,24 @@ The `tasks` table can display as:
 - **Table mode**: Standard data grid
 - **View mode**: TaskBoard kanban component
 
+### Record Detail View Modes
+
+Individual records also support view mode toggling:
+
+```typescript
+type RecordViewMode = 'view' | 'raw'
+
+// Tables that have a nice detail view
+const TABLES_WITH_DETAIL_VIEW: DbTableName[] = ['tasks']
+```
+
+Task records can display as:
+
+- **View mode**: Formatted task detail with badges, status, description
+- **Raw mode**: Key-value list of all record fields
+
+The view mode toggle is accessible via a dropdown menu opened by clicking the tab icon.
+
 ### Opening Content
 
 ```typescript
@@ -196,6 +214,21 @@ interface TabbedPaneProps {
 - Split-to-right button on each tab
 - Close button (optional per tab)
 - Empty state when no tabs
+- Optional dropdown menu per tab (triggered by clicking tab icon)
+
+### Tab Interface
+
+```typescript
+interface Tab {
+  id: string
+  label: string
+  icon?: ReactNode
+  closable?: boolean
+  menuContent?: ReactNode  // Optional dropdown menu content
+}
+```
+
+When `menuContent` is provided, clicking the tab icon opens a dropdown menu with the specified content.
 
 ---
 

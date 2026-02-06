@@ -19,6 +19,7 @@
 }
 
 .tab {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -69,6 +70,17 @@
 .tabIcon svg {
   width: 100%;
   height: 100%;
+}
+
+.tabIconClickable {
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  padding: 2px;
+  margin: -2px;
+}
+
+.tabIconClickable:hover {
+  background: var(--bg-tertiary);
 }
 
 .tabLabel {
@@ -139,4 +151,25 @@
   color: var(--text-muted);
   font-family: var(--font-sans);
   font-size: 0.85rem;
+}
+
+.tabMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 100;
+  min-width: 140px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+}
+
+.tabMenuLabel {
+  padding: 4px 8px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }

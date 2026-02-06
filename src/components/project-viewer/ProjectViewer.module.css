@@ -818,3 +818,159 @@
   flex-direction: column;
   gap: var(--space-md);
 }
+
+/* Record view container with toolbar */
+.recordViewContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.recordViewToolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--space-sm) 0;
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Nice task detail view */
+.taskDetailView {
+  max-width: 600px;
+}
+
+.taskDetailHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.taskDetailKey {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--accent-tertiary);
+  background: rgba(14, 165, 233, 0.1);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.taskDetailStatus {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.taskDetailTitle {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-md);
+  line-height: 1.3;
+}
+
+.taskDetailDescription {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-lg);
+}
+
+.taskDetailMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-lg);
+  padding: var(--space-md) 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.taskDetailMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.taskDetailMetaLabel {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.taskDetailTimestamps {
+  display: flex;
+  gap: var(--space-lg);
+  margin-top: var(--space-md);
+}
+
+.taskDetailTimestamp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Tab menu content */
+.tabMenuContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.tabMenuLabel {
+  padding: 4px 8px 2px;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tabMenuOption {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 6px 8px;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.tabMenuOption:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.tabMenuOptionActive {
+  background: rgba(14, 165, 233, 0.15);
+  color: var(--accent-tertiary);
+}
+
+.tabMenuOptionActive:hover {
+  background: rgba(14, 165, 233, 0.2);
+  color: var(--accent-tertiary);
+}
+
+.tabMenuOptionIcon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { ReactNode, DragEvent } from 'react'
 import { XIcon, LayoutIcon } from './icons'
 import styles from './TabbedPane.module.css'
@@ -8,6 +8,7 @@ export interface Tab {
   label: string
   icon?: ReactNode
   closable?: boolean
+  menuContent?: ReactNode
 }
 
 export interface TabDragData {
@@ -46,6 +47,22 @@ export function TabbedPane({
 }: TabbedPaneProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
+  const [menuOpenTabId, setMenuOpenTabId] = useState<string | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!menuOpenTabId) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpenTabId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [menuOpenTabId])
 
   const handleDragStart = (e: DragEvent, tabId: string) => {
     const data: TabDragData = { tabId, sourcePane: paneId }
@@ -136,7 +153,17 @@ export function TabbedPane({
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, index)}
           >
-            {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
+            {tab.icon && (
+              <span
+                className={`${styles.tabIcon} ${tab.menuContent ? styles.tabIconClickable : ''}`}
+                onClick={tab.menuContent ? (e) => {
+                  e.stopPropagation()
+                  setMenuOpenTabId(menuOpenTabId === tab.id ? null : tab.id)
+                } : undefined}
+              >
+                {tab.icon}
+              </span>
+            )}
             <span className={styles.tabLabel}>{tab.label}</span>
             {onSplitRight && (
               <button
@@ -160,6 +187,15 @@ export function TabbedPane({
               >
                 <XIcon className={styles.tabCloseIcon} />
               </button>
+            )}
+            {menuOpenTabId === tab.id && tab.menuContent && (
+              <div
+                ref={menuRef}
+                className={styles.tabMenu}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {tab.menuContent}
+              </div>
             )}
           </div>
         ))}

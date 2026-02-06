@@ -15,7 +15,8 @@ import {
   KanbanIcon,
 } from '../shared/icons'
 import { TaskBoard } from '../task-board/TaskBoard'
-import type { Task, TaskStatus, TaskPriority, TaskType } from '../task-board/types'
+import type { Task, TaskStatus, TaskPriority, TaskType, AgentRole } from '../task-board/types'
+import { PriorityBadge, TypeBadge, AssigneeBadge } from '../shared/badges'
 import { TabbedPane, type Tab } from '../shared/TabbedPane'
 import type { FileNode, FileCategory, ProjectData, ProjectDbData, DbSnapshot, DbTableName } from './types'
 import styles from './ProjectViewer.module.css'
@@ -364,34 +365,7 @@ type ViewMode = 'table' | 'view'
 // Tables that have a rich view mode
 const TABLES_WITH_VIEW: DbTableName[] = ['tasks']
 
-// --- View Mode Toggle ---
-
-function ViewModeToggle({
-  mode,
-  onChange,
-}: {
-  mode: ViewMode
-  onChange: (mode: ViewMode) => void
-}) {
-  return (
-    <div className={styles.viewModeToggle}>
-      <button
-        className={`${styles.viewModeBtn} ${mode === 'table' ? styles.viewModeBtnActive : ''}`}
-        onClick={() => onChange('table')}
-        title="Table view"
-      >
-        <TableIcon className={styles.viewModeIcon} />
-      </button>
-      <button
-        className={`${styles.viewModeBtn} ${mode === 'view' ? styles.viewModeBtnActive : ''}`}
-        onClick={() => onChange('view')}
-        title="Board view"
-      >
-        <KanbanIcon className={styles.viewModeIcon} />
-      </button>
-    </div>
-  )
-}
+type RecordViewMode = 'view' | 'raw'
 
 // --- Task Board View (for rich task display) ---
 
@@ -430,13 +404,85 @@ function TaskBoardView({
   )
 }
 
-function RecordDetailView({
-  record,
-  tableName,
-}: {
-  record: Record<string, unknown>
-  tableName: DbTableName | string
-}) {
+// --- Nice Task Detail View ---
+
+function TaskDetailView({ record }: { record: Record<string, unknown> }) {
+  const task = {
+    key: String(record.key || ''),
+    title: String(record.title || ''),
+    description: String(record.description || ''),
+    type: (record.type as TaskType) || 'backend',
+    priority: (record.priority as TaskPriority) || 'medium',
+    status: (record.status as TaskStatus) || 'todo',
+    assignee: record.assignee as AgentRole | undefined,
+    createdAt: record.createdAt ? String(record.createdAt) : undefined,
+    updatedAt: record.updatedAt ? String(record.updatedAt) : undefined,
+  }
+
+  const statusLabels: Record<TaskStatus, string> = {
+    'todo': 'To Do',
+    'in-progress': 'In Progress',
+    'done': 'Done',
+  }
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return null
+    try {
+      return new Date(dateStr).toLocaleString()
+    } catch {
+      return dateStr
+    }
+  }
+
+  return (
+    <div className={styles.taskDetailView}>
+      <div className={styles.taskDetailHeader}>
+        <span className={styles.taskDetailKey}>{task.key}</span>
+        <span className={styles.taskDetailStatus}>{statusLabels[task.status]}</span>
+      </div>
+      <h2 className={styles.taskDetailTitle}>{task.title}</h2>
+      {task.description && (
+        <p className={styles.taskDetailDescription}>{task.description}</p>
+      )}
+      <div className={styles.taskDetailMeta}>
+        <div className={styles.taskDetailMetaItem}>
+          <span className={styles.taskDetailMetaLabel}>Type</span>
+          <TypeBadge type={task.type} />
+        </div>
+        <div className={styles.taskDetailMetaItem}>
+          <span className={styles.taskDetailMetaLabel}>Priority</span>
+          <PriorityBadge priority={task.priority} />
+        </div>
+        {task.assignee && (
+          <div className={styles.taskDetailMetaItem}>
+            <span className={styles.taskDetailMetaLabel}>Assignee</span>
+            <AssigneeBadge role={task.assignee} />
+          </div>
+        )}
+      </div>
+      {(task.createdAt || task.updatedAt) && (
+        <div className={styles.taskDetailTimestamps}>
+          {task.createdAt && (
+            <div className={styles.taskDetailTimestamp}>
+              <span className={styles.taskDetailMetaLabel}>Created</span>
+              <span>{formatDate(task.createdAt)}</span>
+            </div>
+          )}
+          {task.updatedAt && (
+            <div className={styles.taskDetailTimestamp}>
+              <span className={styles.taskDetailMetaLabel}>Updated</span>
+              <span>{formatDate(task.updatedAt)}</span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// --- Raw Record View ---
+
+function RawRecordView({ record, tableName }: { record: Record<string, unknown>; tableName: string }) {
   const formatValue = (value: unknown): string => {
     if (value === null) return 'null'
     if (value === undefined) return 'undefined'
@@ -444,13 +490,9 @@ function RecordDetailView({
     return String(value)
   }
 
-  const label = typeof tableName === 'string' && tableName in TABLE_LABELS
-    ? TABLE_LABELS[tableName as DbTableName]
-    : tableName
-
   return (
     <div className={styles.recordView}>
-      <div className={styles.recordHeader}>{label} Record</div>
+      <div className={styles.recordHeader}>{tableName} Record</div>
       <div className={styles.recordFields}>
         {Object.entries(record).map(([key, value]) => (
           <div key={key} className={styles.detailField}>
@@ -469,17 +511,47 @@ function RecordDetailView({
   )
 }
 
+// --- Record Detail View with Toggle ---
+
+// Tables that have a nice detail view
+const TABLES_WITH_DETAIL_VIEW: DbTableName[] = ['tasks']
+
+function RecordDetailView({
+  record,
+  tableName,
+  viewMode,
+}: {
+  record: Record<string, unknown>
+  tableName: DbTableName | string
+  viewMode: RecordViewMode
+}) {
+  const tableNameStr = typeof tableName === 'string' && tableName in TABLE_LABELS
+    ? TABLE_LABELS[tableName as DbTableName]
+    : String(tableName)
+
+  const hasNiceView = typeof tableName === 'string' && TABLES_WITH_DETAIL_VIEW.includes(tableName as DbTableName)
+
+  // If no nice view available, just show raw
+  if (!hasNiceView) {
+    return <RawRecordView record={record} tableName={tableNameStr} />
+  }
+
+  if (viewMode === 'view' && tableName === 'tasks') {
+    return <TaskDetailView record={record} />
+  }
+
+  return <RawRecordView record={record} tableName={tableNameStr} />
+}
+
 function DatabaseTableView({
   snapshot,
   tableName,
   viewMode,
-  onViewModeChange,
   onRowClick,
 }: {
   snapshot: DbSnapshot
   tableName: DbTableName
   viewMode: ViewMode
-  onViewModeChange: (mode: ViewMode) => void
   onRowClick: (record: Record<string, unknown>, key: string) => void
 }) {
   const rows = snapshot[tableName] || []
@@ -503,8 +575,6 @@ function DatabaseTableView({
     return String(index)
   }
 
-  const hasRichView = TABLES_WITH_VIEW.includes(tableName)
-
   // Show rich view for tasks when in 'view' mode
   if (viewMode === 'view' && tableName === 'tasks') {
     const handleTaskClick = (taskKey: string) => {
@@ -513,27 +583,15 @@ function DatabaseTableView({
     }
 
     return (
-      <div className={styles.dbViewContainer}>
-        <div className={styles.dbToolbar}>
-          <span className={styles.dbToolbarTitle}>{TABLE_LABELS[tableName]}</span>
-          <ViewModeToggle mode={viewMode} onChange={onViewModeChange} />
-        </div>
-        <TaskBoardView
-          snapshot={snapshot}
-          onTaskClick={handleTaskClick}
-        />
-      </div>
+      <TaskBoardView
+        snapshot={snapshot}
+        onTaskClick={handleTaskClick}
+      />
     )
   }
 
   return (
     <div className={styles.dbViewContainer}>
-      {hasRichView && (
-        <div className={styles.dbToolbar}>
-          <span className={styles.dbToolbarTitle}>{TABLE_LABELS[tableName]}</span>
-          <ViewModeToggle mode={viewMode} onChange={onViewModeChange} />
-        </div>
-      )}
       <div className={styles.dbTablePane}>
         {rows.length > 0 ? (
           <div className={styles.dataGrid}>
@@ -596,6 +654,15 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const [activePane, setActivePane] = useState<PaneId>('left')
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
   const [viewModes, setViewModes] = useState<Record<DbTableName, ViewMode>>({} as Record<DbTableName, ViewMode>)
+  const [recordViewModes, setRecordViewModes] = useState<Record<string, RecordViewMode>>({})
+
+  const getRecordViewMode = useCallback((tabId: string): RecordViewMode => {
+    return recordViewModes[tabId] || 'view'
+  }, [recordViewModes])
+
+  const setRecordViewMode = useCallback((tabId: string, mode: RecordViewMode) => {
+    setRecordViewModes(prev => ({ ...prev, [tabId]: mode }))
+  }, [])
   const [isDragging, setIsDragging] = useState(false)
   const [isOverDropZone, setIsOverDropZone] = useState(false)
   const [leftPaneWidth, setLeftPaneWidth] = useState(50) // percentage
@@ -861,12 +928,67 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const selectedFilePath = focusedTab?.type === 'file' ? focusedTab.path : null
 
   // Convert to Tab[] for TabbedPane
-  const toTabs = (tabs: OpenTab[]): Tab[] => tabs.map(t => ({
-    id: t.id,
-    label: t.label,
-    icon: t.icon,
-    closable: true,
-  }))
+  const toTabs = (tabs: OpenTab[]): Tab[] => tabs.map(t => {
+    // Add menu content for tabs with view options
+    let menuContent: ReactNode = undefined
+
+    // Table tabs with rich view support
+    if (t.type === 'table' && TABLES_WITH_VIEW.includes(t.path as DbTableName)) {
+      const tableName = t.path as DbTableName
+      const currentMode = viewModes[tableName] || 'table'
+      menuContent = (
+        <div className={styles.tabMenuContent}>
+          <div className={styles.tabMenuLabel}>View</div>
+          <button
+            className={`${styles.tabMenuOption} ${currentMode === 'table' ? styles.tabMenuOptionActive : ''}`}
+            onClick={() => setViewModes(prev => ({ ...prev, [tableName]: 'table' }))}
+          >
+            <TableIcon className={styles.tabMenuOptionIcon} />
+            <span>Table</span>
+          </button>
+          <button
+            className={`${styles.tabMenuOption} ${currentMode === 'view' ? styles.tabMenuOptionActive : ''}`}
+            onClick={() => setViewModes(prev => ({ ...prev, [tableName]: 'view' }))}
+          >
+            <KanbanIcon className={styles.tabMenuOptionIcon} />
+            <span>Board</span>
+          </button>
+        </div>
+      )
+    }
+
+    // Record tabs with nice view support
+    if (t.type === 'record' && t.tableName && TABLES_WITH_DETAIL_VIEW.includes(t.tableName)) {
+      const currentMode = getRecordViewMode(t.id)
+      menuContent = (
+        <div className={styles.tabMenuContent}>
+          <div className={styles.tabMenuLabel}>View</div>
+          <button
+            className={`${styles.tabMenuOption} ${currentMode === 'view' ? styles.tabMenuOptionActive : ''}`}
+            onClick={() => setRecordViewMode(t.id, 'view')}
+          >
+            <KanbanIcon className={styles.tabMenuOptionIcon} />
+            <span>Formatted</span>
+          </button>
+          <button
+            className={`${styles.tabMenuOption} ${currentMode === 'raw' ? styles.tabMenuOptionActive : ''}`}
+            onClick={() => setRecordViewMode(t.id, 'raw')}
+          >
+            <TableIcon className={styles.tabMenuOptionIcon} />
+            <span>Raw Data</span>
+          </button>
+        </div>
+      )
+    }
+
+    return {
+      id: t.id,
+      label: t.label,
+      icon: t.icon,
+      closable: true,
+      menuContent,
+    }
+  })
 
   // Render tab content for a given tab
   const renderTabContent = (tab: OpenTab | undefined) => {
@@ -890,7 +1012,6 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
           snapshot={snapshot}
           tableName={tableName}
           viewMode={viewMode}
-          onViewModeChange={(mode) => setViewModes(prev => ({ ...prev, [tableName]: mode }))}
           onRowClick={(record, key) => openRecord(tableName, record, key)}
         />
       )
@@ -899,7 +1020,11 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
     if (tab.type === 'record' && tab.record) {
       return (
         <div className={styles.tabContentInner}>
-          <RecordDetailView record={tab.record} tableName={tab.tableName || 'Record'} />
+          <RecordDetailView
+            record={tab.record}
+            tableName={tab.tableName || 'Record'}
+            viewMode={getRecordViewMode(tab.id)}
+          />
         </div>
       )
     }
