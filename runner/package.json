@@ -9,6 +9,7 @@
     "cli": "tsx src/cli/index.ts"
   },
   "dependencies": {
+    "@agentforge/logger": "0.1.0",
     "yaml": "^2.7.0",
     "zod": "^3.24.2"
   },
