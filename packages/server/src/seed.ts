@@ -146,17 +146,18 @@ async function seed() {
   // Create agent statuses for TaskFlow
   if (tfProject) {
     console.log('\nCreating agent statuses...')
+    const now = new Date().toISOString()
     const agents = [
-      { role: 'pm', displayName: 'PM Agent', status: 'away' },
-      { role: 'engineer', displayName: 'Engineer Agent', status: 'active', currentTask: 'TF-3' },
-      { role: 'qa', displayName: 'QA Agent', status: 'offline' },
-      { role: 'lead', displayName: 'Lead Agent', status: 'away' },
+      { role: 'pm', status: 'away', lastActiveAt: now },
+      { role: 'engineer', status: 'active', currentTask: 'TF-3', lastActiveAt: now },
+      { role: 'qa', status: 'away', lastActiveAt: now },
+      { role: 'lead', status: 'away', lastActiveAt: now },
     ]
 
     for (const agent of agents) {
       try {
         await post('/api/agentStatuses', { ...agent, projectId: tfProject.id })
-        console.log(`  Created agent: ${agent.displayName} (${agent.status})`)
+        console.log(`  Created agent: ${agent.role} (${agent.status})`)
       } catch (err) {
         console.log(`  Skipped agent ${agent.role}: ${err instanceof Error ? err.message : err}`)
       }

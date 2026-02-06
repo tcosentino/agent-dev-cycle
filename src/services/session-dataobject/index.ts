@@ -22,4 +22,7 @@ export const sessionResource = defineResource({
   updateFields: ['summary', 'completedAt'],
   unique: ['runId'],
   searchable: ['runId', 'agent'],
+  relations: {
+    project: { type: 'belongsTo', resource: 'project', foreignKey: 'projectId' },
+  },
 })

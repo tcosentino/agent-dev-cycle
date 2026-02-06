@@ -17,4 +17,7 @@ export const deploymentResource = defineResource({
   updateFields: ['status'],
   unique: [],
   searchable: ['serviceName'],
+  relations: {
+    project: { type: 'belongsTo', resource: 'project', foreignKey: 'projectId' },
+  },
 })

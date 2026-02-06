@@ -39,4 +39,7 @@ export const taskResource = defineResource({
   updateFields: ['title', 'description', 'type', 'priority', 'status', 'assignee'],
   unique: ['key'],
   searchable: ['title', 'key', 'assignee'],
+  relations: {
+    project: { type: 'belongsTo', resource: 'project', foreignKey: 'projectId' },
+  },
 })

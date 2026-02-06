@@ -119,9 +119,8 @@ export const api = {
     get: (id: string) => fetchJson<ApiChannel>(`/channels/${id}`),
   },
   messages: {
-    list: (channelId?: string) => {
-      const query = channelId ? `?channelId=${channelId}` : ''
-      return fetchJson<ApiMessage[]>(`/messages${query}`)
+    list: (projectId: string, channelId: string) => {
+      return fetchJson<ApiMessage[]>(`/messages?projectId=${projectId}&channelId=${channelId}`)
     },
     get: (id: string) => fetchJson<ApiMessage>(`/messages/${id}`),
   },
@@ -147,9 +146,8 @@ export const api = {
     get: (id: string) => fetchJson<ApiDeployment>(`/deployments/${id}`),
   },
   workloads: {
-    list: (deploymentId?: string) => {
-      const query = deploymentId ? `?deploymentId=${deploymentId}` : ''
-      return fetchJson<ApiWorkload[]>(`/workloads${query}`)
+    list: (deploymentId: string) => {
+      return fetchJson<ApiWorkload[]>(`/workloads?deploymentId=${deploymentId}`)
     },
     get: (id: string) => fetchJson<ApiWorkload>(`/workloads/${id}`),
   },
@@ -157,16 +155,27 @@ export const api = {
 
 // Fetch all data for a project and build a DbSnapshot-compatible object
 export async function fetchProjectSnapshot(projectId: string) {
-  const [project, tasks, channels, messages, agentStatus, sessions, deployments, workloads] = await Promise.all([
+  // First fetch the resources that don't have nested dependencies
+  const [project, tasks, channels, agentStatus, sessions, deployments] = await Promise.all([
     api.projects.get(projectId),
     api.tasks.list(projectId),
     api.channels.list(projectId),
-    api.messages.list(), // TODO: filter by project's channels
     api.agentStatuses.list(projectId),
     api.sessions.list(projectId),
     api.deployments.list(projectId),
-    api.workloads.list(),
   ])
+
+  // Fetch messages for each channel (messages require both projectId and channelId)
+  const messagesByChannel = await Promise.all(
+    channels.map(channel => api.messages.list(projectId, channel.id))
+  )
+  const messages = messagesByChannel.flat()
+
+  // Fetch workloads for each deployment (workloads require deploymentId)
+  const workloadsByDeployment = await Promise.all(
+    deployments.map(deployment => api.workloads.list(deployment.id))
+  )
+  const workloads = workloadsByDeployment.flat()
 
   return {
     projects: [project],

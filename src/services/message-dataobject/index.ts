@@ -37,4 +37,8 @@ export const messageResource = defineResource({
   updateFields: [], // Messages are immutable
   unique: [],
   searchable: ['content', 'sender'],
+  relations: {
+    project: { type: 'belongsTo', resource: 'project', foreignKey: 'projectId' },
+    channel: { type: 'belongsTo', resource: 'channel', foreignKey: 'channelId' },
+  },
 })

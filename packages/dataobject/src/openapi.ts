@@ -57,23 +57,25 @@ export function registerOpenApiResource<T extends z.ZodObject<z.ZodRawShape>>(
     .partial()
 
   // Build query params schema from relations (foreign keys) and search
-  const queryParamsDef: Record<string, z.ZodOptional<z.ZodString>> = {}
+  // belongsTo relations are REQUIRED - you must scope queries to their parent
+  const requiredParams: Record<string, z.ZodString> = {}
+  const optionalParams: Record<string, z.ZodOptional<z.ZodString>> = {}
 
-  // Add foreign key filters from relations
+  // Add foreign key filters from relations (required for belongsTo)
   if (resource.relations) {
     for (const [, relation] of Object.entries(resource.relations)) {
       if (relation.type === 'belongsTo') {
-        queryParamsDef[relation.foreignKey] = z.string().optional()
+        requiredParams[relation.foreignKey] = z.string().uuid()
       }
     }
   }
 
-  // Add search param
+  // Add search param (optional)
   if (resource.searchable && resource.searchable.length > 0) {
-    queryParamsDef['q'] = z.string().optional()
+    optionalParams['q'] = z.string().optional()
   }
 
-  const querySchema = z.object(queryParamsDef)
+  const querySchema = z.object({ ...requiredParams, ...optionalParams })
 
   // ID param schema
   const idParam = z.object({

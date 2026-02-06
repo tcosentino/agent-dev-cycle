@@ -35,6 +35,9 @@ export const workloadResource = defineResource({
   updateFields: ['stage', 'logs', 'error', 'containerId', 'port'],
   unique: [],
   searchable: ['servicePath', 'stage'],
+  relations: {
+    deployment: { type: 'belongsTo', resource: 'deployment', foreignKey: 'deploymentId' },
+  },
 
   // TODO: Custom actions for the deployment pipeline will be added
   // when @agentforge/dataobject supports the actions API

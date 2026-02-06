@@ -14,4 +14,7 @@ export const channelResource = defineResource({
   updateFields: ['name'],
   unique: [],
   searchable: ['name'],
+  relations: {
+    project: { type: 'belongsTo', resource: 'project', foreignKey: 'projectId' },
+  },
 })

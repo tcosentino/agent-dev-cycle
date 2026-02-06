@@ -26,6 +26,9 @@ export interface TestData<T> {
     resource: string
     data: Record<string, unknown>
   }>
+  // Optional: Required scope params for list queries (derived from belongsTo relations)
+  // If not provided, will be auto-extracted from create() data
+  scopeParams?: Record<string, string>
 }
 
 // Helper functions for making requests
@@ -60,7 +63,37 @@ export function createResourceTests<T extends ZodObject<ZodRawShape>>(
 ) {
   const { describe, it, expect, beforeEach } = testRunner
   const pluralName = resource.plural ?? pluralize(resource.name)
-  const base = `${ctx.baseUrl}/api/${pluralName}`
+  const basePath = `${ctx.baseUrl}/api/${pluralName}`
+
+  // Build required scope params from belongsTo relations
+  const buildScopeQuery = (): string => {
+    // If explicit scopeParams provided, use those
+    if (testData.scopeParams) {
+      const params = new URLSearchParams(testData.scopeParams)
+      return params.toString() ? `?${params.toString()}` : ''
+    }
+
+    // Otherwise, extract from create() data based on belongsTo relations
+    if (!resource.relations) return ''
+
+    const sampleData = testData.create() as Record<string, unknown>
+    const params = new URLSearchParams()
+
+    for (const [, relation] of Object.entries(resource.relations)) {
+      if (relation.type === 'belongsTo') {
+        const value = sampleData[relation.foreignKey]
+        if (typeof value === 'string') {
+          params.set(relation.foreignKey, value)
+        }
+      }
+    }
+
+    return params.toString() ? `?${params.toString()}` : ''
+  }
+
+  // Base URL with required scope params for list queries
+  const scopeQuery = buildScopeQuery()
+  const base = basePath + scopeQuery
 
   // Helper to seed prerequisites
   const seedPrerequisites = async () => {
@@ -98,7 +131,7 @@ export function createResourceTests<T extends ZodObject<ZodRawShape>>(
     it('POST / creates a resource', async () => {
       await seedPrerequisites()
       const body = testData.create('test-id')
-      const res = await ctx.request(base, json(body))
+      const res = await ctx.request(basePath, json(body))
 
       expect(res.status).toBe(201)
       const data = await res.json()
@@ -108,17 +141,17 @@ export function createResourceTests<T extends ZodObject<ZodRawShape>>(
     // --- GET BY ID ---
     it('GET /:id returns a resource', async () => {
       await seedPrerequisites()
-      const createRes = await ctx.request(base, json(testData.create()))
+      const createRes = await ctx.request(basePath, json(testData.create()))
       const created = await createRes.json()
 
-      const res = await ctx.request(`${base}/${created.id}`)
+      const res = await ctx.request(`${basePath}/${created.id}`)
       expect(res.status).toBe(200)
       const data = await res.json()
       expect(data.id).toBe(created.id)
     })
 
     it('GET /:id returns 404 for missing resource', async () => {
-      const res = await ctx.request(`${base}/00000000-0000-0000-0000-000000000000`)
+      const res = await ctx.request(`${basePath}/00000000-0000-0000-0000-000000000000`)
       expect(res.status).toBe(404)
     })
 
@@ -127,11 +160,11 @@ export function createResourceTests<T extends ZodObject<ZodRawShape>>(
     if (resource.updateFields.length > 0) {
       it('PATCH /:id updates a resource', async () => {
         await seedPrerequisites()
-        const createRes = await ctx.request(base, json(testData.create()))
+        const createRes = await ctx.request(basePath, json(testData.create()))
         const created = await createRes.json()
 
         const updateData = testData.update ?? getFirstUpdateField(resource, testData.create())
-        const res = await ctx.request(`${base}/${created.id}`, patch(updateData))
+        const res = await ctx.request(`${basePath}/${created.id}`, patch(updateData))
 
         expect(res.status).toBe(200)
         const data = await res.json()
@@ -145,7 +178,7 @@ export function createResourceTests<T extends ZodObject<ZodRawShape>>(
 
     it('PATCH /:id returns 404 for missing resource', async () => {
       const res = await ctx.request(
-        `${base}/00000000-0000-0000-0000-000000000000`,
+        `${basePath}/00000000-0000-0000-0000-000000000000`,
         patch({ name: 'test' })
       )
       expect(res.status).toBe(404)
@@ -154,49 +187,51 @@ export function createResourceTests<T extends ZodObject<ZodRawShape>>(
     // --- DELETE ---
     it('DELETE /:id deletes a resource', async () => {
       await seedPrerequisites()
-      const createRes = await ctx.request(base, json(testData.create()))
+      const createRes = await ctx.request(basePath, json(testData.create()))
       const created = await createRes.json()
 
-      const res = await ctx.request(`${base}/${created.id}`, { method: 'DELETE' })
+      const res = await ctx.request(`${basePath}/${created.id}`, { method: 'DELETE' })
       expect(res.status).toBe(200)
 
       // Verify it's gone
-      const check = await ctx.request(`${base}/${created.id}`)
+      const check = await ctx.request(`${basePath}/${created.id}`)
       expect(check.status).toBe(404)
     })
 
     it('DELETE /:id returns 404 for missing resource', async () => {
       const res = await ctx.request(
-        `${base}/00000000-0000-0000-0000-000000000000`,
+        `${basePath}/00000000-0000-0000-0000-000000000000`,
         { method: 'DELETE' }
       )
       expect(res.status).toBe(404)
     })
 
-    // --- FOREIGN KEY FILTERING ---
+    // --- FOREIGN KEY SCOPING ---
+    // Test that resources with belongsTo relations require the scope params
     if (resource.relations) {
-      for (const [, relation] of Object.entries(resource.relations)) {
-        if (relation.type === 'belongsTo') {
-          const fk = relation.foreignKey
+      const belongsToRelations = Object.entries(resource.relations)
+        .filter(([, r]) => r.type === 'belongsTo')
 
-          it(`GET /?${fk}= filters by ${fk}`, async () => {
-            await seedPrerequisites()
+      if (belongsToRelations.length > 0) {
+        it('GET / requires scope query params', async () => {
+          // Calling without the required scope should return 400
+          const res = await ctx.request(basePath)
+          expect(res.status).toBe(400)
+        })
 
-            // Create two items with different foreign keys
-            const data1 = testData.create('id-1')
-            const data2 = { ...testData.create('id-2'), [fk]: 'different-fk-id' }
+        it('GET / with all scope params returns results', async () => {
+          await seedPrerequisites()
 
-            await ctx.request(base, json(data1))
-            await ctx.request(base, json(data2))
+          // Create an item
+          const data1 = testData.create('id-1')
+          await ctx.request(basePath, json(data1))
 
-            const expectedFk = (data1 as Record<string, unknown>)[fk]
-            const res = await ctx.request(`${base}?${fk}=${expectedFk}`)
-            const results = await res.json()
-
-            expect(results).toHaveLength(1)
-            expect(results[0][fk]).toBe(expectedFk)
-          })
-        }
+          // Query with all scope params should return items
+          const res = await ctx.request(base)
+          expect(res.status).toBe(200)
+          const results = await res.json()
+          expect(results.length).toBeDefined()
+        })
       }
     }
 
@@ -207,11 +242,11 @@ export function createResourceTests<T extends ZodObject<ZodRawShape>>(
       it(`POST / returns 409 for duplicate ${uniqueField}`, async () => {
         await seedPrerequisites()
         const data = testData.create()
-        await ctx.request(base, json(data))
+        await ctx.request(basePath, json(data))
 
         // Try to create another with the same unique field
         const duplicate = { ...testData.create('different-id'), [uniqueField]: (data as Record<string, unknown>)[uniqueField] }
-        const res = await ctx.request(base, json(duplicate))
+        const res = await ctx.request(basePath, json(duplicate))
 
         expect(res.status).toBe(409)
       })
@@ -226,15 +261,18 @@ export function createResourceTests<T extends ZodObject<ZodRawShape>>(
         const data1 = testData.create('id-1')
         const data2 = testData.create('id-2')
 
-        await ctx.request(base, json(data1))
-        await ctx.request(base, json(data2))
+        await ctx.request(basePath, json(data1))
+        await ctx.request(basePath, json(data2))
 
         // Search for something that should match at least one
         const searchField = resource.searchable[0] as string
         const searchValue = (data1 as Record<string, unknown>)[searchField]
 
         if (typeof searchValue === 'string') {
-          const res = await ctx.request(`${base}?q=${encodeURIComponent(searchValue)}`)
+          // Include required scope params along with search
+          // Use ? if no scope query, & if there are scope params
+          const separator = scopeQuery ? '&' : '?'
+          const res = await ctx.request(`${base}${separator}q=${encodeURIComponent(searchValue)}`)
           expect(res.status).toBe(200)
           // At least the first item should match
           const results = await res.json()

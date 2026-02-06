@@ -16,8 +16,11 @@ export const agentStatusResource = defineResource({
     lastActiveAt: z.date(),
   }),
 
-  createFields: ['projectId', 'role', 'status', 'currentTask'],
+  createFields: ['projectId', 'role', 'status', 'currentTask', 'lastActiveAt'],
   updateFields: ['status', 'currentTask', 'lastActiveAt'],
   unique: [], // Each project can have one of each role
   searchable: ['role'],
+  relations: {
+    project: { type: 'belongsTo', resource: 'project', foreignKey: 'projectId' },
+  },
 })
