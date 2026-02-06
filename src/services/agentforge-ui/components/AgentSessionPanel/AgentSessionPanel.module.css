@@ -574,6 +574,29 @@
   background: rgba(239, 68, 68, 0.2);
 }
 
+/* Retry Button */
+.retryButton {
+  margin-top: 12px;
+  padding: 8px 16px;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.retryButton:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.retryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Loading/Error States */
 .loadingState,
 .errorState {

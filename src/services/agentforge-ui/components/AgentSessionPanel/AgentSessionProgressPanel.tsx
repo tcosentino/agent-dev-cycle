@@ -125,6 +125,7 @@ export function AgentSessionProgressPanel({
   const logsEndRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [isCancelling, setIsCancelling] = useState(false)
+  const [isRetrying, setIsRetrying] = useState(false)
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -148,6 +149,19 @@ export function AgentSessionProgressPanel({
       console.error('Failed to cancel session:', err)
     }
     setIsCancelling(false)
+  }
+
+  const handleRetry = async () => {
+    if (!sessionId) return
+    setIsRetrying(true)
+    try {
+      await api.agentSessions.retry(sessionId)
+      // After retry resets the session, start it again
+      await api.agentSessions.start(sessionId)
+    } catch (err) {
+      console.error('Failed to retry session:', err)
+    }
+    setIsRetrying(false)
   }
 
   // Use progress from SSE if connected, otherwise use initial session data
@@ -291,6 +305,13 @@ export function AgentSessionProgressPanel({
               {session.error && (
                 <p className={styles.resultError}>{session.error}</p>
               )}
+              <button
+                className={styles.retryButton}
+                onClick={handleRetry}
+                disabled={isRetrying}
+              >
+                {isRetrying ? 'Retrying...' : 'Retry Session'}
+              </button>
             </>
           )}
         </div>

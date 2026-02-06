@@ -190,6 +190,7 @@ export function registerAgentSessionRoutes(
           },
           stdio: ['ignore', 'pipe', 'pipe'],
           detached: true,
+          shell: true,
         })
       }
 
@@ -392,6 +393,36 @@ export function registerAgentSessionRoutes(
     })
 
     return c.json({ ok: true, message: 'Session cancelled' })
+  })
+
+  // Retry a failed session
+  app.post('/api/agentSessions/:id/retry', async (c) => {
+    const { id } = c.req.param()
+
+    const session = await agentSessionStore.findById(id) as AgentSession | null
+    if (!session) {
+      return c.json({ error: 'Agent session not found' }, 404)
+    }
+
+    if (session.stage !== 'failed') {
+      return c.json({ error: 'Can only retry failed sessions' }, 400)
+    }
+
+    // Reset session state for retry
+    await agentSessionStore.update(id, {
+      stage: 'pending',
+      progress: 0,
+      currentStep: undefined,
+      error: undefined,
+      startedAt: undefined,
+      completedAt: undefined,
+      logs: [
+        ...session.logs,
+        { timestamp: new Date(), level: 'info', message: 'Session retry requested' },
+      ],
+    })
+
+    return c.json({ ok: true, message: 'Session reset for retry' })
   })
 
   // Append log entry (called by runner)

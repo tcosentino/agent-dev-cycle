@@ -263,6 +263,10 @@ export const api = {
       fetchJson<{ ok: boolean; message: string }>(`/agentSessions/${id}/cancel`, {
         method: 'POST',
       }),
+    retry: (id: string) =>
+      fetchJson<{ ok: boolean; message: string }>(`/agentSessions/${id}/retry`, {
+        method: 'POST',
+      }),
     streamUrl: (id: string) => `${API_BASE}/agentSessions/${id}/stream`,
   },
 }
