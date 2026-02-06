@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import {
   FileDocumentIcon,
@@ -33,6 +33,52 @@ import {
 import type { TabType, PaneId, ViewMode, RecordViewMode, OpenTab } from './components'
 import styles from './ProjectViewer.module.css'
 
+// --- LocalStorage persistence ---
+
+const STORAGE_KEY = 'projectViewer:state'
+
+interface SerializedTab {
+  id: string
+  type: TabType
+  path: string
+  label: string
+  pane: PaneId
+  tableName?: DbTableName
+}
+
+interface PersistedState {
+  activeProject: string
+  tabs: SerializedTab[]
+  activeTabIds: Record<PaneId, string | null>
+  activePane: PaneId
+  expandedFolders: string[]
+  viewModes: Record<DbTableName, ViewMode>
+  recordViewModes: Record<string, RecordViewMode>
+  simpleMode: boolean
+  leftPaneWidth: number
+  sidebarWidth: number
+}
+
+function loadPersistedState(): Partial<PersistedState> | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      return JSON.parse(stored)
+    }
+  } catch {
+    // Invalid or no stored state
+  }
+  return null
+}
+
+function savePersistedState(state: PersistedState): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch {
+    // Storage full or unavailable
+  }
+}
+
 // --- Helper to get file icon for tabs ---
 
 function getFileIcon(path: string, category: FileCategory): ReactNode {
@@ -41,6 +87,19 @@ function getFileIcon(path: string, category: FileCategory): ReactNode {
   if (category === 'briefing') return <BookOpenIcon />
   if (category === 'session' && extension === 'jsonl') return <ClockIcon />
   if (category === 'source') return <CodeIcon />
+  return <FileDocumentIcon />
+}
+
+function getTabIcon(tab: SerializedTab): ReactNode {
+  if (tab.type === 'file') {
+    return getFileIcon(tab.path, categorizeFile(tab.path))
+  }
+  if (tab.type === 'table' || tab.type === 'record') {
+    return <DatabaseIcon />
+  }
+  if (tab.type === 'service') {
+    return <BoxIcon />
+  }
   return <FileDocumentIcon />
 }
 
@@ -53,14 +112,62 @@ interface ProjectViewerProps {
 
 export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   const projectNames = useMemo(() => Object.keys(projects).sort(), [projects])
-  const [activeProject, setActiveProject] = useState(projectNames[0] || '')
-  const [openTabs, setOpenTabs] = useState<OpenTab[]>([])
-  const [activeTabIds, setActiveTabIds] = useState<Record<PaneId, string | null>>({ left: null, right: null })
-  const [activePane, setActivePane] = useState<PaneId>('left')
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => new Set())
-  const [viewModes, setViewModes] = useState<Record<DbTableName, ViewMode>>({} as Record<DbTableName, ViewMode>)
-  const [recordViewModes, setRecordViewModes] = useState<Record<string, RecordViewMode>>({})
-  const [simpleMode, setSimpleMode] = useState(true)
+
+  // Load persisted state once on mount
+  const persistedState = useMemo(() => loadPersistedState(), [])
+
+  const [activeProject, setActiveProject] = useState(() => {
+    // Use persisted project if it exists in current projects
+    if (persistedState?.activeProject && projectNames.includes(persistedState.activeProject)) {
+      return persistedState.activeProject
+    }
+    return projectNames[0] || ''
+  })
+
+  // Restore tabs from persisted state (need to regenerate icons and fetch data)
+  const [openTabs, setOpenTabs] = useState<OpenTab[]>(() => {
+    if (!persistedState?.tabs || persistedState.activeProject !== activeProject) {
+      return []
+    }
+    return persistedState.tabs.map(tab => ({
+      ...tab,
+      icon: getTabIcon(tab),
+      // Record data will be re-fetched when tab is selected
+      record: undefined,
+      serviceMetadata: undefined,
+      serviceReadme: undefined,
+    }))
+  })
+
+  const [activeTabIds, setActiveTabIds] = useState<Record<PaneId, string | null>>(() => {
+    if (persistedState?.activeTabIds && persistedState.activeProject === activeProject) {
+      return persistedState.activeTabIds
+    }
+    return { left: null, right: null }
+  })
+
+  const [activePane, setActivePane] = useState<PaneId>(() => {
+    return persistedState?.activePane || 'left'
+  })
+
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(() => {
+    if (persistedState?.expandedFolders && persistedState.activeProject === activeProject) {
+      return new Set(persistedState.expandedFolders)
+    }
+    return new Set()
+  })
+
+  const [viewModes, setViewModes] = useState<Record<DbTableName, ViewMode>>(() => {
+    return (persistedState?.viewModes || {}) as Record<DbTableName, ViewMode>
+  })
+
+  const [recordViewModes, setRecordViewModes] = useState<Record<string, RecordViewMode>>(() => {
+    return persistedState?.recordViewModes || {}
+  })
+
+  const [simpleMode, setSimpleMode] = useState(() => {
+    return persistedState?.simpleMode ?? true
+  })
 
   const getRecordViewMode = useCallback((tabId: string): RecordViewMode => {
     return recordViewModes[tabId] || 'view'
@@ -71,12 +178,48 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
   }, [])
   const [isDragging, setIsDragging] = useState(false)
   const [isOverDropZone, setIsOverDropZone] = useState(false)
-  const [leftPaneWidth, setLeftPaneWidth] = useState(50) // percentage
-  const [sidebarWidth, setSidebarWidth] = useState(260) // pixels
+  const [leftPaneWidth, setLeftPaneWidth] = useState(() => persistedState?.leftPaneWidth ?? 50)
+  const [sidebarWidth, setSidebarWidth] = useState(() => persistedState?.sidebarWidth ?? 260)
   const isResizing = useRef(false)
   const isResizingSidebar = useRef(false)
   const editorAreaRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+
+  // Persist state to localStorage when it changes
+  useEffect(() => {
+    const serializedTabs: SerializedTab[] = openTabs.map(t => ({
+      id: t.id,
+      type: t.type,
+      path: t.path,
+      label: t.label,
+      pane: t.pane,
+      tableName: t.tableName,
+    }))
+
+    savePersistedState({
+      activeProject,
+      tabs: serializedTabs,
+      activeTabIds,
+      activePane,
+      expandedFolders: Array.from(expandedFolders),
+      viewModes,
+      recordViewModes,
+      simpleMode,
+      leftPaneWidth,
+      sidebarWidth,
+    })
+  }, [
+    activeProject,
+    openTabs,
+    activeTabIds,
+    activePane,
+    expandedFolders,
+    viewModes,
+    recordViewModes,
+    simpleMode,
+    leftPaneWidth,
+    sidebarWidth,
+  ])
 
   const files = projects[activeProject] || {}
   const snapshot = dbData[activeProject]
@@ -513,11 +656,21 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
       )
     }
 
-    if (tab.type === 'record' && tab.record) {
+    if (tab.type === 'record') {
+      // Try to get record from tab, or fetch it from snapshot if tab was restored
+      let record = tab.record
+      if (!record && tab.tableName && snapshot) {
+        const [, key] = tab.path.split(':')
+        const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
+        record = tableData?.find(r => String(r.id || r.key) === key)
+      }
+      if (!record) {
+        return <div className={styles.emptyState}>Record not found</div>
+      }
       return (
         <div className={styles.tabContentInner}>
           <RecordDetailView
-            record={tab.record}
+            record={record}
             tableName={tab.tableName || 'Record'}
             viewMode={getRecordViewMode(tab.id)}
           />
@@ -525,12 +678,31 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
       )
     }
 
-    if (tab.type === 'service' && tab.serviceMetadata) {
+    if (tab.type === 'service') {
+      // Try to get metadata from tab, or load it if tab was restored
+      let metadata = tab.serviceMetadata
+      let readme = tab.serviceReadme
+      if (!metadata) {
+        const serviceJsonPath = `${tab.path}/service.json`
+        const readmePath = `${tab.path}/README.md`
+        try {
+          const content = files[serviceJsonPath]
+          if (content) {
+            metadata = JSON.parse(content)
+          }
+        } catch {
+          // Invalid JSON
+        }
+        readme = files[readmePath]
+      }
+      if (!metadata) {
+        return <div className={styles.emptyState}>Service not found</div>
+      }
       return (
         <div className={styles.tabContentInner}>
           <ServiceView
-            metadata={tab.serviceMetadata}
-            readme={tab.serviceReadme}
+            metadata={metadata}
+            readme={readme}
             servicePath={tab.path}
             onFileClick={openFile}
           />
