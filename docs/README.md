@@ -47,13 +47,22 @@ This isn't just about doing more—it's about doing things differently. A team d
 
 ## Contents
 
+### Core Concepts
+
 - [Product Development Flow](./product-development-flow.md) - Core development methodology (the bread and butter)
-- [Architecture](./architecture.md) - System architecture and component overview
-- [Application Architecture](./application-architecture.md) - Building blocks agents create and manage
-- [Workflow](./workflow.md) - How the development process works
 - [Agents](./agents.md) - AI agent roles and responsibilities
-- [UI Components](./ui-components.md) - Functional/visual component separation
+- [Workflow](./workflow.md) - How the development process works
+
+### Infrastructure
+
+- [Agent Runner](./runner.md) - Docker-based agent execution engine
 - [LLM Infrastructure](./llm-infrastructure.md) - Model selection, hosting, and cost optimization
+- [Application Architecture](./application-architecture.md) - Building blocks agents create and manage
+
+### Reference
+
+- [Architecture](./architecture.md) - System architecture and component overview
+- [UI Components](./ui-components.md) - Functional/visual component separation
 - [API](./api.md) - API specifications (future)
 
 ## Quick Links
