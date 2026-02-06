@@ -10,6 +10,8 @@ RUN npm install -g @anthropic-ai/claude-code
 RUN useradd -m -s /bin/bash agent && \
     mkdir -p /home/agent/.ssh /home/agent/.claude /workspace && \
     ssh-keyscan github.com >> /home/agent/.ssh/known_hosts 2>/dev/null && \
+    # Create .claude.json with onboarding completed to bypass interactive setup
+    echo '{"hasCompletedOnboarding": true}' > /home/agent/.claude.json && \
     chown -R agent:agent /home/agent /workspace
 
 # Set up runner

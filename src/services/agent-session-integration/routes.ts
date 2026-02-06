@@ -4,6 +4,7 @@ import { streamSSE } from 'hono/streaming'
 import { spawn } from 'node:child_process'
 import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { getClaudeCredentialsForSession } from '../claude-auth-integration'
 
 interface AgentSession {
   id: string
@@ -115,7 +116,7 @@ export function registerAgentSessionRoutes(
       return c.json({ error: 'Session already started' }, 400)
     }
 
-    // Get project for repo URL
+    // Get project for repo URL and userId
     let project: Project | null = null
     if (projectStore) {
       project = await projectStore.findById(session.projectId) as Project | null
@@ -123,6 +124,28 @@ export function registerAgentSessionRoutes(
 
     if (!project?.repoUrl) {
       return c.json({ error: 'Project has no repository URL configured' }, 400)
+    }
+
+    // Get user store for Claude auth
+    const userStore = ctx.stores.get('user')
+    if (!userStore) {
+      return c.json({ error: 'User store not available' }, 500)
+    }
+
+    // Get userId from project
+    const projectWithUser = project as Project & { userId?: string }
+    if (!projectWithUser.userId) {
+      return c.json({ error: 'Project has no user associated' }, 400)
+    }
+
+    // Get Claude credentials (refreshes OAuth token if needed)
+    const credentialsResult = await getClaudeCredentialsForSession(userStore, projectWithUser.userId)
+    if (!credentialsResult.success) {
+      return c.json({
+        error: 'CLAUDE_AUTH_ERROR',
+        message: credentialsResult.error,
+        action: { type: 'link', href: '/settings', label: 'Go to Settings' }
+      }, 400)
     }
 
     // Update session to cloning stage
@@ -165,12 +188,16 @@ export function registerAgentSessionRoutes(
       let proc: ReturnType<typeof spawn>
 
       if (useDocker) {
-        // Docker execution
+        // Docker execution - pass Claude credentials as env vars
+        const claudeEnvArgs = Object.entries(credentialsResult.envVars || {}).flatMap(
+          ([key, value]) => ['-e', `${key}=${value}`]
+        )
+
         const dockerArgs = [
           'run',
           '--rm',
           '-v', `${configPath}:/config/session.json:ro`,
-          '-v', `${process.env.HOME}/.claude:/home/agent/.claude:ro`,
+          ...claudeEnvArgs,
           '-e', `SESSION_CONFIG_PATH=/config/session.json`,
           '-e', `AGENTFORGE_SERVER_URL=${sessionConfig.serverUrl}`,
           '-e', `AGENTFORGE_SESSION_ID=${id}`,
@@ -193,11 +220,12 @@ export function registerAgentSessionRoutes(
             mkdirSync(localWorkspace, { recursive: true })
           }
 
-          // Execute tsx binary directly
+          // Execute tsx binary directly with Claude credentials
           proc = spawn(tsxBinPath, ['src/index.ts'], {
             cwd: runnerPath,
             env: {
               ...process.env,
+              ...credentialsResult.envVars,
               SESSION_CONFIG_PATH: configPath,
               AGENTFORGE_SERVER_URL: sessionConfig.serverUrl,
               AGENTFORGE_SESSION_ID: id,

@@ -177,11 +177,52 @@ export interface ApiGitHubRepo {
   updated_at: string
 }
 
+// Claude Code auth types
+export interface ClaudeAuthStatus {
+  type: 'oauth' | 'api-key' | null
+  status: 'valid' | 'expired' | 'not-configured'
+  expiresAt?: number
+  subscriptionType?: string
+}
+
+export interface ClaudeOAuthStartResponse {
+  authUrl: string
+  state: string
+}
+
 export const api = {
   // Auth
   me: () => fetchJson<ApiUser>('/me'),
   getLoginUrl: () => '/auth/github',
   getLogoutUrl: () => '/auth/github/logout',
+
+  // Claude Code Auth
+  claudeAuth: {
+    getStatus: () => fetchJson<ClaudeAuthStatus>('/claude-auth/status'),
+    startOAuth: () =>
+      fetchJson<ClaudeOAuthStartResponse>('/claude-auth/start-oauth', {
+        method: 'POST',
+      }),
+    completeOAuth: (code: string, state?: string) =>
+      fetchJson<{ success: boolean; expiresAt?: number; subscriptionType?: string }>(
+        '/claude-auth/complete-oauth',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, state }),
+        }
+      ),
+    setApiKey: (apiKey: string) =>
+      fetchJson<{ success: boolean }>('/claude-auth/set-api-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ apiKey }),
+      }),
+    disconnect: () =>
+      fetchJson<{ success: boolean }>('/claude-auth/disconnect', {
+        method: 'DELETE',
+      }),
+  },
 
   // GitHub
   github: {

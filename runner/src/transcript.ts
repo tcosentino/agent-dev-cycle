@@ -5,6 +5,8 @@ import type { SessionConfig } from './types.js'
 import { WORKSPACE_PATH } from './types.js'
 
 // Claude Code stores transcripts in ~/.claude/projects/<hash>/
+// In container: /home/agent/.claude/projects/
+// Locally: $HOME/.claude/projects/
 const CLAUDE_PROJECTS_DIR = join(homedir(), '.claude', 'projects')
 
 async function findMostRecentJsonl(dir: string): Promise<string | null> {

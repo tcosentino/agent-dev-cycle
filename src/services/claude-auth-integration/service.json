@@ -1,0 +1,7 @@
+{
+  "name": "claude-auth-integration",
+  "type": "integration",
+  "version": "0.1.0",
+  "description": "Claude Code OAuth and API key authentication for agent sessions",
+  "entry": "index.ts"
+}

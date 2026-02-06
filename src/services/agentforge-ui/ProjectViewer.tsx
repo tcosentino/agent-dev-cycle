@@ -218,23 +218,37 @@ interface ProjectViewerProps {
   projects: ProjectData
   dbData: ProjectDbData
   projectDisplayNames?: Record<string, string>
-  onCreateProject?: () => void
+  selectedProjectId?: string
   onLoadFileContent?: (projectId: string, filePath: string) => Promise<string>
 }
 
-export function ProjectViewer({ projects, dbData, projectDisplayNames, onCreateProject, onLoadFileContent }: ProjectViewerProps) {
+export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedProjectId, onLoadFileContent }: ProjectViewerProps) {
   const projectIds = useMemo(() => Object.keys(projects).sort(), [projects])
 
   // Load persisted state once on mount
   const persistedState = useMemo(() => loadPersistedState(), [])
 
   const [activeProject, setActiveProject] = useState(() => {
+    // Use selectedProjectId if provided
+    if (selectedProjectId && projectIds.includes(selectedProjectId)) {
+      return selectedProjectId
+    }
     // Use persisted project if it exists in current projects
     if (persistedState?.activeProject && projectIds.includes(persistedState.activeProject)) {
       return persistedState.activeProject
     }
     return projectIds[0] || ''
   })
+
+  // Sync activeProject with selectedProjectId when it changes
+  useEffect(() => {
+    if (selectedProjectId && selectedProjectId !== activeProject && projectIds.includes(selectedProjectId)) {
+      setActiveProject(selectedProjectId)
+      setOpenTabs([])
+      setActiveTabIds({ left: null, right: null })
+      setActivePane('left')
+    }
+  }, [selectedProjectId, activeProject, projectIds])
 
   // Restore tabs from persisted state (need to regenerate icons and fetch data)
   const [openTabs, setOpenTabs] = useState<OpenTab[]>(() => {
@@ -534,12 +548,6 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, onCreateP
     })
   }, [activeTabIds])
 
-  const handleProjectChange = useCallback((name: string) => {
-    setActiveProject(name)
-    setOpenTabs([])
-    setActiveTabIds({ left: null, right: null })
-    setActivePane('left')
-  }, [])
 
   const selectTab = useCallback((tabId: string, pane: PaneId) => {
     setActiveTabIds(prev => ({ ...prev, [pane]: tabId }))
@@ -876,24 +884,6 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, onCreateP
 
   return (
     <div className={styles.container} ref={containerRef}>
-      <div className={styles.toolbar}>
-        <select
-          className={styles.projectSelect}
-          value={activeProject}
-          onChange={e => handleProjectChange(e.target.value)}
-        >
-          {projectIds.map(id => (
-            <option key={id} value={id}>
-              {projectDisplayNames?.[id] || id}
-            </option>
-          ))}
-        </select>
-        {onCreateProject && (
-          <button className={styles.createProjectButton} onClick={onCreateProject}>
-            + New Project
-          </button>
-        )}
-      </div>
       <div className={styles.splitPane}>
         <div className={styles.sidebar} style={{ width: sidebarWidth }}>
           <div className={styles.sidebarSection}>

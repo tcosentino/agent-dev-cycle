@@ -136,37 +136,6 @@ export function CreateProjectModal({
     <Modal title="Create Project" onClose={onClose}>
       <form onSubmit={handleSubmit} className={styles.modalContent}>
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="projectName">
-            Project Name
-          </label>
-          <input
-            id="projectName"
-            type="text"
-            className={styles.input}
-            value={name}
-            onChange={e => handleNameChange(e.target.value)}
-            placeholder="My Awesome Project"
-            autoFocus
-          />
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="projectKey">
-            Project Key
-            <span className={styles.labelHint}>2-10 characters, used as prefix for tasks</span>
-          </label>
-          <input
-            id="projectKey"
-            type="text"
-            className={styles.input}
-            value={key}
-            onChange={e => setKey(e.target.value.toUpperCase().slice(0, 10))}
-            placeholder="MAP"
-            maxLength={10}
-          />
-        </div>
-
-        <div className={styles.formGroup}>
           <label className={styles.label}>
             GitHub Repository
             <span className={styles.labelHint}>Optional - link to view source files</span>
@@ -228,6 +197,36 @@ export function CreateProjectModal({
               document.body
             )}
           </div>
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor="projectName">
+            Project Name
+          </label>
+          <input
+            id="projectName"
+            type="text"
+            className={styles.input}
+            value={name}
+            onChange={e => handleNameChange(e.target.value)}
+            placeholder="My Awesome Project"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.label} htmlFor="projectKey">
+            Project Key
+            <span className={styles.labelHint}>2-10 characters, used as prefix for tasks</span>
+          </label>
+          <input
+            id="projectKey"
+            type="text"
+            className={styles.input}
+            value={key}
+            onChange={e => setKey(e.target.value.toUpperCase().slice(0, 10))}
+            placeholder="MAP"
+            maxLength={10}
+          />
         </div>
 
         {error && (

@@ -44,6 +44,13 @@
 .nav-links {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+}
+
+.nav-project-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .nav-link {
@@ -166,6 +173,32 @@
 .nav-logout:hover {
   color: var(--text-primary);
   background: var(--bg-tertiary);
+}
+
+.nav-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.nav-settings-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.nav-settings-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 @media (max-width: 900px) {
