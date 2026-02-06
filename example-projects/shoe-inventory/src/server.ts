@@ -2,7 +2,7 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import { registerResource, createMemoryStore } from '@agentforge/resource'
+import { registerResource, createMemoryStore } from '@agentforge/dataobject'
 import { brandResource } from './resources/brand.resource'
 import { productResource } from './resources/product.resource'
 

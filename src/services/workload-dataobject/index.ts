@@ -1,4 +1,4 @@
-import { defineResource, z } from '@agentforge/resource'
+import { defineResource, z } from '@agentforge/dataobject'
 
 export const workloadStageEnum = z.enum([
   'pending',
@@ -39,7 +39,7 @@ export const workloadResource = defineResource({
   searchable: ['servicePath', 'stage'],
 
   // TODO: Custom actions for the deployment pipeline will be added
-  // when @agentforge/resource supports the actions API
+  // when @agentforge/dataobject supports the actions API
   // actions: {
   //   run: { handler: (workload, ctx) => ctx.deployer?.start(workload) },
   //   stop: { handler: (workload, ctx) => ctx.deployer?.stop(workload) },

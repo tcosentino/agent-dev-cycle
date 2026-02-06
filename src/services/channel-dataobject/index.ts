@@ -1,4 +1,4 @@
-import { defineResource, z } from '@agentforge/resource'
+import { defineResource, z } from '@agentforge/dataobject'
 
 export const channelResource = defineResource({
   name: 'channel',

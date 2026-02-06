@@ -1,4 +1,4 @@
-import { defineResource, z } from '@agentforge/resource'
+import { defineResource, z } from '@agentforge/dataobject'
 
 export const sessionAgentEnum = z.enum(['pm', 'engineer', 'qa', 'lead'])
 

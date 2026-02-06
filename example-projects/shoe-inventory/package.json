@@ -9,7 +9,7 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-    "@agentforge/resource": "0.1.0",
+    "@agentforge/dataobject": "0.1.0",
     "@hono/node-server": "^1.13.0",
     "hono": "^4.6.0"
   },

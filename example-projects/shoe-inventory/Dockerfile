@@ -3,11 +3,11 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Copy the resource package first
-COPY packages/resource ./packages/resource
+# Copy the dataobject package first
+COPY packages/dataobject ./packages/dataobject
 
-# Install resource package dependencies
-WORKDIR /app/packages/resource
+# Install dataobject package dependencies
+WORKDIR /app/packages/dataobject
 RUN npm install
 
 # Copy shoe-inventory app
@@ -17,7 +17,7 @@ COPY example-projects/shoe-inventory/tsconfig.json ./
 COPY example-projects/shoe-inventory/src ./src
 
 # Modify package.json to use local file path instead of version
-RUN sed -i 's|"@agentforge/resource": "[^"]*"|"@agentforge/resource": "file:./packages/resource"|' package.json
+RUN sed -i 's|"@agentforge/dataobject": "[^"]*"|"@agentforge/dataobject": "file:./packages/dataobject"|' package.json
 
 # Install app dependencies
 RUN npm install

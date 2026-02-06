@@ -12,6 +12,7 @@ export interface Relation {
 // The shape of a resource definition
 export interface ResourceDefinition<T extends z.ZodObject<z.ZodRawShape> = z.ZodObject<z.ZodRawShape>> {
   name: string
+  plural?: string // Custom plural form (e.g., 'agent-status' -> 'agent-statuses')
   schema: T
   createFields: (keyof z.infer<T>)[]
   updateFields: (keyof z.infer<T>)[]

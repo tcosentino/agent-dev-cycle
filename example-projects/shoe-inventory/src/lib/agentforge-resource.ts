@@ -1,4 +1,4 @@
-// @agentforge/resource - Schema-driven API resource definitions
+// @agentforge/dataobject - Schema-driven API resource definitions
 // This is the "fake" library that our AI agents will use to define resources.
 // The factory will read these definitions and generate:
 // - Database tables (via Drizzle ORM)
