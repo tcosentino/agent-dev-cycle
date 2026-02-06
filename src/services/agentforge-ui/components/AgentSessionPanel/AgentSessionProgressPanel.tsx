@@ -3,15 +3,7 @@ import { useAgentSessionProgress, useAgentSession } from '../../hooks'
 import { api, type ApiAgentSessionLogEntry } from '../../api'
 import { Badge } from '../shared/Badge/Badge'
 import { Spinner } from '../shared/Spinner/Spinner'
-import {
-  CheckCircleIcon,
-  AlertTriangleIcon,
-  ClockIcon,
-  PlayIcon,
-  XIcon,
-  GitBranchIcon,
-  ClipboardIcon,
-} from '../shared/icons'
+import { GitBranchIcon } from '../shared/icons'
 import styles from './AgentSessionPanel.module.css'
 
 export interface AgentSessionProgressPanelProps {
@@ -39,16 +31,16 @@ const stageIndex: Record<string, number> = {
   failed: -2,
 }
 
-function StageIndicator({ currentStage }: { currentStage: string }) {
+function VerticalStageList({ currentStage }: { currentStage: string }) {
   const current = stageIndex[currentStage] ?? -1
   const isComplete = currentStage === 'completed'
   const isFailed = currentStage === 'failed'
 
   return (
-    <div className={styles.stageIndicator}>
+    <div className={styles.verticalStageList}>
       {stages.map((stage, idx) => {
         let status: 'pending' | 'active' | 'complete' | 'failed' = 'pending'
-        if (isFailed && current === idx) {
+        if (isFailed && idx === current) {
           status = 'failed'
         } else if (isComplete || idx < current) {
           status = 'complete'
@@ -57,19 +49,8 @@ function StageIndicator({ currentStage }: { currentStage: string }) {
         }
 
         return (
-          <div key={stage.key} className={styles.stageStep}>
-            <div className={`${styles.stageNode} ${styles[status]}`}>
-              {status === 'complete' && <CheckCircleIcon width={12} height={12} />}
-              {status === 'active' && <PlayIcon width={10} height={10} />}
-              {status === 'failed' && <AlertTriangleIcon width={12} height={12} />}
-              {status === 'pending' && <span className={styles.stageDot} />}
-            </div>
-            <span className={`${styles.stageLabel} ${styles[status]}`}>
-              {stage.label}
-            </span>
-            {idx < stages.length - 1 && (
-              <div className={`${styles.stageLine} ${idx < current ? styles.complete : ''}`} />
-            )}
+          <div key={stage.key} className={`${styles.verticalStageItem} ${styles[status]}`}>
+            <span className={styles.verticalStageLabel}>{stage.label}</span>
           </div>
         )
       })}
@@ -88,48 +69,16 @@ function LogEntry({ log }: { log: ApiAgentSessionLogEntry }) {
   )
 }
 
-function ElapsedTime({ startedAt }: { startedAt?: string }) {
-  const [elapsed, setElapsed] = useState('')
-
-  useEffect(() => {
-    if (!startedAt) return
-
-    const startTime = new Date(startedAt).getTime()
-
-    const update = () => {
-      const diff = Date.now() - startTime
-      const mins = Math.floor(diff / 60000)
-      const secs = Math.floor((diff % 60000) / 1000)
-      setElapsed(`${mins}:${secs.toString().padStart(2, '0')}`)
-    }
-
-    update()
-    const interval = setInterval(update, 1000)
-    return () => clearInterval(interval)
-  }, [startedAt])
-
-  if (!startedAt || !elapsed) return null
-
-  return (
-    <span className={styles.elapsedTime}>
-      <ClockIcon width={14} height={14} />
-      {elapsed}
-    </span>
-  )
-}
 
 export function AgentSessionProgressPanel({
   sessionId,
-  onClose,
   onRetry,
 }: AgentSessionProgressPanelProps) {
   const { progress, isLoading, error } = useAgentSessionProgress(sessionId)
   const { session: initialSession } = useAgentSession(sessionId)
   const logsEndRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
-  const [isCancelling, setIsCancelling] = useState(false)
   const [isRetrying, setIsRetrying] = useState(false)
-  const [copySuccess, setCopySuccess] = useState(false)
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -144,26 +93,12 @@ export function AgentSessionProgressPanel({
     setAutoScroll(isAtBottom)
   }
 
-  const handleCancel = async () => {
-    if (!sessionId) return
-    setIsCancelling(true)
-    try {
-      await api.agentSessions.cancel(sessionId)
-    } catch (err) {
-      console.error('Failed to cancel session:', err)
-    }
-    setIsCancelling(false)
-  }
-
   const handleRetry = async () => {
     if (!sessionId) return
     setIsRetrying(true)
     try {
-      // Create a new session (retry returns the new session object)
       const newSession = await api.agentSessions.retry(sessionId)
-      // Start the new session
       await api.agentSessions.start(newSession.id)
-      // Navigate to the new session
       if (onRetry) {
         onRetry(newSession.id)
       }
@@ -173,42 +108,12 @@ export function AgentSessionProgressPanel({
     setIsRetrying(false)
   }
 
-  const handleCopyLogs = async () => {
-    const logs = 'logs' in (progress || initialSession || {})
-      ? (progress || initialSession)!.logs
-      : []
-
-    const logText = logs
-      .map(log => {
-        const time = new Date(log.timestamp).toISOString()
-        return `[${time}] [${log.level.toUpperCase()}] ${log.message}`
-      })
-      .join('\n')
-
-    try {
-      await navigator.clipboard.writeText(logText)
-      setCopySuccess(true)
-      setTimeout(() => setCopySuccess(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy logs:', err)
-    }
-  }
-
   // Use progress from SSE if connected, otherwise use initial session data
   const session = progress || initialSession
-  const isRunning = session && !['completed', 'failed', 'pending'].includes(session.stage)
 
   if (isLoading && !session) {
     return (
       <div className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <h3 className={styles.panelTitle}>Loading...</h3>
-          {onClose && (
-            <button className={styles.closeButton} onClick={onClose}>
-              <XIcon width={18} height={18} />
-            </button>
-          )}
-        </div>
         <div className={styles.loadingState}>
           <Spinner />
         </div>
@@ -219,14 +124,6 @@ export function AgentSessionProgressPanel({
   if (error && !session) {
     return (
       <div className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <h3 className={styles.panelTitle}>Error</h3>
-          {onClose && (
-            <button className={styles.closeButton} onClick={onClose}>
-              <XIcon width={18} height={18} />
-            </button>
-          )}
-        </div>
         <div className={styles.errorState}>
           {error}
         </div>
@@ -237,96 +134,60 @@ export function AgentSessionProgressPanel({
   if (!session) {
     return (
       <div className={styles.panel}>
-        <div className={styles.panelHeader}>
-          <h3 className={styles.panelTitle}>Session not found</h3>
-          {onClose && (
-            <button className={styles.closeButton} onClick={onClose}>
-              <XIcon width={18} height={18} />
-            </button>
-          )}
+        <div className={styles.errorState}>
+          Session not found
         </div>
       </div>
     )
   }
 
   const logs = 'logs' in session ? session.logs : []
-  const startedAt = 'startedAt' in session ? session.startedAt : undefined
 
   return (
     <div className={styles.panel}>
-      <div className={styles.panelHeader}>
-        <div className={styles.panelTitleRow}>
-          <h3 className={styles.panelTitle}>
-            {session.sessionId}
-          </h3>
-          <Badge
-            variant={session.stage === 'completed' ? 'green' : session.stage === 'failed' ? 'red' : 'orange'}
-            size="sm"
-          >
-            {session.stage}
-          </Badge>
-        </div>
-        <div className={styles.panelMeta}>
-          <span>{session.agent.toUpperCase()}</span>
-          <span className={styles.separator}>-</span>
-          <span>{session.phase}</span>
-          {startedAt && (
-            <>
-              <span className={styles.separator}>-</span>
-              <ElapsedTime startedAt={startedAt} />
-            </>
-          )}
-        </div>
-        {onClose && (
-          <button className={styles.closeButton} onClick={onClose}>
-            <XIcon width={18} height={18} />
-          </button>
-        )}
-      </div>
+      <div className={styles.panelLayout}>
+        {/* Left sidebar with vertical stage list */}
+        <VerticalStageList currentStage={session.stage} />
 
-      <StageIndicator currentStage={session.stage} />
-
-      {session.currentStep && (
-        <div className={styles.currentStep}>
-          {session.currentStep}
-        </div>
-      )}
-
-      <div className={styles.progressBar}>
-        <div
-          className={styles.progressFill}
-          style={{ width: `${session.progress}%` }}
-        />
-      </div>
-
-      <div className={styles.logsHeader}>
-        <span className={styles.logsTitle}>Logs</span>
-        <button
-          className={styles.copyLogsButton}
-          onClick={handleCopyLogs}
-          title="Copy logs to clipboard"
-        >
-          <ClipboardIcon width={14} height={14} />
-          {copySuccess ? 'Copied!' : 'Copy'}
-        </button>
-      </div>
-      <div className={styles.logsContainer} onScroll={handleScroll}>
-        {logs.length === 0 ? (
-          <div className={styles.noLogs}>No logs yet...</div>
-        ) : (
-          logs.map((log, idx) => <LogEntry key={idx} log={log} />)
-        )}
-        <div ref={logsEndRef} />
-      </div>
-
-      {(session.stage === 'completed' || session.stage === 'failed') && (
-        <div className={styles.resultCard}>
-          {session.stage === 'completed' ? (
-            <>
-              <div className={styles.resultHeader}>
-                <CheckCircleIcon width={20} height={20} className={styles.successIcon} />
-                <span>Completed</span>
+        {/* Main content area */}
+        <div className={styles.panelMain}>
+          {/* Header with status badge and error/retry */}
+          <div className={styles.panelHeader}>
+            <Badge
+              variant={session.stage === 'completed' ? 'green' : session.stage === 'failed' ? 'red' : 'orange'}
+              size="sm"
+            >
+              {session.stage === 'failed' ? 'Failed' : session.stage}
+            </Badge>
+            {session.stage === 'failed' && (
+              <div className={styles.headerActions}>
+                {session.error && (
+                  <span className={styles.headerError}>{session.error}</span>
+                )}
+                <button
+                  className={styles.retryButton}
+                  onClick={handleRetry}
+                  disabled={isRetrying}
+                >
+                  {isRetrying ? 'Retrying...' : 'Retry'}
+                </button>
               </div>
+            )}
+          </div>
+
+          {/* Logs area */}
+          <div className={styles.logsContainer} onScroll={handleScroll}>
+            {logs.length === 0 ? (
+              <div className={styles.noLogs}>No logs yet...</div>
+            ) : (
+              logs.map((log, idx) => <LogEntry key={idx} log={log} />)
+            )}
+            <div ref={logsEndRef} />
+          </div>
+
+          {/* Result card for completed */}
+          {session.stage === 'completed' && (
+            <div className={styles.resultCard}>
               {session.summary && (
                 <p className={styles.resultSummary}>{session.summary}</p>
               )}
@@ -336,39 +197,10 @@ export function AgentSessionProgressPanel({
                   <code>{session.commitSha.slice(0, 7)}</code>
                 </div>
               )}
-            </>
-          ) : (
-            <>
-              <div className={styles.resultHeader}>
-                <AlertTriangleIcon width={20} height={20} className={styles.errorIcon} />
-                <span>Failed</span>
-              </div>
-              {session.error && (
-                <p className={styles.resultError}>{session.error}</p>
-              )}
-              <button
-                className={styles.retryButton}
-                onClick={handleRetry}
-                disabled={isRetrying}
-              >
-                {isRetrying ? 'Retrying...' : 'Retry Session'}
-              </button>
-            </>
+            </div>
           )}
         </div>
-      )}
-
-      {isRunning && (
-        <div className={styles.actionBar}>
-          <button
-            className={styles.cancelButton}
-            onClick={handleCancel}
-            disabled={isCancelling}
-          >
-            {isCancelling ? 'Cancelling...' : 'Cancel Session'}
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
