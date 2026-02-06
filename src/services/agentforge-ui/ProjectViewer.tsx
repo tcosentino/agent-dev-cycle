@@ -108,20 +108,21 @@ function getTabIcon(tab: SerializedTab): ReactNode {
 interface ProjectViewerProps {
   projects: ProjectData
   dbData: ProjectDbData
+  projectDisplayNames?: Record<string, string>
 }
 
-export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
-  const projectNames = useMemo(() => Object.keys(projects).sort(), [projects])
+export function ProjectViewer({ projects, dbData, projectDisplayNames }: ProjectViewerProps) {
+  const projectIds = useMemo(() => Object.keys(projects).sort(), [projects])
 
   // Load persisted state once on mount
   const persistedState = useMemo(() => loadPersistedState(), [])
 
   const [activeProject, setActiveProject] = useState(() => {
     // Use persisted project if it exists in current projects
-    if (persistedState?.activeProject && projectNames.includes(persistedState.activeProject)) {
+    if (persistedState?.activeProject && projectIds.includes(persistedState.activeProject)) {
       return persistedState.activeProject
     }
-    return projectNames[0] || ''
+    return projectIds[0] || ''
   })
 
   // Restore tabs from persisted state (need to regenerate icons and fetch data)
@@ -721,8 +722,10 @@ export function ProjectViewer({ projects, dbData }: ProjectViewerProps) {
           value={activeProject}
           onChange={e => handleProjectChange(e.target.value)}
         >
-          {projectNames.map(name => (
-            <option key={name} value={name}>{name}</option>
+          {projectIds.map(id => (
+            <option key={id} value={id}>
+              {projectDisplayNames?.[id] || id}
+            </option>
           ))}
         </select>
       </div>

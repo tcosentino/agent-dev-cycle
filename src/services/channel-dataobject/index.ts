@@ -7,7 +7,7 @@ export const channelResource = defineResource({
     id: z.string().uuid(),
     projectId: z.string().uuid(),
     name: z.string().min(1).max(50), // e.g., 'general', 'engineering'
-    createdAt: z.date(),
+    type: z.string().optional(), // e.g., 'team', 'direct'
   }),
 
   createFields: ['projectId', 'name'],

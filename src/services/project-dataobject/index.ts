@@ -8,7 +8,6 @@ export const projectResource = defineResource({
     name: z.string().min(1).max(200),
     key: z.string().min(2).max(10).toUpperCase(), // e.g., 'AF' for AgentForge
     repoUrl: z.string().url().optional(),
-    createdAt: z.date(),
   }),
 
   createFields: ['name', 'key', 'repoUrl'],

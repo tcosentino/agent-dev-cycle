@@ -66,7 +66,7 @@ export function createServer(
 
     if (storage === 'sqlite' && db) {
       // Create table and SQLite store
-      createTableFromResource(db, resource)
+      createTableFromResource(db, resource, pluralName)
       store = createSqliteStore({
         db,
         tableName: pluralName,

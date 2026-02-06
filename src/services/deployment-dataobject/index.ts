@@ -11,7 +11,6 @@ export const deploymentResource = defineResource({
     serviceName: z.string().min(1).max(100),
     servicePath: z.string().min(1), // path to service in repo
     status: deploymentStatusEnum.default('active'),
-    createdAt: z.date(),
   }),
 
   createFields: ['projectId', 'serviceName', 'servicePath'],

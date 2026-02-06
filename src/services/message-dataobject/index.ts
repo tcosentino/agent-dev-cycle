@@ -20,7 +20,6 @@ export const messageResource = defineResource({
     actionStatus: actionStatusEnum.optional(),
     actionLabel: z.string().optional(), // summary label for UI
     actionSubject: z.string().optional(), // reference to task key, etc.
-    createdAt: z.date(),
   }),
 
   createFields: [

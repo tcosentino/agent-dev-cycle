@@ -11,8 +11,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "start": "tsx src/cli.ts --services ../../src/services",
-    "dev": "tsx watch src/cli.ts --services ../../src/services",
+    "start": "tsx src/cli.ts --services ../../src/services --storage sqlite --db ../../.data/agentforge.db",
+    "dev": "tsx watch src/cli.ts --services ../../src/services --storage sqlite --db ../../.data/agentforge.db",
+    "seed": "tsx src/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest"
   },

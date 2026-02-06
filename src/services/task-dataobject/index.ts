@@ -33,8 +33,6 @@ export const taskResource = defineResource({
     priority: taskPriorityEnum.optional(),
     status: taskStatusEnum.default('todo'),
     assignee: z.string().optional(), // agent role: 'pm', 'engineer', 'qa', 'lead'
-    createdAt: z.date(),
-    updatedAt: z.date(),
   }),
 
   createFields: ['projectId', 'key', 'title', 'description', 'type', 'priority', 'assignee'],

@@ -8,7 +8,8 @@
     "example-projects/*"
   ],
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -n ui,api -c blue,green \"vite\" \"yarn dev:server\"",
+    "dev:ui": "vite",
     "dev:server": "yarn workspace @agentforge/server dev",
     "build": "tsc && vite build",
     "build:server": "yarn workspace @agentforge/server build",
@@ -16,6 +17,7 @@
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
+    "seed": "yarn workspace @agentforge/server seed",
     "test": "yarn workspace @agentforge/server test",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
@@ -32,6 +34,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitest/browser-playwright": "^4.0.16",
     "@vitest/coverage-v8": "^4.0.16",
+    "concurrently": "^9.2.1",
     "playwright": "^1.57.0",
     "storybook": "^10.1.11",
     "typescript": "~5.9.3",

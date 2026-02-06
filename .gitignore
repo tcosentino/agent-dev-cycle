@@ -32,3 +32,6 @@ test-results
 
 # Claude Code
 .claude
+
+# Local data
+.data

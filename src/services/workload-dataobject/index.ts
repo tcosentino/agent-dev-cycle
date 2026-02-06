@@ -29,8 +29,6 @@ export const workloadResource = defineResource({
     error: z.string().optional(),
     containerId: z.string().optional(),
     port: z.number().int().min(1).max(65535).optional(),
-    createdAt: z.date(),
-    updatedAt: z.date(),
   }),
 
   createFields: ['deploymentId', 'servicePath'],

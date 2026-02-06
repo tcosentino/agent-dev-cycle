@@ -4,6 +4,14 @@ import { resolve } from 'path'
 export default defineConfig({
   // SPA fallback - serve index.html for all routes
   appType: 'spa',
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
+  },
   build: {
     rollupOptions: {
       input: {
