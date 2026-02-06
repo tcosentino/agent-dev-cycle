@@ -94,15 +94,60 @@ export async function commitAndPush(
     commitMessage,
   ])
 
-  // Push to remote
+  // Push to remote (with pull --rebase if needed for shallow clone)
   const authUrl = getAuthenticatedUrl(config.repoUrl, gitToken)
-  await execFileAsync('git', [
-    '-C',
-    WORKSPACE_PATH,
-    'push',
-    authUrl,
-    config.branch,
-  ])
+
+  try {
+    await execFileAsync('git', [
+      '-C',
+      WORKSPACE_PATH,
+      'push',
+      authUrl,
+      config.branch,
+    ])
+  } catch (pushError) {
+    // Push failed, likely because remote has new commits
+    // Unshallow the clone and rebase on top of remote
+    console.log('Push failed, fetching and rebasing...')
+
+    // Unshallow the clone to get full history
+    await execFileAsync('git', [
+      '-C',
+      WORKSPACE_PATH,
+      'fetch',
+      '--unshallow',
+      authUrl,
+      config.branch,
+    ]).catch(() => {
+      // Already unshallowed or full clone, ignore error
+    })
+
+    // Fetch latest from remote
+    await execFileAsync('git', [
+      '-C',
+      WORKSPACE_PATH,
+      'fetch',
+      authUrl,
+      config.branch,
+    ])
+
+    // Rebase local changes on top of remote
+    await execFileAsync('git', [
+      '-C',
+      WORKSPACE_PATH,
+      'rebase',
+      'FETCH_HEAD',
+    ])
+
+    // Try push again
+    await execFileAsync('git', [
+      '-C',
+      WORKSPACE_PATH,
+      'push',
+      authUrl,
+      config.branch,
+    ])
+  }
 
   // Get commit SHA
   const { stdout: sha } = await execFileAsync('git', [
@@ -144,14 +189,55 @@ export async function commitPartialWork(
     ])
 
     const authUrl = getAuthenticatedUrl(config.repoUrl, gitToken)
-    await execFileAsync('git', [
-      '-C',
-      WORKSPACE_PATH,
-      'push',
-      authUrl,
-      config.branch,
-    ])
-  } catch (pushError) {
-    console.error('Failed to commit partial work:', pushError)
+
+    try {
+      await execFileAsync('git', [
+        '-C',
+        WORKSPACE_PATH,
+        'push',
+        authUrl,
+        config.branch,
+      ])
+    } catch {
+      // Push failed, likely because remote has new commits
+      // Unshallow the clone and rebase on top of remote
+      console.log('Push failed, fetching and rebasing...')
+
+      await execFileAsync('git', [
+        '-C',
+        WORKSPACE_PATH,
+        'fetch',
+        '--unshallow',
+        authUrl,
+        config.branch,
+      ]).catch(() => {
+        // Already unshallowed or full clone
+      })
+
+      await execFileAsync('git', [
+        '-C',
+        WORKSPACE_PATH,
+        'fetch',
+        authUrl,
+        config.branch,
+      ])
+
+      await execFileAsync('git', [
+        '-C',
+        WORKSPACE_PATH,
+        'rebase',
+        'FETCH_HEAD',
+      ])
+
+      await execFileAsync('git', [
+        '-C',
+        WORKSPACE_PATH,
+        'push',
+        authUrl,
+        config.branch,
+      ])
+    }
+  } catch (commitError) {
+    console.error('Failed to commit partial work:', commitError)
   }
 }

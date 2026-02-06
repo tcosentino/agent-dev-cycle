@@ -95,18 +95,20 @@ export function AgentSessionProgressPanel({
   }
 
   const handleRetry = async () => {
-    if (!sessionId) return
+    if (!sessionId || !onRetry) return
     setIsRetrying(true)
     try {
       const newSession = await api.agentSessions.retry(sessionId)
-      await api.agentSessions.start(newSession.id)
-      if (onRetry) {
-        onRetry(newSession.id)
-      }
+      // Navigate to new session immediately, then start it
+      onRetry(newSession.id)
+      // Start the session after navigation (fire and forget)
+      api.agentSessions.start(newSession.id).catch(err => {
+        console.error('Failed to start retry session:', err)
+      })
     } catch (err) {
-      console.error('Failed to retry session:', err)
+      console.error('Failed to create retry session:', err)
+      setIsRetrying(false)
     }
-    setIsRetrying(false)
   }
 
   const handleCopyLogs = async () => {
