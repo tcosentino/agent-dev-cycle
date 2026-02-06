@@ -734,6 +734,7 @@
   flex: 1;
   overflow: auto;
   min-height: 0;
+  padding: var(--space-md);
 }
 
 .taskBoardWithDetail {
@@ -1570,13 +1571,41 @@
    Service View
    =========================================== */
 
+.serviceViewContainer {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
 .serviceView {
+  flex: 1;
   padding: var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
   overflow-y: auto;
   max-width: 800px;
+}
+
+.serviceSidebar {
+  width: 200px;
+  flex-shrink: 0;
+  padding: var(--space-lg);
+  overflow-y: auto;
+}
+
+.serviceSidebarSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.serviceSidebarTitle {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 .serviceHeader {
@@ -1834,22 +1863,22 @@
 .serviceFileLink {
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  border: none;
   border-radius: var(--radius-sm);
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-family: var(--font-mono);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .serviceFileLink:hover {
   background: var(--bg-tertiary);
-  border-color: var(--accent-primary);
+  color: var(--text-primary);
 }
 
 .serviceFileIcon {

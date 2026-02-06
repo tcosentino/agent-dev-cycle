@@ -1,0 +1,26 @@
+{
+  "name": "agent-status-dataobject",
+  "type": "dataobject",
+  "version": "0.1.0",
+  "description": "Agent status data object. Tracks the current state of each agent in a project.",
+  "entry": "index.ts",
+  "schema": {
+    "fields": [
+      { "name": "id", "type": "uuid", "auto": true },
+      { "name": "projectId", "type": "uuid", "required": true },
+      { "name": "role", "type": "enum", "values": ["pm", "engineer", "qa", "lead"], "required": true },
+      { "name": "status", "type": "enum", "values": ["active", "away", "busy"], "default": "away" },
+      { "name": "currentTask", "type": "string" },
+      { "name": "lastActiveAt", "type": "date", "auto": true }
+    ]
+  },
+  "endpoints": [
+    { "method": "GET", "path": "/agent-status", "description": "List all agent statuses" },
+    { "method": "GET", "path": "/agent-status/:id", "description": "Get agent status by ID" },
+    { "method": "GET", "path": "/projects/:projectId/agent-status", "description": "List agent statuses for a project" },
+    { "method": "POST", "path": "/agent-status", "description": "Create agent status" },
+    { "method": "PATCH", "path": "/agent-status/:id", "description": "Update agent status" }
+  ],
+  "dependencies": ["project-dataobject"],
+  "tags": ["core", "agents"]
+}

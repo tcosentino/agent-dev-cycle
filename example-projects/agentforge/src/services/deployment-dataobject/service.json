@@ -1,0 +1,27 @@
+{
+  "name": "deployment-dataobject",
+  "type": "dataobject",
+  "version": "0.1.0",
+  "description": "Deployment data object. Represents a service deployment configuration.",
+  "entry": "index.ts",
+  "schema": {
+    "fields": [
+      { "name": "id", "type": "uuid", "auto": true },
+      { "name": "projectId", "type": "uuid", "required": true },
+      { "name": "serviceName", "type": "string", "required": true },
+      { "name": "servicePath", "type": "string", "required": true },
+      { "name": "status", "type": "enum", "values": ["active", "inactive", "archived"], "default": "active" },
+      { "name": "createdAt", "type": "date", "auto": true }
+    ]
+  },
+  "endpoints": [
+    { "method": "GET", "path": "/deployments", "description": "List all deployments" },
+    { "method": "GET", "path": "/deployments/:id", "description": "Get deployment by ID" },
+    { "method": "GET", "path": "/projects/:projectId/deployments", "description": "List deployments for a project" },
+    { "method": "POST", "path": "/deployments", "description": "Create a new deployment" },
+    { "method": "PUT", "path": "/deployments/:id", "description": "Update a deployment" },
+    { "method": "DELETE", "path": "/deployments/:id", "description": "Delete a deployment" }
+  ],
+  "dependencies": ["project-dataobject"],
+  "tags": ["runtime", "infrastructure"]
+}
