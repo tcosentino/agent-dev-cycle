@@ -1,0 +1,31 @@
+{
+  "id": "shoe-inventory-api",
+  "name": "shoe-inventory",
+  "type": "api-resource",
+  "version": "0.1.0",
+
+  "sourceDir": ".",
+
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "../.."
+  },
+
+  "runtime": {
+    "port": 3001,
+    "env": {
+      "NODE_ENV": "production"
+    },
+    "healthcheck": {
+      "path": "/health",
+      "interval": 1000,
+      "timeout": 5000,
+      "retries": 10
+    }
+  },
+
+  "config": {
+    "resources": ["brand", "product"],
+    "basePath": ""
+  }
+}

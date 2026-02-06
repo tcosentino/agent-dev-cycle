@@ -263,6 +263,91 @@
       "lastActiveAt": "2026-01-10T09:30:00Z"
     }
   ],
+  "deployments": [
+    {
+      "id": "dep-001",
+      "projectId": "proj-st",
+      "name": "feature-transfer-api",
+      "description": "Testing transfer workflow API before merge",
+      "trigger": {
+        "type": "agent",
+        "agentId": "st-as-2",
+        "agentName": "Engineer Agent",
+        "branch": "feature/transfer-workflow"
+      },
+      "status": "success",
+      "workloadIds": ["wl-001"],
+      "createdAt": "2026-01-14T14:00:00Z",
+      "updatedAt": "2026-01-14T14:02:30Z",
+      "completedAt": "2026-01-14T14:02:30Z"
+    },
+    {
+      "id": "dep-002",
+      "projectId": "proj-st",
+      "name": "main-preview",
+      "description": "Main branch continuous deployment",
+      "trigger": {
+        "type": "git-push",
+        "branch": "main",
+        "commit": "abc1234"
+      },
+      "status": "running",
+      "workloadIds": ["wl-002"],
+      "createdAt": "2026-01-14T15:30:00Z",
+      "updatedAt": "2026-01-14T15:31:00Z"
+    }
+  ],
+  "workloads": [
+    {
+      "id": "wl-001",
+      "deploymentId": "dep-001",
+      "moduleId": "shoe-inventory-api",
+      "moduleName": "shoe-inventory",
+      "moduleType": "api-resource",
+      "status": "success",
+      "currentStage": "complete",
+      "stages": [
+        { "stage": "validate", "status": "success", "duration": 50, "logs": ["Validating api-resource module", "Validation passed"] },
+        { "stage": "build", "status": "success", "duration": 120, "logs": ["Building Docker image", "Image ready"] },
+        { "stage": "deploy", "status": "success", "duration": 850, "logs": ["Creating container", "Container started"] },
+        { "stage": "healthcheck", "status": "success", "duration": 2100, "logs": ["Healthcheck passed"] },
+        { "stage": "test", "status": "success", "duration": 340, "logs": ["5 tests passed"] },
+        { "stage": "complete", "status": "success", "duration": 10, "logs": ["Workload complete"] }
+      ],
+      "artifacts": {
+        "imageName": "shoe-inventory:0.1.0",
+        "containerId": "abc123def456",
+        "containerName": "shoe-inventory-wl001",
+        "port": 3001,
+        "url": "http://localhost:3001"
+      },
+      "createdAt": "2026-01-14T14:00:00Z",
+      "updatedAt": "2026-01-14T14:02:30Z",
+      "completedAt": "2026-01-14T14:02:30Z"
+    },
+    {
+      "id": "wl-002",
+      "deploymentId": "dep-002",
+      "moduleId": "shoe-inventory-api",
+      "moduleName": "shoe-inventory",
+      "moduleType": "api-resource",
+      "status": "running",
+      "currentStage": "healthcheck",
+      "stages": [
+        { "stage": "validate", "status": "success", "duration": 45, "logs": ["Validation passed"] },
+        { "stage": "build", "status": "success", "duration": 98, "logs": ["Image ready"] },
+        { "stage": "deploy", "status": "success", "duration": 920, "logs": ["Container started"] },
+        { "stage": "healthcheck", "status": "running", "logs": ["Attempt 3/10..."] }
+      ],
+      "artifacts": {
+        "imageName": "shoe-inventory:0.1.1",
+        "containerName": "shoe-inventory-wl002",
+        "port": 3002
+      },
+      "createdAt": "2026-01-14T15:30:00Z",
+      "updatedAt": "2026-01-14T15:31:00Z"
+    }
+  ],
   "sessions": [
     {
       "id": "st-ses-1",
