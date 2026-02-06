@@ -135,6 +135,19 @@
       "assignee": "qa",
       "createdAt": "2026-02-05T08:20:00Z",
       "updatedAt": "2026-02-05T08:20:00Z"
+    },
+    {
+      "id": "af-task-11",
+      "projectId": "proj-af",
+      "key": "AF-11",
+      "title": "Create skill for adding DataObject",
+      "description": "Build a Claude Code skill that scaffolds a new DataObject with schema, migrations, and CRUD endpoints",
+      "type": "backend",
+      "priority": "medium",
+      "status": "todo",
+      "assignee": "engineer",
+      "createdAt": "2026-02-05T19:30:00Z",
+      "updatedAt": "2026-02-05T19:30:00Z"
     }
   ],
   "channels": [
