@@ -1,0 +1,7 @@
+{
+  "name": "agent-session-integration",
+  "type": "integration",
+  "version": "0.1.0",
+  "description": "Agent session execution integration - start, stream, cancel sessions",
+  "entry": "index.ts"
+}

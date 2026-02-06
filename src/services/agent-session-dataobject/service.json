@@ -1,0 +1,41 @@
+{
+  "name": "agent-session-dataobject",
+  "type": "dataobject",
+  "version": "0.1.0",
+  "description": "Agent session execution tracking. Tracks active and completed agent sessions with progress, logs, and results.",
+  "entry": "index.ts",
+  "schema": {
+    "fields": [
+      { "name": "id", "type": "uuid", "auto": true },
+      { "name": "projectId", "type": "uuid", "required": true },
+      { "name": "sessionId", "type": "string", "required": true },
+      { "name": "agent", "type": "enum", "values": ["pm", "engineer", "qa", "lead"], "required": true },
+      { "name": "phase", "type": "enum", "values": ["discovery", "shaping", "building", "delivery"], "required": true },
+      { "name": "taskPrompt", "type": "text", "required": true },
+      { "name": "stage", "type": "enum", "values": ["pending", "cloning", "loading", "executing", "capturing", "committing", "completed", "failed"], "default": "pending" },
+      { "name": "progress", "type": "number", "default": 0 },
+      { "name": "currentStep", "type": "string" },
+      { "name": "logs", "type": "json", "default": [] },
+      { "name": "summary", "type": "text" },
+      { "name": "commitSha", "type": "string" },
+      { "name": "error", "type": "text" },
+      { "name": "startedAt", "type": "date" },
+      { "name": "completedAt", "type": "date" }
+    ]
+  },
+  "endpoints": [
+    { "method": "GET", "path": "/agentSessions", "description": "List all agent sessions (requires projectId)" },
+    { "method": "GET", "path": "/agentSessions/:id", "description": "Get agent session by ID" },
+    { "method": "POST", "path": "/agentSessions", "description": "Create a new agent session" },
+    { "method": "PATCH", "path": "/agentSessions/:id", "description": "Update agent session (stage, progress, logs)" },
+    { "method": "DELETE", "path": "/agentSessions/:id", "description": "Delete an agent session" }
+  ],
+  "customEndpoints": [
+    { "method": "POST", "path": "/agentSessions/:id/start", "description": "Start executing the agent session" },
+    { "method": "GET", "path": "/agentSessions/:id/stream", "description": "SSE stream for real-time progress updates" },
+    { "method": "POST", "path": "/agentSessions/:id/cancel", "description": "Cancel a running agent session" },
+    { "method": "POST", "path": "/agentSessions/:id/logs", "description": "Append a log entry to the session" }
+  ],
+  "dependencies": ["project-dataobject"],
+  "tags": ["core", "agents", "execution"]
+}

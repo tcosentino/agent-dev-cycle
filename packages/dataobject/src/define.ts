@@ -9,11 +9,24 @@ export interface Relation {
   foreignKey: string
 }
 
+// Auto-increment configuration for generating keys like "AF-1", "AF-2"
+export interface AutoIncrementConfig {
+  field: string // The field to auto-generate (e.g., 'key')
+  prefixFrom: {
+    relation: string // Name of the relation to get prefix from (e.g., 'project')
+    field: string // Field on related resource to use as prefix (e.g., 'key')
+  }
+  separator?: string // Separator between prefix and number (default: '-')
+}
+
 // Timestamp fields automatically added to every resource
 const timestampFields = {
   createdAt: z.date(),
   updatedAt: z.date(),
 }
+
+// Routes that can be skipped
+export type SkippableRoute = 'list' | 'get' | 'create' | 'update' | 'delete'
 
 // Input definition without timestamps (user provides this)
 export interface ResourceInput<T extends z.ZodObject<z.ZodRawShape>> {
@@ -26,6 +39,8 @@ export interface ResourceInput<T extends z.ZodObject<z.ZodRawShape>> {
   searchable?: (keyof z.infer<T>)[]
   relations?: Record<string, Relation>
   softDelete?: boolean
+  autoIncrement?: AutoIncrementConfig
+  skipRoutes?: SkippableRoute[] // Routes to skip auto-generating (e.g., ['create'] when handled by integration)
 }
 
 // The shape of a resource definition (includes auto-added timestamps)
@@ -39,6 +54,8 @@ export interface ResourceDefinition<T extends z.ZodObject<z.ZodRawShape> = z.Zod
   searchable?: (keyof z.infer<T>)[]
   relations?: Record<string, Relation>
   softDelete?: boolean
+  autoIncrement?: AutoIncrementConfig
+  skipRoutes?: SkippableRoute[]
 }
 
 // Factory function to define a resource with type inference

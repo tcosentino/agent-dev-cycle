@@ -5,7 +5,7 @@ export { z } from 'zod'
 export type { ZodObject, ZodRawShape } from 'zod'
 
 export { defineResource } from './define'
-export type { ResourceDefinition, Relation, RelationType } from './define'
+export type { ResourceDefinition, Relation, RelationType, AutoIncrementConfig, SkippableRoute } from './define'
 
 export { pluralize, capitalize } from './utils'
 

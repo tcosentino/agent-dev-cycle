@@ -62,8 +62,15 @@ function toCamelCase(str: string): string {
 function toDbRecord(obj: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(obj)) {
+    let dbValue: unknown = value
     // Convert Date to ISO string
-    const dbValue = value instanceof Date ? value.toISOString() : value
+    if (value instanceof Date) {
+      dbValue = value.toISOString()
+    }
+    // Convert arrays and objects to JSON strings
+    else if (Array.isArray(value) || (value !== null && typeof value === 'object')) {
+      dbValue = JSON.stringify(value)
+    }
     result[toSnakeCase(key)] = dbValue
   }
   return result
@@ -73,7 +80,16 @@ function toDbRecord(obj: Record<string, unknown>): Record<string, unknown> {
 function fromDbRecord<T>(row: Record<string, unknown>): T {
   const result: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(row)) {
-    result[toCamelCase(key)] = value
+    let jsValue: unknown = value
+    // Try to parse JSON strings back to arrays/objects
+    if (typeof value === 'string' && (value.startsWith('[') || value.startsWith('{'))) {
+      try {
+        jsValue = JSON.parse(value)
+      } catch {
+        // Not valid JSON, keep as string
+      }
+    }
+    result[toCamelCase(key)] = jsValue
   }
   return result as T
 }

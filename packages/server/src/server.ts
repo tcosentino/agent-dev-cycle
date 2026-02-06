@@ -80,6 +80,13 @@ export function createServer(
     stores.set(resourceName, store)
   }
 
+  // Register integration services FIRST so they can override auto-generated routes
+  for (const integration of integrations) {
+    const { service, serviceInfo } = integration
+    service.register(app, { stores })
+    console.log(`Registered integration: ${service.name} (${serviceInfo.name})`)
+  }
+
   // Register OpenAPI routes (second pass - now all stores exist for auto-increment lookups)
   for (const module of modules) {
     const { resource, serviceInfo } = module
@@ -94,13 +101,6 @@ export function createServer(
     })
 
     console.log(`Registered: /api/${pluralName} (${serviceInfo.name})`)
-  }
-
-  // Register integration services
-  for (const integration of integrations) {
-    const { service, serviceInfo } = integration
-    service.register(app, { stores })
-    console.log(`Registered integration: ${service.name} (${serviceInfo.name})`)
   }
 
   // Health check endpoint

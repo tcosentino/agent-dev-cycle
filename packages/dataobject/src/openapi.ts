@@ -30,6 +30,10 @@ const OkSchema = z.object({
 export interface OpenApiResourceOptions {
   basePath?: string
   tags?: string[]
+  // Map of resource names to their stores (needed for auto-increment to look up related resources)
+  stores?: Map<string, ResourceStore<Record<string, unknown>>>
+  // Skip generating certain routes (e.g., ['create'] to skip POST)
+  skipRoutes?: ('list' | 'get' | 'create' | 'update' | 'delete')[]
 }
 
 // Register resource with OpenAPI documentation
@@ -46,10 +50,18 @@ export function registerOpenApiResource<T extends z.ZodObject<z.ZodRawShape>>(
   const tags = options.tags ?? [capitalize(resource.name)]
   const resourceName = capitalize(resource.name)
 
-  // Build create schema (only createFields, all required)
-  const createSchema = resource.schema.pick(
+  // Build create schema (only createFields, all required except auto-increment field)
+  let createSchema = resource.schema.pick(
     Object.fromEntries(resource.createFields.map(f => [f, true])) as Record<string, true>
   )
+
+  // If there's an auto-increment field, make it optional in the create schema
+  if (resource.autoIncrement) {
+    const autoField = resource.autoIncrement.field
+    createSchema = createSchema.extend({
+      [autoField]: createSchema.shape[autoField].optional(),
+    }) as typeof createSchema
+  }
 
   // Build update schema (only updateFields, all optional)
   const updateSchema = resource.schema
@@ -153,52 +165,98 @@ export function registerOpenApiResource<T extends z.ZodObject<z.ZodRawShape>>(
   }) as unknown as RouteHandler<typeof getByIdRoute>)
 
   // --- CREATE route ---
-  const createRoute_ = createRoute({
-    method: 'post',
-    path: basePath,
-    tags,
-    summary: `Create ${resource.name}`,
-    request: {
-      body: { content: { 'application/json': { schema: createSchema } } },
-    },
-    responses: {
-      201: {
-        content: { 'application/json': { schema: resource.schema } },
-        description: `${resourceName} created`,
+  const skipRoutes = options.skipRoutes ?? resource.skipRoutes ?? []
+  if (!skipRoutes.includes('create')) {
+    const createRoute_ = createRoute({
+      method: 'post',
+      path: basePath,
+      tags,
+      summary: `Create ${resource.name}`,
+      request: {
+        body: { content: { 'application/json': { schema: createSchema } } },
       },
-      400: {
-        content: { 'application/json': { schema: ValidationErrorSchema } },
-        description: 'Validation error',
+      responses: {
+        201: {
+          content: { 'application/json': { schema: resource.schema } },
+          description: `${resourceName} created`,
+        },
+        400: {
+          content: { 'application/json': { schema: ValidationErrorSchema } },
+          description: 'Validation error',
+        },
+        409: {
+          content: { 'application/json': { schema: ConflictSchema } },
+          description: 'Conflict - unique constraint violated',
+        },
       },
-      409: {
-        content: { 'application/json': { schema: ConflictSchema } },
-        description: 'Conflict - unique constraint violated',
-      },
-    },
-  })
+    })
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  app.openapi(createRoute_, (async (c: any) => {
-    const body = c.req.valid('json')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    app.openapi(createRoute_, (async (c: any) => {
+      const body = { ...c.req.valid('json') }
 
-    // Check unique constraints
-    if (resource.unique) {
-      for (const field of resource.unique) {
-        const existing = await store.findOne({
-          [field]: body[field as keyof typeof body],
-        } as Partial<ResourceType>)
-        if (existing) {
-          return c.json(
-            { error: `${resourceName} with this ${String(field)} already exists` },
-            409
-          )
+      // Handle auto-increment field generation
+      if (resource.autoIncrement && !body[resource.autoIncrement.field]) {
+        const config = resource.autoIncrement
+        const relation = resource.relations?.[config.prefixFrom.relation]
+
+        if (!relation) {
+          return c.json({ error: `Auto-increment relation '${config.prefixFrom.relation}' not found` }, 400)
+        }
+
+        // Get the parent resource to fetch the prefix
+        const parentStore = options.stores?.get(config.prefixFrom.relation)
+        if (!parentStore) {
+          return c.json({ error: `Store for '${config.prefixFrom.relation}' not available` }, 400)
+        }
+
+        const parentId = body[relation.foreignKey]
+        const parent = await parentStore.findById(parentId)
+        if (!parent) {
+          return c.json({ error: `${capitalize(config.prefixFrom.relation)} not found` }, 404)
+        }
+
+        const prefix = parent[config.prefixFrom.field] as string
+        const separator = config.separator ?? '-'
+
+        // Find the highest existing number for this prefix
+        const existingRecords = await store.findAll({
+          where: { [relation.foreignKey]: parentId } as Partial<ResourceType>,
+        })
+
+        let maxNum = 0
+        for (const rec of existingRecords) {
+          const key = (rec as Record<string, unknown>)[config.field] as string
+          if (key && key.startsWith(prefix + separator)) {
+            const numPart = parseInt(key.slice(prefix.length + separator.length), 10)
+            if (!isNaN(numPart) && numPart > maxNum) {
+              maxNum = numPart
+            }
+          }
+        }
+
+        body[resource.autoIncrement.field] = `${prefix}${separator}${maxNum + 1}`
+      }
+
+      // Check unique constraints
+      if (resource.unique) {
+        for (const field of resource.unique) {
+          const existing = await store.findOne({
+            [field]: body[field as keyof typeof body],
+          } as Partial<ResourceType>)
+          if (existing) {
+            return c.json(
+              { error: `${resourceName} with this ${String(field)} already exists` },
+              409
+            )
+          }
         }
       }
-    }
 
-    const record = await store.create(body as Omit<ResourceType, 'id' | 'createdAt' | 'updatedAt'>)
-    return c.json(record, 201)
-  }) as unknown as RouteHandler<typeof createRoute_>)
+      const record = await store.create(body as Omit<ResourceType, 'id' | 'createdAt' | 'updatedAt'>)
+      return c.json(record, 201)
+    }) as unknown as RouteHandler<typeof createRoute_>)
+  }
 
   // --- UPDATE route ---
   const updateRoute = createRoute({

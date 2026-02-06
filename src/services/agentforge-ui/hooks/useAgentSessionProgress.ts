@@ -1,0 +1,198 @@
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { api, type ApiAgentSessionLogEntry, type ApiAgentSessionStage } from '../api'
+
+export interface AgentSessionProgress {
+  // Session identity
+  id: string
+  sessionId: string
+  agent: string
+  phase: string
+
+  // Progress state
+  stage: ApiAgentSessionStage
+  progress: number
+  currentStep?: string
+  logs: ApiAgentSessionLogEntry[]
+
+  // Result (when completed/failed)
+  summary?: string
+  commitSha?: string
+  error?: string
+  completedAt?: string
+
+  // Connection state
+  isConnected: boolean
+  isComplete: boolean
+}
+
+export interface UseAgentSessionProgressOptions {
+  // Whether to auto-connect when sessionId is provided
+  autoConnect?: boolean
+}
+
+export interface UseAgentSessionProgressResult {
+  progress: AgentSessionProgress | null
+  isLoading: boolean
+  error: string | null
+  connect: () => void
+  disconnect: () => void
+}
+
+export function useAgentSessionProgress(
+  sessionId: string | null,
+  options: UseAgentSessionProgressOptions = {}
+): UseAgentSessionProgressResult {
+  const { autoConnect = true } = options
+
+  const [progress, setProgress] = useState<AgentSessionProgress | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const eventSourceRef = useRef<EventSource | null>(null)
+
+  // Clean up event source
+  const disconnect = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close()
+      eventSourceRef.current = null
+    }
+    setProgress(prev => prev ? { ...prev, isConnected: false } : null)
+  }, [])
+
+  // Connect to SSE stream
+  const connect = useCallback(() => {
+    if (!sessionId) return
+
+    // Close existing connection
+    disconnect()
+
+    setIsLoading(true)
+    setError(null)
+
+    const eventSource = new EventSource(api.agentSessions.streamUrl(sessionId))
+    eventSourceRef.current = eventSource
+
+    // Handle init event
+    eventSource.addEventListener('init', (event) => {
+      const data = JSON.parse(event.data)
+      setProgress({
+        id: data.id,
+        sessionId: data.sessionId,
+        agent: data.agent,
+        phase: data.phase,
+        stage: data.stage,
+        progress: data.progress,
+        currentStep: data.currentStep,
+        logs: [],
+        isConnected: true,
+        isComplete: data.stage === 'completed' || data.stage === 'failed',
+      })
+      setIsLoading(false)
+    })
+
+    // Handle log events
+    eventSource.addEventListener('log', (event) => {
+      const logEntry = JSON.parse(event.data) as ApiAgentSessionLogEntry
+      setProgress(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          logs: [...prev.logs, logEntry],
+        }
+      })
+    })
+
+    // Handle progress events
+    eventSource.addEventListener('progress', (event) => {
+      const data = JSON.parse(event.data)
+      setProgress(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          stage: data.stage,
+          progress: data.progress,
+          currentStep: data.currentStep,
+        }
+      })
+    })
+
+    // Handle result events
+    eventSource.addEventListener('result', (event) => {
+      const data = JSON.parse(event.data)
+      setProgress(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          stage: data.stage,
+          summary: data.summary,
+          commitSha: data.commitSha,
+          error: data.error,
+          completedAt: data.completedAt,
+          isComplete: true,
+        }
+      })
+      // Close connection after result
+      eventSource.close()
+      eventSourceRef.current = null
+    })
+
+    // Handle connection errors
+    eventSource.onerror = () => {
+      setError('Connection lost')
+      setProgress(prev => prev ? { ...prev, isConnected: false } : null)
+      eventSource.close()
+      eventSourceRef.current = null
+      setIsLoading(false)
+    }
+  }, [sessionId, disconnect])
+
+  // Auto-connect when sessionId changes
+  useEffect(() => {
+    if (autoConnect && sessionId) {
+      connect()
+    }
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+      }
+    }
+  }, [sessionId, autoConnect, connect])
+
+  return {
+    progress,
+    isLoading,
+    error,
+    connect,
+    disconnect,
+  }
+}
+
+// Helper hook to fetch initial session data (for completed sessions)
+export function useAgentSession(sessionId: string | null) {
+  const [session, setSession] = useState<Awaited<ReturnType<typeof api.agentSessions.get>> | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!sessionId) {
+      setSession(null)
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    api.agentSessions.get(sessionId)
+      .then(data => {
+        setSession(data)
+        setIsLoading(false)
+      })
+      .catch(err => {
+        setError(err instanceof Error ? err.message : 'Failed to fetch session')
+        setIsLoading(false)
+      })
+  }, [sessionId])
+
+  return { session, isLoading, error }
+}
