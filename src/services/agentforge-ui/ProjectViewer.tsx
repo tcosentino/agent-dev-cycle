@@ -112,6 +112,39 @@ function getTabIcon(tab: SerializedTab): ReactNode {
   return <FileDocumentIcon />
 }
 
+// --- File Breadcrumb ---
+
+interface FileBreadcrumbProps {
+  path: string
+  onNavigate: (path: string) => void
+}
+
+function FileBreadcrumb({ path, onNavigate }: FileBreadcrumbProps) {
+  const parts = path.split('/')
+  const fileName = parts.pop() || ''
+
+  return (
+    <div className={styles.fileBreadcrumb}>
+      {parts.map((part, i) => {
+        const folderPath = parts.slice(0, i + 1).join('/')
+        return (
+          <span key={i}>
+            <button
+              className={styles.breadcrumbPart}
+              onClick={() => onNavigate(folderPath)}
+              title={`Open ${folderPath}`}
+            >
+              {part}
+            </button>
+            <span className={styles.breadcrumbSep}>/</span>
+          </span>
+        )
+      })}
+      <span className={styles.breadcrumbCurrent}>{fileName}</span>
+    </div>
+  )
+}
+
 // --- File Content Loader ---
 
 interface FileContentLoaderProps {
@@ -742,6 +775,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, onCreateP
       }
       return (
         <div className={styles.tabContentInner}>
+          <FileBreadcrumb path={tab.path} onNavigate={openFile} />
           <FileContentLoader
             projectId={activeProject}
             filePath={tab.path}

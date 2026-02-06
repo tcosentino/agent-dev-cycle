@@ -51,10 +51,35 @@
   opacity: 0.9;
 }
 
-.breadcrumb {
+/* File breadcrumb navigation */
+.fileBreadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--text-muted);
+  padding-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.breadcrumbPart {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.breadcrumbPart:hover {
+  color: var(--accent-tertiary);
+  background: var(--bg-tertiary);
 }
 
 .breadcrumbSep {
@@ -64,7 +89,9 @@
 }
 
 .breadcrumbCurrent {
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  font-weight: 500;
+  padding: 2px 4px;
 }
 
 /* Split pane */
