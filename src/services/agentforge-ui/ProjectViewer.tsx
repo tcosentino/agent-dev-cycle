@@ -587,6 +587,9 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       return
     }
 
+    // Open in the right pane (detail view pattern, similar to records)
+    const targetPane: PaneId = 'right'
+
     // Create new tab
     setOpenTabs(prev => [...prev, {
       id: tabId,
@@ -594,10 +597,11 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       path: sessionId,
       label: `Session ${sessionId.slice(0, 8)}`,
       icon: <PlayIcon />,
-      pane: activePane,
+      pane: targetPane,
     }])
-    setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
-  }, [openTabs, activePane])
+    setActiveTabIds(prev => ({ ...prev, [targetPane]: tabId }))
+    setActivePane(targetPane)
+  }, [openTabs])
 
   const openAgent = useCallback((agentId: string) => {
     const tabId = `agent:${agentId}`
