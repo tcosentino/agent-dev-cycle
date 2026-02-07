@@ -25,8 +25,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'src/services/agentforge-ui/index.html'),
-        'component-preview': resolve(__dirname, 'src/services/demo-ui/component-preview.html'),
-        mockups: resolve(__dirname, 'src/services/demo-ui/mockups.html'),
         demo: resolve(__dirname, 'src/services/demo-ui/index.html')
       }
     }
