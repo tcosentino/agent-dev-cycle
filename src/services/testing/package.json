@@ -1,0 +1,26 @@
+{
+  "name": "@agentforge/testing",
+  "version": "0.1.0",
+  "description": "Testing infrastructure for AgentForge projects",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "test:structure": "playwright test structure-validator/agentforge-structure.spec.ts",
+    "test:ui": "playwright test ui-tests/",
+    "test:all": "playwright test"
+  },
+  "keywords": [
+    "agentforge",
+    "testing",
+    "validation",
+    "playwright"
+  ],
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "typescript": "~5.9.3"
+  },
+  "peerDependencies": {
+    "@playwright/test": "^1.57.0"
+  }
+}

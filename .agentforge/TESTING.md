@@ -1,16 +1,16 @@
-# Testing Your .agentforge Structure
+# Testing Your AgentForge Project
 
-This document explains how to validate your AgentForge configuration.
+Testing infrastructure has been moved to `@agentforge/testing` service.
 
-## Quick Validation
+## Quick Start
 
-Run this command to validate your `.agentforge` directory structure:
+Run structure validation to check your `.agentforge/` directory:
 
 ```bash
 yarn test:structure
 ```
 
-This will check:
+This validates:
 - ✅ All required files exist
 - ✅ Config files are valid JSON
 - ✅ Agent IDs are unique
@@ -63,6 +63,28 @@ Each agent in `.agentforge/agents/{agent-id}/` must have:
         {agent-id}-001/
           transcript.jsonl
           notepad.md
+```
+
+## Running Tests
+
+### All Tests
+```bash
+yarn test:e2e
+```
+
+### Structure Validation Only
+```bash
+yarn test:structure
+```
+
+### UI Tests Only
+```bash
+yarn test:ui
+```
+
+### Interactive Test UI
+```bash
+yarn test:e2e:ui
 ```
 
 ## Common Issues
@@ -170,4 +192,4 @@ Successful run:
 
 ## More Information
 
-See [tests/README.md](/tests/README.md) for complete test documentation.
+See [src/services/testing/README.md](../src/services/testing/README.md) for complete test documentation.
