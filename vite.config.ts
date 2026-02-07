@@ -24,10 +24,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        'component-preview': resolve(__dirname, 'component-preview.html'),
-        mockups: resolve(__dirname, 'mockups.html'),
-        'project-viewer': resolve(__dirname, 'project-viewer.html')
+        main: resolve(__dirname, 'src/services/demo-ui/index.html'),
+        'component-preview': resolve(__dirname, 'src/services/demo-ui/component-preview.html'),
+        mockups: resolve(__dirname, 'src/services/demo-ui/mockups.html'),
+        'project-viewer': resolve(__dirname, 'src/services/agentforge-ui/project-viewer.html')
       }
     }
   }
