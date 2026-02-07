@@ -21,6 +21,13 @@ export const agentSessionLogEntry = z.object({
   message: z.string(),
 })
 
+export const agentSessionStageOutput = z.object({
+  logs: z.array(agentSessionLogEntry).default([]),
+  startedAt: z.coerce.date().optional(),
+  completedAt: z.coerce.date().optional(),
+  duration: z.number().optional(), // Duration in milliseconds
+})
+
 export const agentSessionResource = defineResource({
   name: 'agentSession',
 
@@ -36,7 +43,16 @@ export const agentSessionResource = defineResource({
     stage: agentSessionStageEnum.default('pending'),
     progress: z.number().min(0).max(100).default(0),
     currentStep: z.string().optional(),
-    logs: z.array(agentSessionLogEntry).default([]),
+    logs: z.array(agentSessionLogEntry).default([]), // Deprecated: kept for backwards compatibility
+
+    // Stage-specific outputs
+    stageOutputs: z.object({
+      cloning: agentSessionStageOutput.optional(),
+      loading: agentSessionStageOutput.optional(),
+      executing: agentSessionStageOutput.optional(),
+      capturing: agentSessionStageOutput.optional(),
+      committing: agentSessionStageOutput.optional(),
+    }).default({}),
 
     // Result
     summary: z.string().optional(),
@@ -52,7 +68,7 @@ export const agentSessionResource = defineResource({
   }),
 
   createFields: ['projectId', 'agent', 'phase', 'taskPrompt'],
-  updateFields: ['stage', 'progress', 'currentStep', 'logs', 'summary', 'commitSha', 'error', 'startedAt', 'completedAt'],
+  updateFields: ['stage', 'progress', 'currentStep', 'logs', 'stageOutputs', 'summary', 'commitSha', 'error', 'startedAt', 'completedAt'],
   unique: ['sessionId'],
   searchable: ['sessionId', 'agent', 'stage'],
   relations: {

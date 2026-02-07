@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { api, type ApiAgentSessionLogEntry, type ApiAgentSessionStage } from '../api'
+import { api, type ApiAgentSessionLogEntry, type ApiAgentSessionStage, type ApiAgentSessionStageOutput } from '../api'
 
 export interface AgentSessionProgress {
   // Session identity
@@ -13,6 +13,13 @@ export interface AgentSessionProgress {
   progress: number
   currentStep?: string
   logs: ApiAgentSessionLogEntry[]
+  stageOutputs?: {
+    cloning?: ApiAgentSessionStageOutput
+    loading?: ApiAgentSessionStageOutput
+    executing?: ApiAgentSessionStageOutput
+    capturing?: ApiAgentSessionStageOutput
+    committing?: ApiAgentSessionStageOutput
+  }
 
   // Result (when completed/failed)
   summary?: string
@@ -84,6 +91,7 @@ export function useAgentSessionProgress(
         progress: data.progress,
         currentStep: data.currentStep,
         logs: [],
+        stageOutputs: data.stageOutputs || {},
         isConnected: true,
         isComplete: data.stage === 'completed' || data.stage === 'failed',
       })
@@ -112,6 +120,47 @@ export function useAgentSessionProgress(
           stage: data.stage,
           progress: data.progress,
           currentStep: data.currentStep,
+        }
+      })
+    })
+
+    // Handle stage-log events
+    eventSource.addEventListener('stage-log', (event) => {
+      const data = JSON.parse(event.data)
+      setProgress(prev => {
+        if (!prev) return null
+        const stageKey = data.stage as keyof typeof prev.stageOutputs
+        const currentStageOutput = prev.stageOutputs?.[stageKey] || { logs: [] }
+        return {
+          ...prev,
+          stageOutputs: {
+            ...prev.stageOutputs,
+            [stageKey]: {
+              ...currentStageOutput,
+              logs: [...currentStageOutput.logs, data.log],
+            },
+          },
+        }
+      })
+    })
+
+    // Handle stage-complete events
+    eventSource.addEventListener('stage-complete', (event) => {
+      const data = JSON.parse(event.data)
+      setProgress(prev => {
+        if (!prev) return null
+        const stageKey = data.stage as keyof typeof prev.stageOutputs
+        const currentStageOutput = prev.stageOutputs?.[stageKey] || { logs: [] }
+        return {
+          ...prev,
+          stageOutputs: {
+            ...prev.stageOutputs,
+            [stageKey]: {
+              ...currentStageOutput,
+              completedAt: data.completedAt,
+              duration: data.duration,
+            },
+          },
         }
       })
     })

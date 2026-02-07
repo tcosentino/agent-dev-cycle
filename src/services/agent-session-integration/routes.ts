@@ -6,6 +6,19 @@ import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { getClaudeCredentialsForSession } from '../claude-auth-integration'
 
+interface LogEntry {
+  timestamp: Date
+  level: string
+  message: string
+}
+
+interface StageOutput {
+  logs: LogEntry[]
+  startedAt?: Date
+  completedAt?: Date
+  duration?: number
+}
+
 interface AgentSession {
   id: string
   projectId: string
@@ -16,7 +29,14 @@ interface AgentSession {
   stage: string
   progress: number
   currentStep?: string
-  logs: Array<{ timestamp: Date; level: string; message: string }>
+  logs: LogEntry[]
+  stageOutputs: {
+    cloning?: StageOutput
+    loading?: StageOutput
+    executing?: StageOutput
+    capturing?: StageOutput
+    committing?: StageOutput
+  }
   summary?: string
   commitSha?: string
   error?: string
@@ -350,6 +370,7 @@ export function registerAgentSessionRoutes(
       let lastLogIndex = 0
       let lastStage = ''
       let lastProgress = -1
+      const lastStageLogCounts: Record<string, number> = {}
 
       // Send initial state
       await stream.writeSSE({
@@ -363,6 +384,7 @@ export function registerAgentSessionRoutes(
           progress: session.progress,
           currentStep: session.currentStep,
           logsCount: session.logs.length,
+          stageOutputs: session.stageOutputs,
         }),
       })
 
@@ -395,6 +417,37 @@ export function registerAgentSessionRoutes(
           })
           lastStage = current.stage
           lastProgress = current.progress
+        }
+
+        // Send stage-specific updates
+        for (const stageKey of ['cloning', 'loading', 'executing', 'capturing', 'committing'] as const) {
+          const stageOutput = current.stageOutputs[stageKey]
+          if (stageOutput) {
+            const lastCount = lastStageLogCounts[stageKey] || 0
+            if (stageOutput.logs.length > lastCount) {
+              const newLogs = stageOutput.logs.slice(lastCount)
+              for (const log of newLogs) {
+                await stream.writeSSE({
+                  event: 'stage-log',
+                  data: JSON.stringify({ stage: stageKey, log }),
+                })
+              }
+              lastStageLogCounts[stageKey] = stageOutput.logs.length
+            }
+
+            // Send stage completion event
+            if (stageOutput.completedAt && !lastStageLogCounts[`${stageKey}-completed`]) {
+              await stream.writeSSE({
+                event: 'stage-complete',
+                data: JSON.stringify({
+                  stage: stageKey,
+                  duration: stageOutput.duration,
+                  completedAt: stageOutput.completedAt,
+                }),
+              })
+              lastStageLogCounts[`${stageKey}-completed`] = 1
+            }
+          }
         }
 
         // Send result if completed/failed
@@ -495,7 +548,7 @@ export function registerAgentSessionRoutes(
   app.post('/api/agentSessions/:id/logs', async (c) => {
     const { id } = c.req.param()
     const body = await c.req.json()
-    const { level = 'info', message } = body
+    const { level = 'info', message, stage } = body
 
     if (!message) {
       return c.json({ error: 'Missing message' }, 400)
@@ -506,11 +559,58 @@ export function registerAgentSessionRoutes(
       return c.json({ error: 'Agent session not found' }, 404)
     }
 
+    const logEntry = { timestamp: new Date(), level, message }
+    const updates: Partial<AgentSession> = {
+      logs: [...session.logs, logEntry],
+    }
+
+    // If stage is specified, also add to stage-specific logs
+    if (stage && ['cloning', 'loading', 'executing', 'capturing', 'committing'].includes(stage)) {
+      const stageKey = stage as keyof AgentSession['stageOutputs']
+      const currentStageOutput = session.stageOutputs[stageKey] || { logs: [] }
+
+      updates.stageOutputs = {
+        ...session.stageOutputs,
+        [stageKey]: {
+          ...currentStageOutput,
+          logs: [...currentStageOutput.logs, logEntry],
+          startedAt: currentStageOutput.startedAt || new Date(),
+        },
+      }
+    }
+
+    await agentSessionStore.update(id, updates)
+
+    return c.json({ ok: true })
+  })
+
+  // Mark stage as complete with timing (called by runner)
+  app.post('/api/agentSessions/:id/stages/:stage/complete', async (c) => {
+    const { id, stage } = c.req.param()
+    const body = await c.req.json()
+    const { duration } = body
+
+    const session = await agentSessionStore.findById(id) as AgentSession | null
+    if (!session) {
+      return c.json({ error: 'Agent session not found' }, 404)
+    }
+
+    if (!['cloning', 'loading', 'executing', 'capturing', 'committing'].includes(stage)) {
+      return c.json({ error: 'Invalid stage' }, 400)
+    }
+
+    const stageKey = stage as keyof AgentSession['stageOutputs']
+    const currentStageOutput = session.stageOutputs[stageKey] || { logs: [] }
+
     await agentSessionStore.update(id, {
-      logs: [
-        ...session.logs,
-        { timestamp: new Date(), level, message },
-      ],
+      stageOutputs: {
+        ...session.stageOutputs,
+        [stageKey]: {
+          ...currentStageOutput,
+          completedAt: new Date(),
+          duration,
+        },
+      },
     })
 
     return c.json({ ok: true })

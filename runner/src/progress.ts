@@ -46,23 +46,43 @@ export async function reportProgress(update: ProgressUpdate): Promise<void> {
 }
 
 // Append a log entry to the session
-export async function reportLog(entry: LogEntry): Promise<void> {
+export async function reportLog(entry: LogEntry, stage?: ProgressStage): Promise<void> {
   const sessionId = getSessionId()
   if (!sessionId) {
     return
   }
 
   try {
-    await apiRequest('POST', `/api/agentSessions/${sessionId}/logs`, entry)
+    await apiRequest('POST', `/api/agentSessions/${sessionId}/logs`, { ...entry, stage })
   } catch (err) {
     console.warn('Failed to report log:', err instanceof Error ? err.message : err)
   }
 }
 
+// Track current stage start time
+let currentStageStartTime: number | undefined
+
 // Convenience functions for common progress updates
 export async function reportStageStart(stage: ProgressStage, progress: number, step: string): Promise<void> {
+  currentStageStartTime = Date.now()
   await reportProgress({ stage, progress, currentStep: step })
-  await reportLog({ level: 'info', message: step })
+  await reportLog({ level: 'info', message: step }, stage)
+}
+
+export async function reportStageComplete(stage: ProgressStage): Promise<void> {
+  const sessionId = getSessionId()
+  if (!sessionId || !currentStageStartTime) {
+    return
+  }
+
+  const duration = Date.now() - currentStageStartTime
+  currentStageStartTime = undefined
+
+  try {
+    await apiRequest('POST', `/api/agentSessions/${sessionId}/stages/${stage}/complete`, { duration })
+  } catch (err) {
+    console.warn('Failed to report stage completion:', err instanceof Error ? err.message : err)
+  }
 }
 
 export async function reportComplete(summary: string, commitSha?: string): Promise<void> {

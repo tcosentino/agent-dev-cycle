@@ -73,11 +73,11 @@ export async function runClaude(
     })
 
     // Report that Claude has started
-    reportLog({ level: 'info', message: 'Claude Code process started, waiting for output...' })
+    reportLog({ level: 'info', message: 'Claude Code process started, waiting for output...' }, 'executing')
 
     const timeout = setTimeout(() => {
       proc.kill('SIGTERM')
-      reportLog({ level: 'error', message: 'Claude Code process timed out' })
+      reportLog({ level: 'error', message: 'Claude Code process timed out' }, 'executing')
       resolve({
         success: false,
         output: outputChunks.join(''),
@@ -108,7 +108,7 @@ export async function runClaude(
       // Report stderr as warnings
       const trimmed = str.trim()
       if (trimmed) {
-        reportLog({ level: 'warn', message: trimmed.slice(0, 500) })
+        reportLog({ level: 'warn', message: trimmed.slice(0, 500) }, 'executing')
       }
     })
 
@@ -116,13 +116,13 @@ export async function runClaude(
       clearTimeout(timeout)
 
       if (code === 0) {
-        reportLog({ level: 'info', message: `Claude Code completed successfully (${outputLineCount} lines output)` })
+        reportLog({ level: 'info', message: `Claude Code completed successfully (${outputLineCount} lines output)` }, 'executing')
         resolve({
           success: true,
           output: outputChunks.join(''),
         })
       } else {
-        reportLog({ level: 'error', message: `Claude Code exited with code ${code}` })
+        reportLog({ level: 'error', message: `Claude Code exited with code ${code}` }, 'executing')
         resolve({
           success: false,
           output: outputChunks.join(''),
@@ -133,7 +133,7 @@ export async function runClaude(
 
     proc.on('error', (err) => {
       clearTimeout(timeout)
-      reportLog({ level: 'error', message: `Failed to spawn Claude Code: ${err.message}` })
+      reportLog({ level: 'error', message: `Failed to spawn Claude Code: ${err.message}` }, 'executing')
       resolve({
         success: false,
         output: outputChunks.join(''),

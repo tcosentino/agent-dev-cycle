@@ -106,6 +106,13 @@ export interface ApiAgentSessionLogEntry {
   message: string
 }
 
+export interface ApiAgentSessionStageOutput {
+  logs: ApiAgentSessionLogEntry[]
+  startedAt?: string
+  completedAt?: string
+  duration?: number
+}
+
 export type ApiAgentSessionStage =
   | 'pending'
   | 'cloning'
@@ -127,6 +134,13 @@ export interface ApiAgentSession {
   progress: number
   currentStep?: string
   logs: ApiAgentSessionLogEntry[]
+  stageOutputs?: {
+    cloning?: ApiAgentSessionStageOutput
+    loading?: ApiAgentSessionStageOutput
+    executing?: ApiAgentSessionStageOutput
+    capturing?: ApiAgentSessionStageOutput
+    committing?: ApiAgentSessionStageOutput
+  }
   summary?: string
   commitSha?: string
   error?: string

@@ -29,7 +29,17 @@ const stageIndex: Record<string, number> = {
   failed: -2,
 }
 
-function VerticalStageList({ currentStage }: { currentStage: string }) {
+function VerticalStageList({
+  currentStage,
+  selectedStage,
+  onStageClick,
+  stageOutputs,
+}: {
+  currentStage: string
+  selectedStage: string | null
+  onStageClick: (stageKey: string) => void
+  stageOutputs: Record<string, { logs: any[]; duration?: number; completedAt?: Date }>
+}) {
   const current = stageIndex[currentStage] ?? -1
   const isComplete = currentStage === 'completed'
   const isFailed = currentStage === 'failed'
@@ -46,10 +56,22 @@ function VerticalStageList({ currentStage }: { currentStage: string }) {
           status = 'active'
         }
 
+        const hasLogs = stageOutputs[stage.key]?.logs?.length > 0
+        const isSelected = selectedStage === stage.key
+        const duration = stageOutputs[stage.key]?.duration
+
         return (
-          <div key={stage.key} className={`${styles.verticalStageItem} ${styles[status]}`}>
+          <button
+            key={stage.key}
+            className={`${styles.verticalStageItem} ${styles[status]} ${isSelected ? styles.selected : ''} ${hasLogs ? styles.clickable : ''}`}
+            onClick={() => hasLogs && onStageClick(stage.key)}
+            disabled={!hasLogs}
+          >
             <span className={styles.verticalStageLabel}>{stage.label}</span>
-          </div>
+            {duration && (
+              <span className={styles.stageDuration}>{(duration / 1000).toFixed(1)}s</span>
+            )}
+          </button>
         )
       })}
     </div>
@@ -78,6 +100,7 @@ export function AgentSessionProgressPanel({
   const [autoScroll, setAutoScroll] = useState(true)
   const [isRetrying, setIsRetrying] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
+  const [selectedStage, setSelectedStage] = useState<string | null>(null)
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -110,12 +133,8 @@ export function AgentSessionProgressPanel({
   }
 
   const handleCopyLogs = async () => {
-    const logsList = 'logs' in (progress || initialSession || {})
-      ? (progress || initialSession)!.logs
-      : []
-
-    const logText = logsList
-      .map(log => {
+    const logText = displayLogs
+      .map((log: ApiAgentSessionLogEntry) => {
         const time = new Date(log.timestamp).toISOString()
         return `[${time}] [${log.level.toUpperCase()}] ${log.message}`
       })
@@ -132,6 +151,10 @@ export function AgentSessionProgressPanel({
 
   // Use progress from SSE if connected, otherwise use initial session data
   const session = progress || initialSession
+
+  const handleStageClick = (stageKey: string) => {
+    setSelectedStage(stageKey === selectedStage ? null : stageKey)
+  }
 
   if (isLoading && !session) {
     return (
@@ -163,13 +186,22 @@ export function AgentSessionProgressPanel({
     )
   }
 
-  const logs = 'logs' in session ? session.logs : []
+  const stageOutputs: Record<string, { logs: any[]; duration?: number; completedAt?: Date }> =
+    ('stageOutputs' in session ? session.stageOutputs : {}) as Record<string, { logs: any[]; duration?: number; completedAt?: Date }>
+  const displayLogs = selectedStage && stageOutputs[selectedStage]
+    ? stageOutputs[selectedStage].logs
+    : ('logs' in session ? session.logs : [])
 
   return (
     <div className={styles.panel}>
       <div className={styles.panelLayout}>
         {/* Left sidebar with vertical stage list */}
-        <VerticalStageList currentStage={session.stage} />
+        <VerticalStageList
+          currentStage={session.stage}
+          selectedStage={selectedStage}
+          onStageClick={handleStageClick}
+          stageOutputs={stageOutputs}
+        />
 
         {/* Main content area */}
         <div className={styles.panelMain}>
@@ -199,10 +231,18 @@ export function AgentSessionProgressPanel({
 
           {/* Logs area */}
           <div className={styles.logsContainer} onScroll={handleScroll}>
-            {logs.length === 0 ? (
+            {selectedStage && (
+              <div className={styles.stageFilter}>
+                Showing logs for: <strong>{selectedStage}</strong>
+                <button onClick={() => setSelectedStage(null)} className={styles.clearFilter}>
+                  Show all
+                </button>
+              </div>
+            )}
+            {displayLogs.length === 0 ? (
               <div className={styles.noLogs}>No logs yet...</div>
             ) : (
-              logs.map((log, idx) => <LogEntry key={idx} log={log} />)
+              displayLogs.map((log: ApiAgentSessionLogEntry, idx: number) => <LogEntry key={idx} log={log} />)
             )}
             <div ref={logsEndRef} />
           </div>

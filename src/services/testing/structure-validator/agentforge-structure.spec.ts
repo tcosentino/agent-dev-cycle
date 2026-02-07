@@ -240,6 +240,32 @@ test.describe('AgentForge Directory Structure', () => {
       expect(content.trim().length).toBeGreaterThan(0)
     }
   })
+
+  test('PROJECT.md should exist in .agentforge directory', () => {
+    const projectPath = join(AGENTFORGE_DIR, 'PROJECT.md')
+    expect(
+      existsSync(projectPath),
+      '.agentforge/PROJECT.md should exist to document project goals and requirements'
+    ).toBe(true)
+
+    if (existsSync(projectPath)) {
+      const content = readFileSync(projectPath, 'utf-8')
+      expect(content.trim().length).toBeGreaterThan(0)
+    }
+  })
+
+  test('ARCHITECTURE.md should exist in .agentforge directory', () => {
+    const archPath = join(AGENTFORGE_DIR, 'ARCHITECTURE.md')
+    expect(
+      existsSync(archPath),
+      '.agentforge/ARCHITECTURE.md should exist to document technical architecture'
+    ).toBe(true)
+
+    if (existsSync(archPath)) {
+      const content = readFileSync(archPath, 'utf-8')
+      expect(content.trim().length).toBeGreaterThan(0)
+    }
+  })
 })
 
 test.describe('Legacy AgentForge Structure Support', () => {

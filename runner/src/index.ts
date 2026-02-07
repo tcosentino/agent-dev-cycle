@@ -4,7 +4,7 @@ import { loadAgentsConfig, getAgentConfig, assembleContext, writeContextFile } f
 import { runClaude, extractSummary } from './claude.js'
 import { captureTranscript } from './transcript.js'
 import { updateProgress } from './state.js'
-import { reportStageStart, reportComplete, reportFailure, reportProgress } from './progress.js'
+import { reportStageStart, reportStageComplete, reportComplete, reportFailure, reportProgress } from './progress.js'
 import type { RunResult } from './types.js'
 
 async function main(): Promise<void> {
@@ -33,6 +33,7 @@ async function main(): Promise<void> {
     await reportStageStart('cloning', 10, `Cloning repository: ${config.repoUrl}`)
     await cloneRepo(config, env.gitToken)
     console.log('  - Clone complete')
+    await reportStageComplete('cloning')
 
     // 3. Read agent config from repo
     console.log('[3/8] Loading agent configuration...')
@@ -41,6 +42,7 @@ async function main(): Promise<void> {
     const agentConfig = await getAgentConfig(agentsConfig, config.agent)
     console.log(`  - Model: ${agentConfig.model}`)
     console.log(`  - Max turns: ${agentConfig.maxTurns || 'default'}`)
+    await reportStageComplete('loading')
 
     // 4. Assemble context
     console.log('[4/8] Assembling context...')
@@ -65,12 +67,14 @@ async function main(): Promise<void> {
       throw new Error(result.error || 'Claude Code execution failed')
     }
     console.log('  - Claude Code completed successfully')
+    await reportStageComplete('executing')
 
     // 6. Capture transcript
     console.log('[6/8] Capturing transcript...')
     await reportStageStart('capturing', 80, 'Capturing transcript...')
     await captureTranscript(config)
     console.log('  - Transcript captured')
+    await reportStageComplete('capturing')
 
     // 7. Update state
     console.log('[7/8] Updating state...')
@@ -85,6 +89,7 @@ async function main(): Promise<void> {
     await reportStageStart('committing', 90, 'Committing and pushing changes...')
     const commitSha = await commitAndPush(config, summary, env.gitToken)
     console.log(`  - Commit SHA: ${commitSha}`)
+    await reportStageComplete('committing')
 
     // 9. Success
     const runResult: RunResult = {
