@@ -387,6 +387,26 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     [fullTree, simpleMode]
   )
 
+  // Eagerly load agent config files when they're detected
+  useEffect(() => {
+    const configPaths = Object.keys(files).filter(path =>
+      path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
+    )
+
+    for (const configPath of configPaths) {
+      const fileExists = configPath in files
+      const fileContent = files[configPath]
+
+      // If file exists but content is empty, load it
+      if (fileExists && fileContent === '' && onLoadFileContent) {
+        console.log('[ProjectViewer] Eagerly loading', configPath)
+        onLoadFileContent(activeProject, configPath).catch((err: Error) => {
+          console.error(`[ProjectViewer] Failed to load ${configPath}:`, err)
+        })
+      }
+    }
+  }, [files, activeProject, onLoadFileContent])
+
   // Load agents from new folder structure (.agentforge/agents/{id}/config.json)
   // Fall back to legacy agents.yaml if new structure doesn't exist
   const agents = useMemo(() => {

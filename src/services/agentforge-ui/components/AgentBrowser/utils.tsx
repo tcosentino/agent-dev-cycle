@@ -60,8 +60,16 @@ export function parseAgentConfigs(files: Record<string, string>): AgentConfig[] 
     )
 
     for (const configPath of configPaths) {
+      const fileContent = files[configPath]
+
+      // Skip if file hasn't been loaded yet (empty string means not loaded)
+      if (!fileContent || fileContent === '') {
+        console.log(`[AgentBrowser] Skipping ${configPath} - not loaded yet`)
+        continue
+      }
+
       try {
-        const config = JSON.parse(files[configPath])
+        const config = JSON.parse(fileContent)
         agents.push({
           id: config.id,
           displayName: config.displayName || getAgentDisplayName(config.id),

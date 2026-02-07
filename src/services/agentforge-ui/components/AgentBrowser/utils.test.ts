@@ -77,6 +77,24 @@ describe('parseAgentConfigs', () => {
     const agents = parseAgentConfigs(files)
     expect(agents).toEqual([])
   })
+
+  it('should skip config files that are not loaded yet (empty string)', () => {
+    const files = {
+      '.agentforge/agents/pm/config.json': '', // Not loaded yet
+      '.agentforge/agents/engineer/config.json': JSON.stringify({
+        id: 'engineer',
+        displayName: 'Engineer',
+        model: 'sonnet',
+        maxTokens: 64000
+      })
+    }
+
+    const agents = parseAgentConfigs(files)
+
+    // Should only parse the loaded one
+    expect(agents).toHaveLength(1)
+    expect(agents[0].id).toBe('engineer')
+  })
 })
 
 describe('parseAgentsYaml (legacy)', () => {
