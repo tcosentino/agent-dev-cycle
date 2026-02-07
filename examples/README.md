@@ -52,11 +52,11 @@ git commit -m "Add example-name to examples"
 
 ## Migration Status
 
-### Legacy Structure (Needs Migration)
-- ❌ `todo-app` - Uses agents.yaml and root-level directories
-
 ### New Structure (Ready to Use)
-- None yet
+- ✅ `todo-app` - Migrated to `.agentforge/agents/` structure (commit e080186)
+
+### Legacy Structure (Needs Migration)
+- None - all examples migrated!
 
 ## New Structure Format
 
