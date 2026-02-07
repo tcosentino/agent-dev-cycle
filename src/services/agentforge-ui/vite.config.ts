@@ -2,14 +2,15 @@ import { defineConfig } from 'vite'
 import { resolve } from 'path'
 
 export default defineConfig({
-  // SPA fallback - serve index.html for all routes
   appType: 'spa',
+  root: __dirname,
   resolve: {
     alias: {
-      '@agentforge/ui-components': resolve(__dirname, './packages/ui-components/src')
+      '@agentforge/ui-components': resolve(__dirname, '../../../packages/ui-components/src')
     }
   },
   server: {
+    port: 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
@@ -22,11 +23,7 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'src/services/agentforge-ui/index.html'),
-        demo: resolve(__dirname, 'src/services/demo-ui/index.html')
-      }
-    }
+    outDir: resolve(__dirname, '../../../dist/agentforge-ui'),
+    emptyOutDir: true,
   }
 })
