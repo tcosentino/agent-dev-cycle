@@ -1,0 +1,379 @@
+@import '@agentforge/ui-components/styles/tokens.css';
+
+.agentBrowser {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: transparent;
+}
+
+.agentList {
+  flex-shrink: 0;
+  background: transparent;
+  padding: var(--spacing-sm) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  overflow-y: auto;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.agentItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  font-family: var(--font-sans);
+  text-align: left;
+  width: 100%;
+}
+
+.agentItem:hover {
+  background: var(--color-bg-hover);
+}
+
+.agentItemActive {
+  background: var(--color-bg-active);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.agentItemIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.agentItemLabel {
+  flex: 1;
+  text-align: left;
+  font-weight: 500;
+}
+
+.addAgentButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: transparent;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: not-allowed;
+  opacity: 0.5;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-md);
+}
+
+.agentContent {
+  flex: 1;
+  background: transparent;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.emptySelection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--spacing-lg);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.agentDetail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.agentHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.agentHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.agentHeaderIcon {
+  display: flex;
+  align-items: center;
+  color: var(--color-primary);
+}
+
+.agentHeader h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.runAgentButton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 4px 8px;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.runAgentButton:hover {
+  background: var(--color-primary-dark);
+}
+
+.runAgentButton svg {
+  flex-shrink: 0;
+}
+
+.agentTabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.agentTab {
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: all 0.15s;
+}
+
+.agentTab:hover {
+  color: var(--color-text-primary);
+}
+
+.agentTabActive {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+.agentTabContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  min-height: 0;
+}
+
+.sessionsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.loadingContainer,
+.errorContainer,
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.errorContainer {
+  color: var(--color-danger);
+}
+
+.runAgentButtonSmall {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: var(--spacing-sm);
+}
+
+.runAgentButtonSmall:hover {
+  background: var(--color-primary-dark);
+}
+
+.sessionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.sessionItem {
+  padding: var(--spacing-sm);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sessionItem:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary);
+}
+
+.sessionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.sessionTitle {
+  flex: 1;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.sessionTime {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--color-text-secondary);
+}
+
+.sessionFooter {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-wrap: wrap;
+}
+
+.configContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.configSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.configSectionTitle {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  padding-bottom: var(--spacing-xs);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.configItem {
+  display: flex;
+  gap: var(--spacing-md);
+  font-size: 0.75rem;
+}
+
+.configLabel {
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  min-width: 120px;
+}
+
+.configValue {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+}
+
+.promptContent {
+  padding: var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.promptContent h1,
+.promptContent h2,
+.promptContent h3 {
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.promptContent h1:first-child,
+.promptContent h2:first-child,
+.promptContent h3:first-child {
+  margin-top: 0;
+}
+
+.promptContent p {
+  margin: var(--spacing-sm) 0;
+}
+
+.promptContent ul,
+.promptContent ol {
+  margin: var(--spacing-sm) 0;
+  padding-left: var(--spacing-lg);
+}
+
+.promptContent code {
+  padding: 2px 6px;
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.promptContent pre {
+  padding: var(--spacing-md);
+  background: var(--color-bg-tertiary);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: var(--spacing-sm) 0;
+}
+
+.promptContent pre code {
+  padding: 0;
+  background: none;
+}

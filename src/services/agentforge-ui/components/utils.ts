@@ -7,7 +7,14 @@ export function categorizeFile(path: string): FileCategory {
   // Handle paths with agent-workspace prefix (virtual grouping)
   const normalizedPath = path.replace(/^agent-workspace\//, '')
 
+  // New structure: files inside .agentforge/
+  if (normalizedPath.startsWith('.agentforge/prompts/')) return 'prompt'
+  if (normalizedPath.startsWith('.agentforge/memory/')) return 'memory'
+  if (normalizedPath.startsWith('.agentforge/sessions/')) return 'session'
+  if (normalizedPath.startsWith('.agentforge/state/')) return 'state'
   if (normalizedPath.startsWith('.agentforge/')) return 'config'
+
+  // Old structure: files at root level (backwards compatibility)
   if (normalizedPath === 'PROJECT.md' || normalizedPath === 'ARCHITECTURE.md') return 'briefing'
   if (normalizedPath.startsWith('prompts/')) return 'prompt'
   if (normalizedPath.startsWith('memory/')) return 'memory'

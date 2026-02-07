@@ -23,3 +23,4 @@ export { TaskBoardView, ChannelMessagesView, DatabaseTableView } from './Databas
 export { TaskDetailView, RawRecordView, RecordDetailView } from './RecordViews'
 export { DeploymentListView, WorkloadDetailView } from './DeploymentViews'
 export { ServiceView } from './ServiceView'
+export * from './AgentBrowser'

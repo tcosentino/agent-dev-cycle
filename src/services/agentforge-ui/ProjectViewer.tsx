@@ -17,7 +17,6 @@ import {
   type Tab,
 } from '@agentforge/ui-components'
 import {
-  AgentSessionList,
   AgentSessionProgressPanel,
   StartAgentSessionModal,
 } from './components/AgentSessionPanel'
@@ -36,6 +35,8 @@ import {
   DatabaseTableView,
   RecordDetailView,
   ServiceView,
+  AgentBrowser,
+  parseAgentsYaml,
 } from './components'
 import type { TabType, PaneId, ViewMode, RecordViewMode, OpenTab } from './components'
 import styles from './ProjectViewer.module.css'
@@ -64,6 +65,7 @@ interface PersistedState {
   simpleMode: boolean
   leftPaneWidth: number
   sidebarWidth: number
+  selectedAgent: string | null
 }
 
 function loadPersistedState(): Partial<PersistedState> | null {
@@ -323,6 +325,10 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   const [isDragging, setIsDragging] = useState(false)
   const [isOverDropZone, setIsOverDropZone] = useState(false)
   const [showStartSessionModal, setShowStartSessionModal] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(() => {
+    return persistedState?.selectedAgent || null
+  })
+  const [preselectedAgentForModal, setPreselectedAgentForModal] = useState<string | undefined>()
   const [leftPaneWidth, setLeftPaneWidth] = useState(() => persistedState?.leftPaneWidth ?? 50)
   const [sidebarWidth, setSidebarWidth] = useState(() => persistedState?.sidebarWidth ?? 260)
   const isResizing = useRef(false)
@@ -352,6 +358,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       simpleMode,
       leftPaneWidth,
       sidebarWidth,
+      selectedAgent,
     })
   }, [
     activeProject,
@@ -364,6 +371,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     simpleMode,
     leftPaneWidth,
     sidebarWidth,
+    selectedAgent,
   ])
 
   const files = projects[activeProject] || {}
@@ -373,6 +381,13 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     () => simpleMode ? filterTreeForSimpleMode(fullTree) : fullTree,
     [fullTree, simpleMode]
   )
+
+  // Load agents from YAML
+  const agents = useMemo(() => {
+    const agentsFile = files['.agentforge/agents.yaml']
+    if (!agentsFile) return []
+    return parseAgentsYaml(agentsFile)
+  }, [files])
 
   // Split tabs by pane
   const leftTabs = useMemo(() => openTabs.filter(t => t.pane === 'left'), [openTabs])
@@ -534,6 +549,11 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     }])
     setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
   }, [openTabs, activePane])
+
+  const handleRunAgentFromBrowser = useCallback((agentId: string) => {
+    setPreselectedAgentForModal(agentId)
+    setShowStartSessionModal(true)
+  }, [])
 
   const splitToRight = useCallback((tabId: string) => {
     setOpenTabs(prev => prev.map(t =>
@@ -908,7 +928,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
         <div className={styles.sidebar} style={{ width: sidebarWidth }}>
           <div className={styles.sidebarSection}>
             <div className={styles.sidebarHeader}>
-              <span>Files</span>
+              <span>Project</span>
               <label className={styles.simpleModeToggle}>
                 <input
                   type="checkbox"
@@ -933,6 +953,20 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
               ))}
             </div>
           </div>
+          <div className={styles.sidebarSection}>
+            <div className={styles.sidebarHeader}>Agents</div>
+            <div className={styles.sidebarContent}>
+              <AgentBrowser
+                projectId={activeProject}
+                agents={agents}
+                selectedAgent={selectedAgent}
+                onAgentSelect={setSelectedAgent}
+                onRunAgent={handleRunAgentFromBrowser}
+                onSessionSelect={openAgentSession}
+                files={files}
+              />
+            </div>
+          </div>
           {snapshot && (
             <div className={styles.sidebarSection}>
               <div className={styles.sidebarHeader}>Database</div>
@@ -950,24 +984,6 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
               </div>
             </div>
           )}
-          <div className={styles.sidebarSection}>
-            <div className={styles.sidebarHeader}>
-              <span>Agent Sessions</span>
-              <button
-                className={styles.sidebarAddButton}
-                onClick={() => setShowStartSessionModal(true)}
-                title="Start new agent session"
-              >
-                <PlayIcon />
-              </button>
-            </div>
-            <div className={styles.sidebarContent}>
-              <AgentSessionList
-                projectId={activeProject}
-                onSessionSelect={openAgentSession}
-              />
-            </div>
-          </div>
         </div>
         <div
           className={styles.sidebarResizer}
@@ -1038,9 +1054,15 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
         <StartAgentSessionModal
           projectId={activeProject}
           projectName={projectDisplayNames?.[activeProject] || activeProject}
-          onClose={() => setShowStartSessionModal(false)}
+          agents={agents.length > 0 ? agents : undefined}
+          preselectedAgent={preselectedAgentForModal}
+          onClose={() => {
+            setShowStartSessionModal(false)
+            setPreselectedAgentForModal(undefined)
+          }}
           onSessionCreated={(sessionId) => {
             setShowStartSessionModal(false)
+            setPreselectedAgentForModal(undefined)
             openAgentSession(sessionId)
           }}
         />

@@ -1,21 +1,31 @@
 import { useState } from 'react'
 import { api, type CreateAgentSessionInput } from '../../api'
 import { XIcon } from '@agentforge/ui-components'
+import type { AgentConfig } from '../AgentBrowser'
 import styles from './AgentSessionPanel.module.css'
 
 export interface StartAgentSessionModalProps {
   projectId: string
   projectName: string
+  agents?: AgentConfig[]
+  preselectedAgent?: string
   onClose: () => void
   onSessionCreated: (sessionId: string) => void
 }
 
-const agents = [
-  { value: 'pm', label: 'PM', description: 'Product Manager - shapes requirements and prioritizes work' },
-  { value: 'engineer', label: 'Engineer', description: 'Implements features and fixes bugs' },
-  { value: 'qa', label: 'QA', description: 'Tests and validates functionality' },
-  { value: 'lead', label: 'Lead', description: 'Reviews architecture and provides guidance' },
-] as const
+const defaultAgents = [
+  { id: 'pm', displayName: 'PM', model: 'sonnet', maxTokens: 50000 },
+  { id: 'engineer', displayName: 'Engineer', model: 'sonnet', maxTokens: 50000 },
+  { id: 'qa', displayName: 'QA', model: 'sonnet', maxTokens: 50000 },
+  { id: 'lead', displayName: 'Lead', model: 'sonnet', maxTokens: 50000 },
+]
+
+const agentDescriptions: Record<string, string> = {
+  pm: 'Product Manager - shapes requirements and prioritizes work',
+  engineer: 'Implements features and fixes bugs',
+  qa: 'Tests and validates functionality',
+  lead: 'Reviews architecture and provides guidance',
+}
 
 const phases = [
   { value: 'discovery', label: 'Discovery', description: 'Understanding the problem space' },
@@ -27,10 +37,15 @@ const phases = [
 export function StartAgentSessionModal({
   projectId,
   projectName,
+  agents: providedAgents,
+  preselectedAgent,
   onClose,
   onSessionCreated,
 }: StartAgentSessionModalProps) {
-  const [agent, setAgent] = useState<CreateAgentSessionInput['agent']>('pm')
+  const agents = providedAgents || defaultAgents
+  const [agent, setAgent] = useState<string>(
+    preselectedAgent || agents[0]?.id || 'pm'
+  )
   const [phase, setPhase] = useState<CreateAgentSessionInput['phase']>('shaping')
   const [taskPrompt, setTaskPrompt] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,7 +66,7 @@ export function StartAgentSessionModal({
       // Create the session
       const session = await api.agentSessions.create({
         projectId,
-        agent,
+        agent: agent as CreateAgentSessionInput['agent'],
         phase,
         taskPrompt: taskPrompt.trim(),
       })
@@ -86,19 +101,21 @@ export function StartAgentSessionModal({
             <div className={styles.radioGroup}>
               {agents.map(a => (
                 <label
-                  key={a.value}
-                  className={`${styles.radioOption} ${agent === a.value ? styles.selected : ''}`}
+                  key={a.id}
+                  className={`${styles.radioOption} ${agent === a.id ? styles.selected : ''}`}
                 >
                   <input
                     type="radio"
                     name="agent"
-                    value={a.value}
-                    checked={agent === a.value}
-                    onChange={() => setAgent(a.value)}
+                    value={a.id}
+                    checked={agent === a.id}
+                    onChange={() => setAgent(a.id)}
                     className={styles.radioInput}
                   />
-                  <span className={styles.radioLabel}>{a.label}</span>
-                  <span className={styles.radioDescription}>{a.description}</span>
+                  <span className={styles.radioLabel}>{a.displayName}</span>
+                  <span className={styles.radioDescription}>
+                    {agentDescriptions[a.id] || `${a.displayName} agent`}
+                  </span>
                 </label>
               ))}
             </div>
