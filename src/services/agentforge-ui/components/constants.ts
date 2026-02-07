@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { DbTableName, ServiceMetadata } from '../types'
 
-export type TabType = 'file' | 'table' | 'record' | 'service' | 'agentSession'
+export type TabType = 'file' | 'table' | 'record' | 'service' | 'agentSession' | 'agent'
 export type PaneId = 'left' | 'right'
 export type ViewMode = 'table' | 'view'
 export type RecordViewMode = 'view' | 'raw'
@@ -9,7 +9,7 @@ export type RecordViewMode = 'view' | 'raw'
 export interface OpenTab {
   id: string
   type: TabType
-  path: string // file path, table name, record id (table:key), or service path
+  path: string // file path, table name, record id (table:key), service path, or agent id
   label: string
   icon?: ReactNode
   pane: PaneId
@@ -19,6 +19,8 @@ export interface OpenTab {
   // For service tabs
   serviceMetadata?: ServiceMetadata
   serviceReadme?: string
+  // For agent tabs
+  agentId?: string
 }
 
 export const TABLE_NAMES: DbTableName[] = ['tasks', 'channels', 'messages', 'agentStatus', 'sessions', 'deployments', 'workloads']

@@ -5,18 +5,22 @@ import type { AgentConfig } from './types'
 
 export function parseAgentsYaml(yamlContent: string): AgentConfig[] {
   try {
+    console.log('[AgentBrowser] Parsing agents.yaml, content length:', yamlContent?.length)
     const parsed = YAML.parse(yamlContent) as Record<
       string,
       { model?: string; maxTokens?: number; orchestrator?: boolean }
     >
 
-    return Object.entries(parsed).map(([id, config]) => ({
+    const agents = Object.entries(parsed).map(([id, config]) => ({
       id,
       displayName: getAgentDisplayName(id),
       model: config?.model || 'sonnet',
       maxTokens: config?.maxTokens || 50000,
       orchestrator: config?.orchestrator,
     }))
+
+    console.log('[AgentBrowser] Parsed agents:', agents)
+    return agents
   } catch (error) {
     console.error('Failed to parse agents.yaml:', error)
     return []

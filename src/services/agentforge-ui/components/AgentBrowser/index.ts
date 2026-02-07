@@ -1,5 +1,7 @@
 export { AgentBrowser } from './AgentBrowser'
 export type { AgentBrowserProps } from './AgentBrowser'
+export { AgentPage } from './AgentPage'
+export type { AgentPageProps } from './AgentPage'
 export { AgentDetailView } from './AgentDetailView'
 export * from './types'
 export * from './utils'

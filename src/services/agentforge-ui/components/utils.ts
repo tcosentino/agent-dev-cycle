@@ -1,32 +1,22 @@
 import type { FileNode, FileCategory } from '../types'
 
-// Folders that belong to the agent workspace (not project code)
-const AGENT_WORKSPACE_FOLDERS = ['.agentforge', 'prompts', 'memory', 'sessions', 'state']
-
 export function categorizeFile(path: string): FileCategory {
-  // Handle paths with agent-workspace prefix (virtual grouping)
-  const normalizedPath = path.replace(/^agent-workspace\//, '')
-
   // New structure: files inside .agentforge/
-  if (normalizedPath.startsWith('.agentforge/prompts/')) return 'prompt'
-  if (normalizedPath.startsWith('.agentforge/memory/')) return 'memory'
-  if (normalizedPath.startsWith('.agentforge/sessions/')) return 'session'
-  if (normalizedPath.startsWith('.agentforge/state/')) return 'state'
-  if (normalizedPath.startsWith('.agentforge/')) return 'config'
+  if (path.startsWith('.agentforge/agents/')) return 'prompt'
+  if (path.startsWith('.agentforge/prompts/')) return 'prompt'
+  if (path.startsWith('.agentforge/memory/')) return 'memory'
+  if (path.startsWith('.agentforge/sessions/')) return 'session'
+  if (path.startsWith('.agentforge/state/')) return 'state'
+  if (path.startsWith('.agentforge/')) return 'config'
 
   // Old structure: files at root level (backwards compatibility)
-  if (normalizedPath === 'PROJECT.md' || normalizedPath === 'ARCHITECTURE.md') return 'briefing'
-  if (normalizedPath.startsWith('prompts/')) return 'prompt'
-  if (normalizedPath.startsWith('memory/')) return 'memory'
-  if (normalizedPath.startsWith('sessions/')) return 'session'
-  if (normalizedPath.startsWith('state/')) return 'state'
-  if (normalizedPath.startsWith('src/')) return 'source'
+  if (path === 'PROJECT.md' || path === 'ARCHITECTURE.md') return 'briefing'
+  if (path.startsWith('prompts/')) return 'prompt'
+  if (path.startsWith('memory/')) return 'memory'
+  if (path.startsWith('sessions/')) return 'session'
+  if (path.startsWith('state/')) return 'state'
+  if (path.startsWith('src/')) return 'source'
   return 'other'
-}
-
-function isAgentWorkspacePath(path: string): boolean {
-  const firstPart = path.split('/')[0]
-  return AGENT_WORKSPACE_FOLDERS.includes(firstPart)
 }
 
 export function buildFileTree(files: Record<string, string>): FileNode[] {
@@ -44,56 +34,30 @@ export function buildFileTree(files: Record<string, string>): FileNode[] {
     }
   }
 
-  // Create agent-workspace virtual folder
-  const agentWorkspace: FileNode = {
-    name: 'agent-workspace',
-    path: 'agent-workspace',
-    type: 'folder',
-    category: 'config',
-    children: [],
-  }
-
   for (const filePath of Object.keys(files).sort()) {
-    // Determine if this file belongs in agent workspace
-    const belongsToAgentWorkspace = isAgentWorkspacePath(filePath)
-
-    // Choose the target root and adjust path for agent workspace files
-    let targetRoot = root
-    let adjustedPath = filePath
-
-    if (belongsToAgentWorkspace) {
-      targetRoot = agentWorkspace.children!
-      // Keep the original path for the actual file reference
-    }
-
-    const parts = adjustedPath.split('/')
-    let current = targetRoot
-    let builtPath = belongsToAgentWorkspace ? 'agent-workspace' : ''
+    const parts = filePath.split('/')
+    let current = root
+    let builtPath = ''
 
     for (let i = 0; i < parts.length; i++) {
       const part = parts[i]
       builtPath = builtPath ? `${builtPath}/${part}` : part
       const isFile = i === parts.length - 1
 
-      // Check if this folder path is a service folder (use the original path, not builtPath)
-      const originalFolderPath = parts.slice(0, i + 1).join('/')
-      const isServiceFolder = !isFile && serviceFolders.has(originalFolderPath)
+      // Check if this folder path is a service folder
+      const isServiceFolder = !isFile && serviceFolders.has(builtPath)
 
       let existing = current.find(n => n.name === part)
       if (!existing) {
         existing = {
           name: part,
-          path: filePath, // Use original path for files so they can be opened
+          path: isFile ? filePath : builtPath,
           type: isFile ? 'file' : 'folder',
           category: categorizeFile(filePath),
           ...(isFile
             ? { extension: part.includes('.') ? part.split('.').pop() : undefined }
             : { children: [] }),
           ...(isServiceFolder ? { isService: true } : {}),
-        }
-        // For folders, use the built path
-        if (!isFile) {
-          existing.path = builtPath
         }
         current.push(existing)
       } else if (isServiceFolder && !existing.isService) {
@@ -106,16 +70,11 @@ export function buildFileTree(files: Record<string, string>): FileNode[] {
     }
   }
 
-  // Add agent-workspace folder to root if it has children
-  if (agentWorkspace.children && agentWorkspace.children.length > 0) {
-    root.push(agentWorkspace)
-  }
-
   const sortNodes = (nodes: FileNode[]) => {
     nodes.sort((a, b) => {
-      // agent-workspace always goes last
-      if (a.name === 'agent-workspace') return 1
-      if (b.name === 'agent-workspace') return -1
+      // .agentforge goes last
+      if (a.name === '.agentforge') return 1
+      if (b.name === '.agentforge') return -1
       // folders before files
       if (a.type !== b.type) return a.type === 'folder' ? -1 : 1
       return a.name.localeCompare(b.name)
@@ -129,16 +88,17 @@ export function buildFileTree(files: Record<string, string>): FileNode[] {
 }
 
 export function getDefaultExpanded(tree: FileNode[]): Set<string> {
-  // Expand top-level folders except agent-workspace (keeps it collapsed by default)
+  // Expand top-level folders except .agentforge (keeps it collapsed by default)
   return new Set(
     tree
-      .filter(n => n.type === 'folder' && n.name !== 'agent-workspace')
+      .filter(n => n.type === 'folder' && n.name !== '.agentforge')
       .map(n => n.path)
   )
 }
 
 // Files/folders to hide in "simple" mode (developer/config files)
 const SIMPLE_MODE_HIDDEN = new Set([
+  '.agentforge',
   'lib',
   'node_modules',
   'dist',

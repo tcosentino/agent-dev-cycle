@@ -1,96 +1,47 @@
 @import '@agentforge/ui-components/styles/tokens.css';
 
-.agentBrowser {
+.agentList {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.agentPage {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: transparent;
-}
-
-.agentList {
-  flex-shrink: 0;
-  background: transparent;
-  padding: var(--spacing-sm) 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  overflow-y: auto;
-  border-bottom: 1px solid var(--color-border);
+  overflow: hidden;
 }
 
 .agentItem {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xs) var(--spacing-sm);
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition: all 0.15s;
-  color: var(--color-text-primary);
-  font-size: 0.8rem;
-  font-family: var(--font-sans);
-  text-align: left;
+  justify-content: space-between;
   width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  padding: 8px var(--space-md);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
 }
 
 .agentItem:hover {
-  background: var(--color-bg-hover);
+  background: var(--bg-tertiary);
 }
 
 .agentItemActive {
-  background: var(--color-bg-active);
-  color: var(--color-primary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.agentName {
   font-weight: 500;
 }
 
-.agentItemIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: inherit;
-}
-
-.agentItemLabel {
-  flex: 1;
-  text-align: left;
-  font-weight: 500;
-}
-
-.addAgentButton {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  background: transparent;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: not-allowed;
-  opacity: 0.5;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  margin-top: var(--spacing-md);
-}
-
-.agentContent {
-  flex: 1;
-  background: transparent;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.emptySelection {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: var(--spacing-lg);
-  color: var(--color-text-secondary);
-  font-size: 0.75rem;
-  text-align: center;
-}
 
 .agentDetail {
   display: flex;

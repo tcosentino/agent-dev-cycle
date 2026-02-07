@@ -36,6 +36,7 @@ import {
   RecordDetailView,
   ServiceView,
   AgentBrowser,
+  AgentPage,
   parseAgentsYaml,
 } from './components'
 import type { TabType, PaneId, ViewMode, RecordViewMode, OpenTab } from './components'
@@ -111,6 +112,9 @@ function getTabIcon(tab: SerializedTab): ReactNode {
   }
   if (tab.type === 'agentSession') {
     return <PlayIcon />
+  }
+  if (tab.type === 'agent') {
+    return <CodeIcon />
   }
   return <FileDocumentIcon />
 }
@@ -383,9 +387,25 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   )
 
   // Load agents from YAML
+  // Eagerly load agents.yaml when files change
+  useEffect(() => {
+    const agentsYamlPath = '.agentforge/agents.yaml'
+    const fileExists = agentsYamlPath in files
+    const fileContent = files[agentsYamlPath]
+
+    // If file exists in the list but content is empty, load it
+    if (fileExists && fileContent === '' && onLoadFileContent) {
+      console.log('[ProjectViewer] Eagerly loading agents.yaml')
+      onLoadFileContent(activeProject, agentsYamlPath).catch((err: Error) => {
+        console.error('[ProjectViewer] Failed to load agents.yaml:', err)
+      })
+    }
+  }, [files, activeProject, onLoadFileContent])
+
   const agents = useMemo(() => {
     const agentsFile = files['.agentforge/agents.yaml']
-    if (!agentsFile) return []
+    console.log('[ProjectViewer] Parsing agents, content length:', agentsFile?.length)
+    if (!agentsFile || agentsFile === '') return []
     return parseAgentsYaml(agentsFile)
   }, [files])
 
@@ -550,10 +570,32 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
   }, [openTabs, activePane])
 
-  const handleRunAgentFromBrowser = useCallback((agentId: string) => {
-    setPreselectedAgentForModal(agentId)
-    setShowStartSessionModal(true)
-  }, [])
+  const openAgent = useCallback((agentId: string) => {
+    const tabId = `agent:${agentId}`
+    const agent = agents.find(a => a.id === agentId)
+    if (!agent) return
+
+    // Check if tab already exists
+    const existingTab = openTabs.find(t => t.id === tabId)
+    if (existingTab) {
+      setActiveTabIds(prev => ({ ...prev, [existingTab.pane]: tabId }))
+      setActivePane(existingTab.pane)
+      return
+    }
+
+    // Create new tab
+    setOpenTabs(prev => [...prev, {
+      id: tabId,
+      type: 'agent',
+      path: agentId,
+      label: agent.displayName,
+      icon: <CodeIcon />,
+      pane: activePane,
+      agentId,
+    }])
+    setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
+    setActivePane(activePane)
+  }, [openTabs, activePane, agents])
 
   const splitToRight = useCallback((tabId: string) => {
     setOpenTabs(prev => prev.map(t =>
@@ -919,6 +961,32 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       )
     }
 
+    if (tab.type === 'agent' && tab.agentId) {
+      const agent = agents.find(a => a.id === tab.agentId)
+      if (!agent) {
+        return <div className={styles.emptyState}>Agent not found</div>
+      }
+
+      // Try all possible locations for prompt files
+      const promptContent =
+        files[`.agentforge/agents/${agent.id}.md`] ||
+        files[`.agentforge/prompts/${agent.id}.md`] ||
+        files[`prompts/${agent.id}.md`]
+
+      return (
+        <AgentPage
+          agent={agent}
+          projectId={activeProject}
+          promptContent={promptContent}
+          onRunAgent={(agentId) => {
+            setPreselectedAgentForModal(agentId)
+            setShowStartSessionModal(true)
+          }}
+          onSessionSelect={openAgentSession}
+        />
+      )
+    }
+
     return null
   }
 
@@ -954,16 +1022,24 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             </div>
           </div>
           <div className={styles.sidebarSection}>
-            <div className={styles.sidebarHeader}>Agents</div>
+            <div className={styles.sidebarHeader}>
+              <span>Agents</span>
+              <button
+                className={styles.sidebarAddButton}
+                disabled
+                title='Coming soon'
+              >
+                +
+              </button>
+            </div>
             <div className={styles.sidebarContent}>
               <AgentBrowser
-                projectId={activeProject}
                 agents={agents}
                 selectedAgent={selectedAgent}
-                onAgentSelect={setSelectedAgent}
-                onRunAgent={handleRunAgentFromBrowser}
-                onSessionSelect={openAgentSession}
-                files={files}
+                onAgentSelect={(agentId) => {
+                  setSelectedAgent(agentId)
+                  openAgent(agentId)
+                }}
               />
             </div>
           </div>
