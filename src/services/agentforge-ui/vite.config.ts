@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
 import { resolve } from 'path'
 
 export default defineConfig({
-  appType: 'spa',
+  plugins: [react()],
   root: __dirname,
   resolve: {
     alias: {
@@ -15,6 +16,13 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
+        bypass(req) {
+          // Don't proxy TypeScript/JavaScript files - let Vite handle them
+          if (req.url?.endsWith('.ts') || req.url?.endsWith('.tsx') ||
+              req.url?.endsWith('.js') || req.url?.endsWith('.jsx')) {
+            return req.url
+          }
+        }
       },
       '/auth': {
         target: 'http://localhost:3000',
