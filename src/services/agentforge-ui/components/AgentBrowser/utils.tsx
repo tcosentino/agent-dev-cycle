@@ -48,3 +48,36 @@ export const AGENT_ICONS: Record<string, ReactNode> = {
 export function getAgentIcon(role: string): ReactNode {
   return AGENT_ICONS[role] || <CircleIcon width={16} height={16} />
 }
+
+export function parseAgentConfigs(files: Record<string, string>): AgentConfig[] {
+  try {
+    console.log('[AgentBrowser] Parsing agent configs from folder structure')
+    const agents: AgentConfig[] = []
+
+    // Find all agent config.json files
+    const configPaths = Object.keys(files).filter(path =>
+      path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
+    )
+
+    for (const configPath of configPaths) {
+      try {
+        const config = JSON.parse(files[configPath])
+        agents.push({
+          id: config.id,
+          displayName: config.displayName || getAgentDisplayName(config.id),
+          model: config.model || 'sonnet',
+          maxTokens: config.maxTokens || 50000,
+          orchestrator: config.orchestrator,
+        })
+      } catch (error) {
+        console.error(`Failed to parse ${configPath}:`, error)
+      }
+    }
+
+    console.log('[AgentBrowser] Parsed agents from configs:', agents)
+    return agents
+  } catch (error) {
+    console.error('Failed to parse agent configs:', error)
+    return []
+  }
+}

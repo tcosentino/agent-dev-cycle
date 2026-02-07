@@ -1,0 +1,6 @@
+{
+  "id": "qa",
+  "displayName": "QA Engineer",
+  "model": "haiku",
+  "maxTokens": 32000
+}

@@ -1,0 +1,6 @@
+{
+  "id": "engineer",
+  "displayName": "Engineer",
+  "model": "sonnet",
+  "maxTokens": 64000
+}

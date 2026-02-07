@@ -20,9 +20,36 @@ async function readRepoFile(relativePath: string): Promise<string | null> {
 }
 
 export async function loadAgentsConfig(): Promise<AgentsConfig> {
+  // Try new structure first: .agentforge/agents/{id}/config.json
+  const agentDirs = ['.agentforge/agents/pm', '.agentforge/agents/engineer', '.agentforge/agents/qa', '.agentforge/agents/lead']
+  const configs: AgentsConfig = {}
+
+  for (const dir of agentDirs) {
+    const configPath = `${dir}/config.json`
+    const configContent = await readRepoFile(configPath)
+    if (configContent) {
+      try {
+        const config = JSON.parse(configContent)
+        configs[config.id] = {
+          model: config.model,
+          maxTokens: config.maxTokens,
+          orchestrator: config.orchestrator
+        }
+      } catch (err) {
+        console.error(`Failed to parse ${configPath}:`, err)
+      }
+    }
+  }
+
+  // If we found configs in new structure, use them
+  if (Object.keys(configs).length > 0) {
+    return configs
+  }
+
+  // Fall back to legacy agents.yaml
   const content = await readRepoFile('.agentforge/agents.yaml')
   if (!content) {
-    throw new Error('agents.yaml not found in repo')
+    throw new Error('No agent configs found in .agentforge/agents/')
   }
   return YAML.parse(content) as AgentsConfig
 }
@@ -58,8 +85,11 @@ export async function assembleContext(config: SessionConfig): Promise<string> {
     sections.push(systemPrompt)
   }
 
-  // Role-specific prompt
-  const rolePrompt = await readRepoFile(`prompts/${config.agent}.md`)
+  // Role-specific prompt - try new structure first, then legacy
+  let rolePrompt = await readRepoFile(`.agentforge/agents/${config.agent}/prompt.md`)
+  if (!rolePrompt) {
+    rolePrompt = await readRepoFile(`prompts/${config.agent}.md`)
+  }
   if (rolePrompt) {
     sections.push(`## Your Role\n\n${rolePrompt}`)
   }

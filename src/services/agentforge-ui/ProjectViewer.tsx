@@ -38,6 +38,7 @@ import {
   AgentBrowser,
   AgentPage,
   parseAgentsYaml,
+  parseAgentConfigs,
 } from './components'
 import type { TabType, PaneId, ViewMode, RecordViewMode, OpenTab } from './components'
 import styles from './ProjectViewer.module.css'
@@ -386,27 +387,30 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     [fullTree, simpleMode]
   )
 
-  // Load agents from YAML
-  // Eagerly load agents.yaml when files change
-  useEffect(() => {
-    const agentsYamlPath = '.agentforge/agents.yaml'
-    const fileExists = agentsYamlPath in files
-    const fileContent = files[agentsYamlPath]
-
-    // If file exists in the list but content is empty, load it
-    if (fileExists && fileContent === '' && onLoadFileContent) {
-      console.log('[ProjectViewer] Eagerly loading agents.yaml')
-      onLoadFileContent(activeProject, agentsYamlPath).catch((err: Error) => {
-        console.error('[ProjectViewer] Failed to load agents.yaml:', err)
-      })
-    }
-  }, [files, activeProject, onLoadFileContent])
-
+  // Load agents from new folder structure (.agentforge/agents/{id}/config.json)
+  // Fall back to legacy agents.yaml if new structure doesn't exist
   const agents = useMemo(() => {
+    console.log('[ProjectViewer] Loading agents...')
+
+    // Try new structure first
+    const hasNewStructure = Object.keys(files).some(path =>
+      path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
+    )
+
+    if (hasNewStructure) {
+      console.log('[ProjectViewer] Using new agent folder structure')
+      return parseAgentConfigs(files)
+    }
+
+    // Fall back to legacy agents.yaml
     const agentsFile = files['.agentforge/agents.yaml']
-    console.log('[ProjectViewer] Parsing agents, content length:', agentsFile?.length)
-    if (!agentsFile || agentsFile === '') return []
-    return parseAgentsYaml(agentsFile)
+    if (agentsFile && agentsFile !== '') {
+      console.log('[ProjectViewer] Using legacy agents.yaml')
+      return parseAgentsYaml(agentsFile)
+    }
+
+    console.log('[ProjectViewer] No agents found')
+    return []
   }, [files])
 
   // Split tabs by pane
@@ -967,8 +971,9 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
         return <div className={styles.emptyState}>Agent not found</div>
       }
 
-      // Try all possible locations for prompt files
+      // Try new structure first, then fall back to legacy locations
       const promptContent =
+        files[`.agentforge/agents/${agent.id}/prompt.md`] ||
         files[`.agentforge/agents/${agent.id}.md`] ||
         files[`.agentforge/prompts/${agent.id}.md`] ||
         files[`prompts/${agent.id}.md`]

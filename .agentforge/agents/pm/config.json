@@ -1,0 +1,6 @@
+{
+  "id": "pm",
+  "displayName": "Product Manager",
+  "model": "sonnet",
+  "maxTokens": 32000
+}
