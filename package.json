@@ -21,7 +21,9 @@
     "seed": "yarn workspace @agentforge/server seed",
     "test": "yarn workspace @agentforge/server test",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:structure": "playwright test tests/agentforge-structure.spec.ts",
+    "test:vite": "playwright test tests/vite-build.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
