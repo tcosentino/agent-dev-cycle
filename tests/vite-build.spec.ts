@@ -46,4 +46,34 @@ test.describe('Vite Build Configuration', () => {
       `Found 404 errors:\n${errors404.join('\n')}`
     ).toHaveLength(0)
   })
+
+  test('agentforge-ui should load agents from config files', async ({ page }) => {
+    const consoleLogs: string[] = []
+
+    // Capture console logs
+    page.on('console', msg => {
+      const text = msg.text()
+      if (text.includes('[AgentBrowser]') || text.includes('[ProjectViewer]')) {
+        consoleLogs.push(text)
+      }
+    })
+
+    await page.goto('http://localhost:5173')
+    await page.waitForSelector('#root', { timeout: 10000 }).catch(() => {})
+    await page.waitForTimeout(3000)
+
+    // Check if agents were parsed
+    const parsedAgentsLog = consoleLogs.find(log =>
+      log.includes('Parsed agents from configs:') || log.includes('Parsed agents:')
+    )
+
+    expect(
+      parsedAgentsLog,
+      `Agents should be parsed. Console logs:\n${consoleLogs.join('\n')}`
+    ).toBeDefined()
+
+    // Check if agents sidebar section exists
+    const agentsSection = await page.locator('text=Agents').first().isVisible().catch(() => false)
+    expect(agentsSection, 'Agents section should be visible in sidebar').toBe(true)
+  })
 })
