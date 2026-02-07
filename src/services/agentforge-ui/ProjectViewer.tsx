@@ -387,7 +387,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     [fullTree, simpleMode]
   )
 
-  // Eagerly load agent config and prompt files when they're detected
+  // Eagerly load agent config, prompt, and service files when they're detected
   useEffect(() => {
     const configPaths = Object.keys(files).filter(path =>
       path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
@@ -395,8 +395,11 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     const promptPaths = Object.keys(files).filter(path =>
       path.match(/^\.agentforge\/agents\/[^/]+\/prompt\.md$/)
     )
+    const servicePaths = Object.keys(files).filter(path =>
+      path.endsWith('/service.json') || path === 'service.json'
+    )
 
-    const pathsToLoad = [...configPaths, ...promptPaths]
+    const pathsToLoad = [...configPaths, ...promptPaths, ...servicePaths]
 
     for (const filePath of pathsToLoad) {
       const fileExists = filePath in files
