@@ -49,23 +49,28 @@ This isn't just about doing more—it's about doing things differently. A team d
 
 ### Core Concepts
 
-- [Product Development Flow](./product-development-flow.md) - Core development methodology (the bread and butter)
+- [Product Development Flow](./product-development-flow.md) - Core development methodology
 - [Agents](./agents.md) - AI agent roles and responsibilities
-- [Workflow](./workflow.md) - How the development process works
+- [Application Architecture](./application-architecture.md) - Building blocks agents create and manage
 
 ### Infrastructure
 
 - [Agent Runner](./runner.md) - Docker-based agent execution engine
 - [LLM Infrastructure](./llm-infrastructure.md) - Model selection, hosting, and cost optimization
-- [Application Architecture](./application-architecture.md) - Building blocks agents create and manage
 
-### Reference
+### UI & Design
 
-- [Architecture](./architecture.md) - System architecture and component overview
+- [UI System](./ui-system.md) - UI architecture and patterns
 - [UI Components](./ui-components.md) - Functional/visual component separation
-- [API](./api.md) - API specifications (future)
+- [Animation Stories](./animation-stories.md) - Animation and interaction design
 
-## Quick Links
+### Research & Vision
 
-- [Getting Started](./getting-started.md)
-- [Contributing](./contributing.md)
+- [Dogfooding Vision](./dogfooding-vision.md) - Self-improvement strategy
+- [Inbox System](./inbox-system.md) - Task management approach
+- [OpenClaw Research](./openclaw-research.md) - Research notes
+
+## Project Information
+
+- **Main README**: [../README.md](../README.md) - Quick start and project overview
+- **Claude Instructions**: [../CLAUDE.md](../CLAUDE.md) - Development guidelines for AI assistants

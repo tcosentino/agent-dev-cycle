@@ -7,7 +7,7 @@ import {
   ServerIcon,
   PlayIcon,
   RocketIcon,
-} from './shared/icons'
+} from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage, StageStatus } from '../types'
 import styles from '../ProjectViewer.module.css'
 

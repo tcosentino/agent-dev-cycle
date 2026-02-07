@@ -13,13 +13,14 @@ import {
   RocketIcon,
   BoxIcon,
   PlayIcon,
-} from './components/shared/icons'
+  TabbedPane,
+  type Tab,
+} from '@agentforge/ui-components'
 import {
   AgentSessionList,
   AgentSessionProgressPanel,
   StartAgentSessionModal,
 } from './components/AgentSessionPanel'
-import { TabbedPane, type Tab } from './components/shared/TabbedPane'
 import type { FileCategory, ProjectData, ProjectDbData, DbTableName, Workload, ServiceMetadata } from './types'
 import {
   categorizeFile,
@@ -155,18 +156,35 @@ interface FileContentLoaderProps {
 }
 
 function FileContentLoader({ projectId, filePath, cachedContent, onLoadContent }: FileContentLoaderProps) {
-  const [content, setContent] = useState<string | null>(null)
+  const [content, setContent] = useState<string | null>(cachedContent ?? null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const loadedRef = useRef(false)
+  const currentFileRef = useRef<string>('')
 
-  // Use cached content if available
+  // Reset state when file path changes
   useEffect(() => {
-    if (cachedContent) {
+    if (currentFileRef.current !== filePath) {
+      currentFileRef.current = filePath
+      loadedRef.current = false
+      setError(null)
+      // Use cached content immediately if available
+      if (cachedContent) {
+        setContent(cachedContent)
+        loadedRef.current = true
+      } else {
+        setContent(null)
+      }
+    }
+  }, [filePath, cachedContent])
+
+  // Update content when cachedContent changes for current file
+  useEffect(() => {
+    if (cachedContent && currentFileRef.current === filePath) {
       setContent(cachedContent)
       loadedRef.current = true
     }
-  }, [cachedContent])
+  }, [cachedContent, filePath])
 
   // Load content on demand if not cached
   useEffect(() => {
@@ -784,12 +802,14 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       return (
         <div className={styles.tabContentInner}>
           <FileBreadcrumb path={tab.path} onNavigate={openFile} />
-          <FileContentLoader
-            projectId={activeProject}
-            filePath={tab.path}
-            cachedContent={cachedContent || undefined}
-            onLoadContent={onLoadFileContent}
-          />
+          <div className={styles.tabContentScrollable}>
+            <FileContentLoader
+              projectId={activeProject}
+              filePath={tab.path}
+              cachedContent={cachedContent || undefined}
+              onLoadContent={onLoadFileContent}
+            />
+          </div>
         </div>
       )
     }

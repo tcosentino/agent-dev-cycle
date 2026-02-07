@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import { api, type ApiAgentSession } from '../../api'
-import { Badge } from '../shared/Badge/Badge'
-import { Spinner } from '../shared/Spinner/Spinner'
-import { PlayIcon, CheckCircleIcon, AlertTriangleIcon, ClockIcon } from '../shared/icons'
+import { Badge, Spinner, PlayIcon, CheckCircleIcon, AlertTriangleIcon, ClockIcon } from '@agentforge/ui-components'
 import styles from './AgentSessionPanel.module.css'
 
 export interface AgentSessionListProps {

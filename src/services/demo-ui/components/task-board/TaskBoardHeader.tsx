@@ -1,5 +1,4 @@
-import { BoxIcon } from '../shared/icons'
-import { PhaseBadge } from '../shared/badges'
+import { BoxIcon, PhaseBadge } from '@agentforge/ui-components'
 import styles from './TaskBoardHeader.module.css'
 
 interface TaskBoardHeaderProps {

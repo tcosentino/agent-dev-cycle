@@ -1,8 +1,7 @@
 import { useRef, useEffect } from 'react'
 import type { ChatMessage as ChatMessageType, TypingIndicator } from './types'
 import { ChatMessage } from './ChatMessage'
-import { AssigneeBadge } from '../shared/badges/AssigneeBadge'
-import { Spinner } from '../shared/Spinner'
+import { AssigneeBadge, Spinner } from '@agentforge/ui-components'
 import styles from './Chat.module.css'
 
 interface ChatMessagesProps {

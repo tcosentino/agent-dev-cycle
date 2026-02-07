@@ -15,10 +15,10 @@ import {
   AssigneeBadge,
   PhaseBadge,
   AgentStatusBadge
-} from './components/shared/badges'
+} from '@agentforge/ui-components'
 import type { ProjectionInputs } from './components/projections'
 import type { TaskPriority, TaskType, AgentRole, AgentStatus } from './components/task-board/types'
-import './components/shared/tokens.css'
+import '@agentforge/ui-components/styles/tokens.css'
 import './mockups.css'
 
 const defaultInputs: ProjectionInputs = {

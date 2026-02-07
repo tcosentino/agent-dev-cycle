@@ -1,4 +1,4 @@
-@import '../shared/tokens.css';
+@import '../../../../styles/tokens.css';
 
 .container {
   padding: var(--space-xl);

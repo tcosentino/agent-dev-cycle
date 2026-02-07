@@ -1,6 +1,5 @@
 import type { ChatMessage as ChatMessageType } from './types'
-import { AssigneeBadge } from '../shared/badges/AssigneeBadge'
-import { Spinner } from '../shared/Spinner'
+import { AssigneeBadge, Spinner } from '@agentforge/ui-components'
 import styles from './Chat.module.css'
 
 interface ChatMessageProps {

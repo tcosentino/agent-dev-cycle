@@ -6,7 +6,7 @@ import {
   DatabaseFilledIcon,
   QueueIcon,
   DefaultNodeIcon
-} from '../shared/icons'
+} from '@agentforge/ui-components'
 import type { SystemNode as SystemNodeType } from './types'
 import styles from './SystemNode.module.css'
 

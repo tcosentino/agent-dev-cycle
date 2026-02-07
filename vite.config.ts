@@ -4,6 +4,11 @@ import { resolve } from 'path'
 export default defineConfig({
   // SPA fallback - serve index.html for all routes
   appType: 'spa',
+  resolve: {
+    alias: {
+      '@agentforge/ui-components': resolve(__dirname, './packages/ui-components/src')
+    }
+  },
   server: {
     proxy: {
       '/api': {

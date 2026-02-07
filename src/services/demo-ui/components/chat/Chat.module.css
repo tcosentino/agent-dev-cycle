@@ -1,4 +1,4 @@
-@import '../shared/tokens.css';
+@import '../../../../styles/tokens.css';
 
 /* Container without sidebar (for hideSidebar mode) */
 .containerNoSidebar {

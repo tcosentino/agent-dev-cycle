@@ -1,13 +1,14 @@
-import { ListPanel, type SidebarItem } from '../shared/ListPanel'
-import { StatusIndicator } from '../shared/StatusIndicator'
 import {
+  ListPanel,
+  type SidebarItem,
+  StatusIndicator,
   FileDocumentIcon,
   GlobeIcon,
   LayersIcon,
   BlockIcon,
   LinkIcon,
   BookOpenIcon
-} from '../shared/icons'
+} from '@agentforge/ui-components'
 import type { KnowledgeBaseProps, KnowledgeCategory, KnowledgeEntry } from './types'
 import type { AgentRole } from '../task-board/types'
 import styles from './KnowledgeBase.module.css'

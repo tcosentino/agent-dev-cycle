@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { api, type ApiProject, type ApiGitHubRepo } from '../api'
-import { Modal, modalStyles as styles } from './shared/Modal'
-import { ChevronDownIcon } from './shared/icons'
+import { Modal, ChevronDownIcon } from '@agentforge/ui-components'
+import styles from '@agentforge/ui-components/components/Modal/Modal.module.css'
 
 export interface CreateProjectModalProps {
   userId: string

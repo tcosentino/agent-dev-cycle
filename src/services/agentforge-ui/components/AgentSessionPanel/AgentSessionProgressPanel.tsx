@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAgentSessionProgress, useAgentSession } from '../../hooks'
 import { api, type ApiAgentSessionLogEntry } from '../../api'
-import { Badge } from '../shared/Badge/Badge'
-import { Spinner } from '../shared/Spinner/Spinner'
-import { GitBranchIcon, ClipboardIcon } from '../shared/icons'
+import { Badge, Spinner, GitBranchIcon, ClipboardIcon } from '@agentforge/ui-components'
 import styles from './AgentSessionPanel.module.css'
 
 export interface AgentSessionProgressPanelProps {

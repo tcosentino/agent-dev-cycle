@@ -59,9 +59,13 @@
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--text-muted);
-  padding-bottom: var(--space-sm);
-  margin-bottom: var(--space-md);
+  padding: 6px var(--space-lg);
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  flex-shrink: 0;
 }
 
 .breadcrumbPart {
@@ -844,9 +848,16 @@
 }
 
 .tabContentInner {
-  padding: var(--space-lg);
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   height: 100%;
+}
+
+.tabContentScrollable {
+  flex: 1;
+  overflow: auto;
+  padding: var(--space-lg);
 }
 
 /* Database view container (for tabbed content) */

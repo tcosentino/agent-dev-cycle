@@ -1,4 +1,4 @@
-import { ListPanel, type SidebarItem } from '../shared/ListPanel'
+import { ListPanel, type SidebarItem } from '@agentforge/ui-components'
 import { ChatMessages } from './ChatMessages'
 import type { ChatProps } from './types'
 import styles from './Chat.module.css'

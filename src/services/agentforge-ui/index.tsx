@@ -7,7 +7,7 @@ import { SettingsPage } from './components/SettingsPage'
 import { api, fetchProjectSnapshot, fetchProjectFiles, fetchFileContent, AuthError } from './api'
 import type { ApiProject, ApiUser } from './api'
 import type { ProjectData, DbSnapshot, ProjectDbData } from './types'
-import './components/shared/tokens.css'
+import '@agentforge/ui-components/styles/tokens.css'
 import './project-viewer.css'
 
 type CurrentPage = 'projects' | 'settings'

@@ -4,8 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "workspaces": [
-    "packages/*",
-    "example-projects/*"
+    "packages/*"
   ],
   "scripts": {
     "dev": "concurrently -n ui,api -c blue,green \"vite\" \"yarn dev:server\"",

@@ -1,5 +1,5 @@
 import './style.css'
-import './components/shared/tokens.css'
+import '@agentforge/ui-components/styles/tokens.css'
 import { createRoot } from 'react-dom/client'
 import { createElement } from 'react'
 import { TaskBoardDemo } from './components/task-board'

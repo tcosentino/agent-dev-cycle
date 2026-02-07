@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { MessageSquareIcon } from './shared/icons'
+import { MessageSquareIcon } from '@agentforge/ui-components'
 import { TaskBoard } from '../../demo-ui/components/task-board/TaskBoard'
 import type { Task, TaskStatus, TaskPriority, TaskType, AgentRole } from '../../demo-ui/components/task-board/types'
 import { ChatMessageComponent } from '../../demo-ui/components/chat'

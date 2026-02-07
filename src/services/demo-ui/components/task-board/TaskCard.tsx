@@ -1,6 +1,6 @@
 import { useRef, useLayoutEffect } from 'react'
 import type { Task } from './types'
-import { PriorityBadge, TypeBadge, AssigneeBadge } from '../shared/badges'
+import { PriorityBadge, TypeBadge, AssigneeBadge } from '@agentforge/ui-components'
 import styles from './TaskCard.module.css'
 
 interface TaskCardProps {

@@ -6,7 +6,7 @@ import { AgentWorkspaceDemo } from './components/agent-workspace'
 import { ApplicationViewDemo } from './components/application-view'
 import { KnowledgeBaseDemo } from './components/knowledge-base'
 import { Nav } from './components/nav'
-import './components/shared/tokens.css'
+import '@agentforge/ui-components/styles/tokens.css'
 import './component-preview.css'
 
 const initialTasks: Task[] = [

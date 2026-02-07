@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { api, type CreateAgentSessionInput } from '../../api'
-import { XIcon } from '../shared/icons'
+import { XIcon } from '@agentforge/ui-components'
 import styles from './AgentSessionPanel.module.css'
 
 export interface StartAgentSessionModalProps {

@@ -1,0 +1,31 @@
+// Base components
+export { Badge } from './components/Badge/Badge'
+export type { BadgeProps, BadgeSize, BadgeVariant } from './components/Badge/Badge'
+
+export { Spinner } from './components/Spinner/Spinner'
+export type { SpinnerProps } from './components/Spinner/Spinner'
+
+export { StatusIndicator } from './components/StatusIndicator/StatusIndicator'
+export type { StatusIndicatorProps } from './components/StatusIndicator/StatusIndicator'
+
+export { TabbedPane } from './components/TabbedPane/TabbedPane'
+export type { Tab } from './components/TabbedPane/TabbedPane'
+
+export { ListPanel } from './components/ListPanel/ListPanel'
+export type { ListPanelProps, SidebarItem } from './components/ListPanel/types'
+
+export { Modal } from './components/Modal/Modal'
+export type { ModalProps } from './components/Modal/Modal'
+
+// Badge variants
+export { AgentStatusBadge } from './components/badges/AgentStatusBadge'
+export { AssigneeBadge } from './components/badges/AssigneeBadge'
+export { PhaseBadge } from './components/badges/PhaseBadge'
+export { PriorityBadge } from './components/badges/PriorityBadge'
+export { TypeBadge } from './components/badges/TypeBadge'
+
+// Icons
+export * from './icons/icons'
+
+// Shared types
+export type { AgentStatus, AgentRole, TaskPriority, TaskType } from './types'

@@ -1,4 +1,4 @@
-import { BoxIcon, CodeIcon, DatabaseIcon, LayersIcon, FileDocumentIcon } from './shared/icons'
+import { BoxIcon, CodeIcon, DatabaseIcon, LayersIcon, FileDocumentIcon } from '@agentforge/ui-components'
 import type { ServiceMetadata } from '../types'
 import styles from '../ProjectViewer.module.css'
 
