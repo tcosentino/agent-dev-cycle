@@ -387,21 +387,26 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     [fullTree, simpleMode]
   )
 
-  // Eagerly load agent config files when they're detected
+  // Eagerly load agent config and prompt files when they're detected
   useEffect(() => {
     const configPaths = Object.keys(files).filter(path =>
       path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
+    const promptPaths = Object.keys(files).filter(path =>
+      path.match(/^\.agentforge\/agents\/[^/]+\/prompt\.md$/)
+    )
 
-    for (const configPath of configPaths) {
-      const fileExists = configPath in files
-      const fileContent = files[configPath]
+    const pathsToLoad = [...configPaths, ...promptPaths]
+
+    for (const filePath of pathsToLoad) {
+      const fileExists = filePath in files
+      const fileContent = files[filePath]
 
       // If file exists but content is empty, load it
       if (fileExists && fileContent === '' && onLoadFileContent) {
-        console.log('[ProjectViewer] Eagerly loading', configPath)
-        onLoadFileContent(activeProject, configPath).catch((err: Error) => {
-          console.error(`[ProjectViewer] Failed to load ${configPath}:`, err)
+        console.log('[ProjectViewer] Eagerly loading', filePath)
+        onLoadFileContent(activeProject, filePath).catch((err: Error) => {
+          console.error(`[ProjectViewer] Failed to load ${filePath}:`, err)
         })
       }
     }
