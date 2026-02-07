@@ -13,6 +13,16 @@ AgentForge is a monorepo project demonstrating autonomous agent-driven software 
 
 ## Quick Start
 
+### Clone with Examples
+
+Clone including example project submodules:
+
+```bash
+git clone --recursive https://github.com/your-org/agent-dev-cycle
+# or after cloning:
+git submodule update --init --recursive
+```
+
 ### Development
 
 ```bash
@@ -33,8 +43,10 @@ yarn build:all    # Build everything
 ### Testing
 
 ```bash
-yarn test         # Run server tests
-yarn test:e2e     # Run Playwright E2E tests
+yarn test             # Run server tests
+yarn test:e2e         # Run all E2E tests
+yarn test:structure   # Validate .agentforge structure
+yarn test:ui          # UI integration tests
 ```
 
 ## Project Structure
@@ -42,8 +54,9 @@ yarn test:e2e     # Run Playwright E2E tests
 - `/src/services/` - Modular service components (UI services, data objects, integrations)
 - `/packages/` - Shared libraries (dataobject, logger, runtime, server)
 - `/runner/` - Agent orchestration engine
+- `/examples/` - Example AgentForge projects (git submodules)
 - `/docs/` - Architecture and technical documentation
-- `/prompts/` - AI system prompts
+- `/.agentforge/` - AgentForge configuration for this project
 
 ## Documentation
 

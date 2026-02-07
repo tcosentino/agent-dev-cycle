@@ -1,0 +1,3 @@
+[submodule "examples/todo-app"]
+	path = examples/todo-app
+	url = https://github.com/tcosentino/agentforge-example-todo-app
