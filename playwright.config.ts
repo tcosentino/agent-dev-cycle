@@ -28,10 +28,20 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'yarn dev:agentforge',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    {
+      // Backend API server
+      command: 'cd packages/server && yarn dev',
+      url: 'http://localhost:3000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+    {
+      // Frontend Vite dev server
+      command: 'yarn dev:agentforge',
+      url: 'http://localhost:5173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+  ],
 });
