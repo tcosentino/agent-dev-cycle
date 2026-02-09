@@ -52,6 +52,40 @@ interface User {
 export function createAuthMiddleware(userStore: ResourceStore<Record<string, unknown>>) {
   return createMiddleware<{ Variables: { user: User | null; userId: string | null } }>(
     async (c, next) => {
+      // DEV/TEST MODE: If GitHub OAuth is not configured, create/use a test user
+      if (!GITHUB_CLIENT_ID || !GITHUB_CLIENT_SECRET) {
+        try {
+          // Try to find existing test user
+          const testUsers = await userStore.findAll({ where: { githubLogin: 'test-user-dev' } })
+          let testUser: User
+
+          if (testUsers.length > 0) {
+            testUser = testUsers[0] as unknown as User
+          } else {
+            // Create test user
+            const created = await userStore.create({
+              githubId: '0',
+              githubLogin: 'test-user-dev',
+              githubEmail: 'dev@localhost',
+              githubAccessToken: 'test-token',
+              avatarUrl: 'https://github.com/identicons/test.png',
+            })
+            testUser = created as unknown as User
+            console.log('[DEV MODE] Created test user:', testUser.id)
+          }
+
+          c.set('user', testUser)
+          c.set('userId', testUser.id)
+          return next()
+        } catch (err) {
+          console.error('[DEV MODE] Failed to create test user:', err)
+          c.set('user', null)
+          c.set('userId', null)
+          return next()
+        }
+      }
+
+      // PRODUCTION MODE: Normal session cookie authentication
       const sessionCookie = getCookie(c, 'session')
 
       if (!sessionCookie) {
