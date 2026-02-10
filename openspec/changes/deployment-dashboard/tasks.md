@@ -22,11 +22,11 @@
 - [ ] 4.4 Add "View Logs" button for each workload
 
 ## 5. Log Viewer
-- [ ] 5.1 Create LogViewer component
-- [ ] 5.2 Fetch and display workload logs
-- [ ] 5.3 Add search and filter UI
-- [ ] 5.4 Add download logs button
-- [ ] 5.5 Style log lines with syntax highlighting
+- [x] 5.1 Create LogViewer component
+- [x] 5.2 Fetch and display workload logs
+- [x] 5.3 Add search and filter UI
+- [x] 5.4 Add download logs button
+- [x] 5.5 Style log lines with syntax highlighting
 
 ## 6. Health Badge
 - [x] 6.1 Create HealthBadge component
