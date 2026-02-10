@@ -10,16 +10,16 @@
 - [ ] 2.4 Add empty state for no deployments
 
 ## 3. Deployment Card
-- [ ] 3.1 Create DeploymentCard component
-- [ ] 3.2 Display service name, status badge, created date
-- [ ] 3.3 Add click handler to open details
-- [ ] 3.4 Style status badges (running=green, stopped=gray, failed=red)
+- [x] 3.1 Create DeploymentCard component
+- [x] 3.2 Display service name, status badge, created date
+- [x] 3.3 Add click handler to open details
+- [x] 3.4 Style status badges (running=green, stopped=gray, failed=red)
 
 ## 4. Deployment Detail Panel
-- [ ] 4.1 Create DeploymentDetailPanel component
-- [ ] 4.2 Display all deployment fields
-- [ ] 4.3 List associated workloads
-- [ ] 4.4 Add "View Logs" button for each workload
+- [x] 4.1 Create DeploymentDetailPanel component
+- [x] 4.2 Display all deployment fields
+- [x] 4.3 List associated workloads
+- [x] 4.4 Add "View Logs" button for each workload
 
 ## 5. Log Viewer
 - [x] 5.1 Create LogViewer component

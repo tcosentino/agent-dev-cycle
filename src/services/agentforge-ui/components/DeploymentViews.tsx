@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -7,8 +7,13 @@ import {
   ServerIcon,
   PlayIcon,
   RocketIcon,
+  FileDocumentIcon,
 } from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage, StageStatus } from '../types'
+import { HealthBadge } from './HealthBadge'
+import { LogViewer } from './LogViewer'
+import { getWorkloadLogs } from '../api'
+import type { LogEntry } from './LogViewer'
 import styles from '../ProjectViewer.module.css'
 
 // --- Stage Progress Indicator ---
@@ -77,9 +82,11 @@ function WorkloadStages({ workload }: { workload: Workload }) {
 function WorkloadCard({
   workload,
   onClick,
+  onViewLogs,
 }: {
   workload: Workload
   onClick: () => void
+  onViewLogs: (workload: Workload) => void
 }) {
   const statusColors: Record<Workload['status'], string> = {
     pending: 'var(--text-tertiary)',
@@ -99,6 +106,8 @@ function WorkloadCard({
     return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
   }, [workload])
 
+  const hasLogs = workload.stages.some(stage => stage.logs && stage.logs.length > 0)
+
   return (
     <button className={styles.workloadCard} onClick={onClick}>
       <div className={styles.workloadHeader}>
@@ -110,6 +119,19 @@ function WorkloadCard({
         >
           {workload.status}
         </span>
+        {hasLogs && (
+          <button
+            className={styles.viewLogsButton}
+            onClick={(e) => {
+              e.stopPropagation()
+              onViewLogs(workload)
+            }}
+            title="View Logs"
+          >
+            <FileDocumentIcon />
+            <span>Logs</span>
+          </button>
+        )}
       </div>
       <WorkloadStages workload={workload} />
       <div className={styles.workloadMeta}>
@@ -137,10 +159,12 @@ function DeploymentCard({
   deployment,
   workloads,
   onWorkloadClick,
+  onViewLogs,
 }: {
   deployment: Deployment
   workloads: Workload[]
   onWorkloadClick: (workload: Workload) => void
+  onViewLogs: (workload: Workload) => void
 }) {
   const statusIcons: Record<Deployment['status'], React.ReactNode> = {
     pending: <ClockIcon className={styles.deploymentStatusIcon} />,
@@ -172,6 +196,11 @@ function DeploymentCard({
           {statusIcons[deployment.status]}
           <RocketIcon className={styles.deploymentIcon} />
           <span className={styles.deploymentName}>{deployment.name}</span>
+          <HealthBadge 
+            status={deployment.status} 
+            lastCheckTime={deployment.updatedAt}
+            showTooltip={true}
+          />
         </div>
         <div className={styles.deploymentMeta}>
           {deployment.trigger.branch && (
@@ -195,6 +224,7 @@ function DeploymentCard({
             key={workload.id}
             workload={workload}
             onClick={() => onWorkloadClick(workload)}
+            onViewLogs={onViewLogs}
           />
         ))}
       </div>
@@ -214,6 +244,12 @@ export function DeploymentListView({
   const deployments = snapshot.deployments || []
   const workloads = snapshot.workloads || []
 
+  const [logViewerState, setLogViewerState] = useState<{
+    workload: Workload
+    logs: LogEntry[]
+  } | null>(null)
+  const [loadingLogs, setLoadingLogs] = useState(false)
+
   const deploymentsWithWorkloads = useMemo(() => {
     return deployments.map(dep => ({
       deployment: dep,
@@ -221,21 +257,54 @@ export function DeploymentListView({
     }))
   }, [deployments, workloads])
 
+  const handleViewLogs = async (workload: Workload) => {
+    setLoadingLogs(true)
+    try {
+      const logs = await getWorkloadLogs(workload.id)
+      setLogViewerState({ workload, logs })
+    } catch (error) {
+      console.error('Failed to load logs:', error)
+      // Show empty logs with error
+      setLogViewerState({ 
+        workload, 
+        logs: [{ stage: 'error', log: 'Failed to load logs', error: String(error) }] 
+      })
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
   if (deployments.length === 0) {
     return <div className={styles.emptyState}>No deployments yet</div>
   }
 
   return (
-    <div className={styles.deploymentListView}>
-      {deploymentsWithWorkloads.map(({ deployment, workloads }) => (
-        <DeploymentCard
-          key={deployment.id}
-          deployment={deployment}
-          workloads={workloads}
-          onWorkloadClick={onWorkloadClick}
+    <>
+      <div className={styles.deploymentListView}>
+        {deploymentsWithWorkloads.map(({ deployment, workloads }) => (
+          <DeploymentCard
+            key={deployment.id}
+            deployment={deployment}
+            workloads={workloads}
+            onWorkloadClick={onWorkloadClick}
+            onViewLogs={handleViewLogs}
+          />
+        ))}
+      </div>
+      {logViewerState && (
+        <LogViewer
+          workloadId={logViewerState.workload.id}
+          workloadName={logViewerState.workload.moduleName}
+          logs={logViewerState.logs}
+          onClose={() => setLogViewerState(null)}
         />
-      ))}
-    </div>
+      )}
+      {loadingLogs && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingSpinner}>Loading logs...</div>
+        </div>
+      )}
+    </>
   )
 }
 

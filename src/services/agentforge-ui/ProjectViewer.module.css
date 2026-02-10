@@ -1624,6 +1624,34 @@
   text-transform: uppercase;
 }
 
+.viewLogsButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+
+.viewLogsButton:hover {
+  background: var(--accent-tertiary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.viewLogsButton svg {
+  width: 14px;
+  height: 14px;
+}
+
 .workloadMeta {
   display: flex;
   align-items: center;
@@ -2275,6 +2303,7 @@
   border: 1px solid var(--border-color);
   text-align: left;
 }
+}
 
 .serviceReadme th {
   background: var(--bg-tertiary);
@@ -2337,4 +2366,29 @@
 .deleteConfirmButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Loading overlay for async operations */
+.loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.loadingSpinner {
+  background: var(--bg-primary);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
 }
