@@ -39,15 +39,15 @@
 
 ## 5. Core UI Components - Task Board
 
-- [ ] 5.1 Create TaskBoard component in packages/ui-components/src/components/TaskBoard/
-- [ ] 5.2 Set up DndContext from @dnd-kit/core
-- [ ] 5.3 Create TaskColumn sub-component for status columns
-- [ ] 5.4 Create 5 columns: todo, in-progress, review, done, blocked
-- [ ] 5.5 Display column headers with task count
-- [ ] 5.6 Group tasks by status and render in columns
-- [ ] 5.7 Add CSS module for TaskBoard layout (horizontal scroll)
-- [ ] 5.8 Add empty state "No tasks" for empty columns
-- [ ] 5.9 Export TaskBoard from ui-components index
+- [x] 5.1 Create TaskBoard component in packages/ui-components/src/components/TaskBoard/
+- [x] 5.2 Set up DndContext from @dnd-kit/core
+- [x] 5.3 Create TaskColumn sub-component for status columns
+- [x] 5.4 Create 5 columns: todo, in-progress, review, done, blocked
+- [x] 5.5 Display column headers with task count
+- [x] 5.6 Group tasks by status and render in columns
+- [x] 5.7 Add CSS module for TaskBoard layout (horizontal scroll)
+- [x] 5.8 Add empty state "No tasks" for empty columns
+- [x] 5.9 Export TaskBoard from ui-components index
 
 ## 6. Drag-and-Drop Functionality
 

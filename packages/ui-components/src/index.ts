@@ -24,6 +24,9 @@ export type { TaskCardProps } from './components/TaskCard/TaskCard'
 export { TaskForm } from './components/TaskForm/TaskForm'
 export type { TaskFormProps, TaskFormData } from './components/TaskForm/TaskForm'
 
+export { TaskBoard } from './components/TaskBoard/TaskBoard'
+export type { TaskBoardProps } from './components/TaskBoard/TaskBoard'
+
 // Badge variants
 export { AgentStatusBadge } from './components/badges/AgentStatusBadge'
 export { AssigneeBadge } from './components/badges/AssigneeBadge'
