@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { 
   TaskBoard, 
   TaskDetailPanel, 
   TaskForm,
+  TaskFilters,
   Modal,
   Spinner,
-  type Task as UITask
+  type Task as UITask,
+  type TaskFiltersType
 } from '@agentforge/ui-components'
 import { api, type ApiTask } from '../../api'
 import styles from './TasksPage.module.css'
@@ -22,6 +24,68 @@ export function TasksPage({ projectId }: TasksPageProps) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [filters, setFilters] = useState<TaskFiltersType>({
+    search: '',
+    assignees: [],
+    priorities: [],
+    types: [],
+  })
+
+  // Load filters from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem(`taskFilters:${projectId}`)
+    if (stored) {
+      try {
+        setFilters(JSON.parse(stored))
+      } catch {
+        // Ignore invalid stored data
+      }
+    }
+  }, [projectId])
+
+  // Save filters to localStorage
+  useEffect(() => {
+    localStorage.setItem(`taskFilters:${projectId}`, JSON.stringify(filters))
+  }, [filters, projectId])
+
+  // Filter tasks based on current filters
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(task => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        const matchesKey = task.key.toLowerCase().includes(searchLower)
+        const matchesTitle = task.title.toLowerCase().includes(searchLower)
+        const matchesDesc = task.description?.toLowerCase().includes(searchLower)
+        if (!matchesKey && !matchesTitle && !matchesDesc) {
+          return false
+        }
+      }
+
+      // Assignee filter
+      if (filters.assignees.length > 0) {
+        if (!task.assignee || !filters.assignees.includes(task.assignee)) {
+          return false
+        }
+      }
+
+      // Priority filter
+      if (filters.priorities.length > 0) {
+        if (!task.priority || !filters.priorities.includes(task.priority)) {
+          return false
+        }
+      }
+
+      // Type filter
+      if (filters.types.length > 0) {
+        if (!task.type || !filters.types.includes(task.type)) {
+          return false
+        }
+      }
+
+      return true
+    })
+  }, [tasks, filters])
 
   // Convert API task to UI task
   const convertTask = (apiTask: ApiTask): UITask => ({
@@ -147,9 +211,13 @@ export function TasksPage({ projectId }: TasksPageProps) {
         </button>
       </div>
 
+      <div className={styles.filtersContainer}>
+        <TaskFilters filters={filters} onChange={setFilters} />
+      </div>
+
       <div className={styles.boardContainer}>
         <TaskBoard
-          tasks={tasks}
+          tasks={filteredTasks}
           onTaskClick={setSelectedTask}
           onTaskMove={handleTaskMove}
           onTaskDelete={handleTaskDelete}

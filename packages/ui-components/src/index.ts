@@ -27,6 +27,9 @@ export type { TaskFormProps, TaskFormData } from './components/TaskForm/TaskForm
 export { TaskBoard } from './components/TaskBoard/TaskBoard'
 export type { TaskBoardProps } from './components/TaskBoard/TaskBoard'
 
+export { TaskFiltersComponent as TaskFilters } from './components/TaskBoard/TaskFilters'
+export type { TaskFilters as TaskFiltersType, TaskFiltersProps } from './components/TaskBoard/TaskFilters'
+
 export { TaskDetailPanel } from './components/TaskDetailPanel/TaskDetailPanel'
 export type { TaskDetailPanelProps } from './components/TaskDetailPanel/TaskDetailPanel'
 

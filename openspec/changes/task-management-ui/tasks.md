@@ -124,15 +124,15 @@
 
 ## 13. Filtering and Search
 
-- [ ] 13.1 Create TaskFilters component with filter dropdowns
-- [ ] 13.2 Add assignee filter dropdown (pm, engineer, qa, lead)
-- [ ] 13.3 Add priority filter checkboxes (critical, high, medium, low)
-- [ ] 13.4 Add type filter (epic, api, backend, frontend, etc.)
-- [ ] 13.5 Add search box for key/title/description search
-- [ ] 13.6 Implement client-side filtering logic
-- [ ] 13.7 Add "Clear filters" button
-- [ ] 13.8 Display active filter count badge
-- [ ] 13.9 Persist filter preferences to localStorage
+- [x] 13.1 Create TaskFilters component with filter dropdowns
+- [x] 13.2 Add assignee filter dropdown (pm, engineer, qa, lead)
+- [x] 13.3 Add priority filter checkboxes (critical, high, medium, low)
+- [x] 13.4 Add type filter (epic, api, backend, frontend, etc.)
+- [x] 13.5 Add search box for key/title/description search
+- [x] 13.6 Implement client-side filtering logic
+- [x] 13.7 Add "Clear filters" button
+- [x] 13.8 Display active filter count badge
+- [x] 13.9 Persist filter preferences to localStorage
 
 ## 14. View Mode Toggle
 

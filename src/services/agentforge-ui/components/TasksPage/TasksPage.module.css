@@ -40,6 +40,10 @@
   box-shadow: 0 0 12px rgba(249, 115, 22, 0.3);
 }
 
+.filtersContainer {
+  padding: 16px 24px 0;
+}
+
 .boardContainer {
   flex: 1;
   overflow: hidden;
