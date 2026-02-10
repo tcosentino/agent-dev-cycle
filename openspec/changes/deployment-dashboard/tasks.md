@@ -1,7 +1,7 @@
 ## 1. API Integration
-- [ ] 1.1 Create getDeployments(projectId) in api.ts
-- [ ] 1.2 Create getWorkloads(deploymentId) in api.ts
-- [ ] 1.3 Create getWorkloadLogs(workloadId) in api.ts
+- [x] 1.1 Create getDeployments(projectId) in api.ts
+- [x] 1.2 Create getWorkloads(deploymentId) in api.ts
+- [x] 1.3 Create getWorkloadLogs(workloadId) in api.ts
 
 ## 2. Deployment Dashboard Page
 - [ ] 2.1 Create DeploymentDashboard component

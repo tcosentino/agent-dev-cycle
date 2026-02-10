@@ -416,6 +416,55 @@ export const api = {
   },
 }
 
+// --- Deployment Dashboard Helpers ---
+
+/**
+ * Get deployments for a project (convenience wrapper)
+ */
+export async function getDeployments(projectId: string): Promise<ApiDeployment[]> {
+  return api.deployments.list(projectId)
+}
+
+/**
+ * Get workloads for a deployment (convenience wrapper)
+ */
+export async function getWorkloads(deploymentId: string): Promise<ApiWorkload[]> {
+  return api.workloads.list(deploymentId)
+}
+
+/**
+ * Get workload logs by fetching the workload and extracting logs from stages
+ */
+export async function getWorkloadLogs(workloadId: string): Promise<Array<{ stage: string; log: string; error?: string }>> {
+  const workload = await api.workloads.get(workloadId) as unknown as {
+    stages?: Array<{
+      stage: string
+      logs?: string[]
+      error?: string
+    }>
+  }
+
+  if (!workload.stages) {
+    return []
+  }
+
+  // Flatten logs from all stages with stage context
+  const logs: Array<{ stage: string; log: string; error?: string }> = []
+  
+  for (const stage of workload.stages) {
+    if (stage.logs && stage.logs.length > 0) {
+      for (const log of stage.logs) {
+        logs.push({ stage: stage.stage, log })
+      }
+    }
+    if (stage.error) {
+      logs.push({ stage: stage.stage, log: stage.error, error: stage.error })
+    }
+  }
+
+  return logs
+}
+
 // Parse GitHub repo URL to extract owner and repo
 export function parseRepoUrl(url: string): { owner: string; repo: string } | null {
   const httpsMatch = url.match(/github\.com\/([^/]+)\/([^/.]+)(\.git)?/)
