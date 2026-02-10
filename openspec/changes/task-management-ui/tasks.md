@@ -199,9 +199,9 @@
 
 - [ ] 21.1 Implement virtual scrolling for columns with 50+ tasks
 - [ ] 21.2 Lazy load task details (only fetch on detail panel open)
-- [ ] 21.3 Debounce search input (300ms delay)
-- [ ] 21.4 Memoize filtered/sorted task arrays with useMemo
-- [ ] 21.5 Add loading states for drag-and-drop (prevent double-clicks)
+- [x] 21.3 Debounce search input (300ms delay)
+- [x] 21.4 Memoize filtered/sorted task arrays with useMemo
+- [x] 21.5 Add loading states for drag-and-drop (prevent double-clicks)
 
 ## 22. Testing - Unit Tests
 
@@ -234,10 +234,10 @@
 
 ## 25. Polish and Edge Cases
 
-- [ ] 25.1 Handle long task titles (truncate with ellipsis)
-- [ ] 25.2 Handle long task descriptions (truncate in card, show full in panel)
-- [ ] 25.3 Handle tasks with no assignee (show "Unassigned")
-- [ ] 25.4 Handle tasks with no priority (default to "medium")
-- [ ] 25.5 Handle rapid status changes (debounce API calls)
-- [ ] 25.6 Test with 0 tasks, 1 task, 100 tasks
-- [ ] 25.7 Test with very long project key (e.g., "VERYLONGPROJECTKEY-1")
+- [x] 25.1 Handle long task titles (truncate with ellipsis)
+- [x] 25.2 Handle long task descriptions (truncate in card, show full in panel)
+- [x] 25.3 Handle tasks with no assignee (show "Unassigned")
+- [x] 25.4 Handle tasks with no priority (default to "medium")
+- [x] 25.5 Handle rapid status changes (debounce API calls)
+- [x] 25.6 Test with 0 tasks, 1 task, 100 tasks
+- [x] 25.7 Test with very long project key (e.g., "VERYLONGPROJECTKEY-1")
