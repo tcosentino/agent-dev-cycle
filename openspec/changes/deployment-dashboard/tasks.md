@@ -37,9 +37,9 @@
 - [x] 7.1 Add "Deployments" tab to ProjectViewer
 
 ## 8. Testing
-- [ ] 8.1 Test deployment list rendering
-- [ ] 8.2 Test log viewer with various log formats
-- [ ] 8.3 Test empty states
+- [x] 8.1 Test deployment list rendering
+- [x] 8.2 Test log viewer with various log formats
+- [x] 8.3 Test empty states
 
 ## 9. Documentation
-- [ ] 9.1 Document deployment dashboard usage
+- [x] 9.1 Document deployment dashboard usage
