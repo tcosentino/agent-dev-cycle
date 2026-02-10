@@ -234,15 +234,8 @@ export interface ApiGitHubRepo {
 
 // Claude Code auth types
 export interface ClaudeAuthStatus {
-  type: 'oauth' | 'api-key' | null
+  type: 'subscription' | 'api-key' | null
   status: 'valid' | 'expired' | 'not-configured'
-  expiresAt?: number
-  subscriptionType?: string
-}
-
-export interface ClaudeOAuthStartResponse {
-  authUrl: string
-  state: string
 }
 
 export const api = {
@@ -254,19 +247,12 @@ export const api = {
   // Claude Code Auth
   claudeAuth: {
     getStatus: () => fetchJson<ClaudeAuthStatus>('/claude-auth/status'),
-    startOAuth: () =>
-      fetchJson<ClaudeOAuthStartResponse>('/claude-auth/start-oauth', {
+    setSubscriptionToken: (token: string) =>
+      fetchJson<{ success: boolean }>('/claude-auth/set-subscription-token', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
       }),
-    completeOAuth: (code: string, state?: string) =>
-      fetchJson<{ success: boolean; expiresAt?: number; subscriptionType?: string }>(
-        '/claude-auth/complete-oauth',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, state }),
-        }
-      ),
     setApiKey: (apiKey: string) =>
       fetchJson<{ success: boolean }>('/claude-auth/set-api-key', {
         method: 'POST',

@@ -11,10 +11,8 @@ export const userResource = defineResource({
     githubAccessToken: z.string(),
     avatarUrl: z.string().url().optional(),
     // Claude Code authentication
-    claudeAuthType: z.enum(['oauth', 'api-key']).optional(),
-    claudeOAuthAccessToken: z.string().optional(),
-    claudeOAuthRefreshToken: z.string().optional(),
-    claudeOAuthExpiresAt: z.number().optional(),
+    claudeAuthType: z.enum(['subscription', 'api-key']).optional(),
+    claudeSubscriptionToken: z.string().optional(),
     claudeApiKey: z.string().optional(),
   }),
 
@@ -24,9 +22,7 @@ export const userResource = defineResource({
     'githubEmail',
     'avatarUrl',
     'claudeAuthType',
-    'claudeOAuthAccessToken',
-    'claudeOAuthRefreshToken',
-    'claudeOAuthExpiresAt',
+    'claudeSubscriptionToken',
     'claudeApiKey',
   ],
   unique: ['githubId'],

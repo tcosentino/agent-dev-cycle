@@ -12,5 +12,5 @@ export const claudeAuthIntegration: IntegrationService = {
 }
 
 // Re-export utilities for use in agent session launching
-export { getClaudeCredentialsForSession, refreshClaudeToken } from './routes'
+export { getClaudeCredentialsForSession } from './routes'
 export * from './types'

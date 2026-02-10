@@ -26,10 +26,8 @@ export type ClaudeCredentials =
 export type AuthStatus = 'valid' | 'expired' | 'not-configured'
 
 export interface ClaudeAuthInfo {
-  type: 'oauth' | 'api-key' | null
+  type: 'subscription' | 'api-key' | null
   status: AuthStatus
-  expiresAt?: number
-  subscriptionType?: string
 }
 
 // PKCE flow state (stored temporarily during OAuth)

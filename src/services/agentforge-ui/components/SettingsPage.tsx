@@ -6,22 +6,20 @@ interface SettingsPageProps {
   onBack?: () => void
 }
 
-type AuthMethod = 'oauth' | 'api-key'
+type AuthMethod = 'subscription' | 'api-key'
 
 export function SettingsPage({ onBack }: SettingsPageProps) {
   const [authStatus, setAuthStatus] = useState<ClaudeAuthStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // OAuth flow state
-  const [oauthUrl, setOauthUrl] = useState<string | null>(null)
-  const [oauthState, setOauthState] = useState<string | null>(null)
-  const [oauthCode, setOauthCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
+
+  // Subscription token state
+  const [subscriptionToken, setSubscriptionToken] = useState('')
 
   // API key state
   const [apiKey, setApiKey] = useState('')
-  const [selectedMethod, setSelectedMethod] = useState<AuthMethod>('oauth')
+  const [selectedMethod, setSelectedMethod] = useState<AuthMethod>('subscription')
 
   // Load current auth status
   useEffect(() => {
@@ -31,7 +29,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
         const status = await api.claudeAuth.getStatus()
         setAuthStatus(status)
         if (status.type) {
-          setSelectedMethod(status.type)
+          setSelectedMethod(status.type === 'subscription' ? 'subscription' : 'api-key')
         }
       } catch (err) {
         console.error('Failed to load auth status:', err)
@@ -43,48 +41,29 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
     loadStatus()
   }, [])
 
-  // Start OAuth flow
-  const handleStartOAuth = useCallback(async () => {
-    try {
-      setError(null)
-      setSubmitting(true)
-      const response = await api.claudeAuth.startOAuth()
-      setOauthUrl(response.authUrl)
-      setOauthState(response.state)
-    } catch (err) {
-      console.error('Failed to start OAuth:', err)
-      setError('Failed to start authentication flow')
-    } finally {
-      setSubmitting(false)
-    }
-  }, [])
-
-  // Complete OAuth flow
-  const handleCompleteOAuth = useCallback(async () => {
-    if (!oauthCode.trim()) {
-      setError('Please enter the authorization code')
+  // Save subscription token
+  const handleSaveSubscriptionToken = useCallback(async () => {
+    if (!subscriptionToken.trim()) {
+      setError('Please enter a subscription token')
       return
     }
 
     try {
       setError(null)
       setSubmitting(true)
-      const response = await api.claudeAuth.completeOAuth(oauthCode.trim(), oauthState || undefined)
+      const response = await api.claudeAuth.setSubscriptionToken(subscriptionToken.trim())
       if (response.success) {
-        // Reload status
         const status = await api.claudeAuth.getStatus()
         setAuthStatus(status)
-        setOauthUrl(null)
-        setOauthState(null)
-        setOauthCode('')
+        setSubscriptionToken('')
       }
     } catch (err) {
-      console.error('Failed to complete OAuth:', err)
-      setError('Failed to complete authentication. Please try again.')
+      console.error('Failed to save subscription token:', err)
+      setError('Failed to save subscription token. Please try again.')
     } finally {
       setSubmitting(false)
     }
-  }, [oauthCode, oauthState])
+  }, [subscriptionToken])
 
   // Save API key
   const handleSaveApiKey = useCallback(async () => {
@@ -117,8 +96,6 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       setSubmitting(true)
       await api.claudeAuth.disconnect()
       setAuthStatus({ type: null, status: 'not-configured' })
-      setOauthUrl(null)
-      setOauthState(null)
     } catch (err) {
       console.error('Failed to disconnect:', err)
       setError('Failed to disconnect')
@@ -126,15 +103,6 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
       setSubmitting(false)
     }
   }, [])
-
-  // Format expiry date
-  const formatExpiry = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    })
-  }
 
   if (loading) {
     return (
@@ -186,13 +154,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
               </div>
               <div className="auth-status-info">
                 <div className="auth-status-title">
-                  Connected via {authStatus?.type === 'oauth' ? 'Claude Subscription' : 'API Key'}
+                  Connected via {authStatus?.type === 'subscription' ? 'Claude Subscription' : 'API Key'}
                 </div>
-                {authStatus?.type === 'oauth' && authStatus.expiresAt && (
-                  <div className="auth-status-detail">
-                    Expires: {formatExpiry(authStatus.expiresAt)}
-                  </div>
-                )}
               </div>
               <button
                 className="settings-button settings-button-secondary"
@@ -234,8 +197,8 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
             <div className="auth-setup">
               <div className="auth-method-tabs">
                 <button
-                  className={`auth-method-tab ${selectedMethod === 'oauth' ? 'active' : ''}`}
-                  onClick={() => setSelectedMethod('oauth')}
+                  className={`auth-method-tab ${selectedMethod === 'subscription' ? 'active' : ''}`}
+                  onClick={() => setSelectedMethod('subscription')}
                 >
                   Claude Subscription
                 </button>
@@ -247,86 +210,37 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                 </button>
               </div>
 
-              {selectedMethod === 'oauth' && (
+              {selectedMethod === 'subscription' && (
                 <div className="auth-method-content">
-                  {!oauthUrl ? (
-                    <>
-                      <p>
-                        Authenticate with your Claude subscription to use your existing plan for
-                        agent sessions.
-                      </p>
-                      <button
-                        className="settings-button settings-button-primary"
-                        onClick={handleStartOAuth}
-                        disabled={submitting}
-                      >
-                        {submitting ? 'Starting...' : 'Start Authentication'}
-                      </button>
-                    </>
-                  ) : (
-                    <div className="oauth-flow">
-                      <div className="oauth-step">
-                        <div className="oauth-step-number">1</div>
-                        <div className="oauth-step-content">
-                          <p>Click the link below to authenticate with Claude:</p>
-                          <div className="oauth-url-container">
-                            <a
-                              href={oauthUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="oauth-url-link"
-                            >
-                              Open Authentication Page
-                            </a>
-                            <button
-                              className="oauth-copy-button"
-                              onClick={() => navigator.clipboard.writeText(oauthUrl)}
-                              title="Copy URL"
-                            >
-                              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                              </svg>
-                            </button>
-                          </div>
+                  <div className="auth-instructions">
+                    <p>To use your Claude subscription with AgentForge:</p>
+                    <ol>
+                      <li>
+                        Open your terminal and run:
+                        <div className="code-block">
+                          <code>claude setup-token</code>
                         </div>
-                      </div>
-
-                      <div className="oauth-step">
-                        <div className="oauth-step-number">2</div>
-                        <div className="oauth-step-content">
-                          <p>After authenticating, paste the code you receive:</p>
-                          <div className="oauth-code-input">
-                            <input
-                              type="text"
-                              value={oauthCode}
-                              onChange={(e) => setOauthCode(e.target.value)}
-                              placeholder="Paste authorization code here"
-                              disabled={submitting}
-                            />
-                            <button
-                              className="settings-button settings-button-primary"
-                              onClick={handleCompleteOAuth}
-                              disabled={submitting || !oauthCode.trim()}
-                            >
-                              {submitting ? 'Verifying...' : 'Complete'}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        className="oauth-cancel"
-                        onClick={() => {
-                          setOauthUrl(null)
-                          setOauthState(null)
-                          setOauthCode('')
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
+                      </li>
+                      <li>Follow the prompts to authenticate with your Claude account</li>
+                      <li>Copy the token you receive and paste it below</li>
+                    </ol>
+                  </div>
+                  <div className="token-input">
+                    <input
+                      type="password"
+                      value={subscriptionToken}
+                      onChange={(e) => setSubscriptionToken(e.target.value)}
+                      placeholder="Paste your subscription token here"
+                      disabled={submitting}
+                    />
+                    <button
+                      className="settings-button settings-button-primary"
+                      onClick={handleSaveSubscriptionToken}
+                      disabled={submitting || !subscriptionToken.trim()}
+                    >
+                      {submitting ? 'Saving...' : 'Save Token'}
+                    </button>
+                  </div>
                 </div>
               )}
 
