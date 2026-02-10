@@ -30,6 +30,29 @@
   margin-bottom: 8px;
 }
 
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dragHandle {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  cursor: grab;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.card:hover .dragHandle {
+  opacity: 1;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
 .key {
   font-family: var(--font-mono);
   font-size: 0.75rem;

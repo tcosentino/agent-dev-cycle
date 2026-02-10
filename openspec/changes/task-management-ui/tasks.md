@@ -51,14 +51,14 @@
 
 ## 6. Drag-and-Drop Functionality
 
-- [ ] 6.1 Make TaskCard draggable with useDraggable hook
-- [ ] 6.2 Make TaskColumn droppable with useDroppable hook
-- [ ] 6.3 Implement onDragEnd handler in TaskBoard
-- [ ] 6.4 Detect source and destination columns
-- [ ] 6.5 Emit onTaskMove(taskId, newStatus) callback
-- [ ] 6.6 Add drag overlay for visual feedback
-- [ ] 6.7 Add drag handle icon to TaskCard
-- [ ] 6.8 Add CSS for drag states (dragging, over drop zone)
+- [x] 6.1 Make TaskCard draggable with useDraggable hook
+- [x] 6.2 Make TaskColumn droppable with useDroppable hook
+- [x] 6.3 Implement onDragEnd handler in TaskBoard
+- [x] 6.4 Detect source and destination columns
+- [x] 6.5 Emit onTaskMove(taskId, newStatus) callback
+- [x] 6.6 Add drag overlay for visual feedback
+- [x] 6.7 Add drag handle icon to TaskCard
+- [x] 6.8 Add CSS for drag states (dragging, over drop zone)
 
 ## 7. Keyboard Accessibility for Drag-and-Drop
 
