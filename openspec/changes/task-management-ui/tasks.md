@@ -26,16 +26,16 @@
 
 ## 4. Core UI Components - Task Form
 
-- [ ] 4.1 Create TaskForm component in packages/ui-components/src/components/TaskForm/
-- [ ] 4.2 Add form fields: title (required), description, type, priority, assignee
-- [ ] 4.3 Hide key field (auto-generated on server)
-- [ ] 4.4 Add field validation (title required, max length 200)
-- [ ] 4.5 Add CSS module for TaskForm styling
-- [ ] 4.6 Create controlled inputs with React state
-- [ ] 4.7 Add submit and cancel buttons
-- [ ] 4.8 Handle API errors and display error messages
-- [ ] 4.9 Emit onSubmit(taskData) and onCancel() callbacks
-- [ ] 4.10 Export TaskForm from ui-components index
+- [x] 4.1 Create TaskForm component in packages/ui-components/src/components/TaskForm/
+- [x] 4.2 Add form fields: title (required), description, type, priority, assignee
+- [x] 4.3 Hide key field (auto-generated on server)
+- [x] 4.4 Add field validation (title required, max length 200)
+- [x] 4.5 Add CSS module for TaskForm styling
+- [x] 4.6 Create controlled inputs with React state
+- [x] 4.7 Add submit and cancel buttons
+- [x] 4.8 Handle API errors and display error messages
+- [x] 4.9 Emit onSubmit(taskData) and onCancel() callbacks
+- [x] 4.10 Export TaskForm from ui-components index
 
 ## 5. Core UI Components - Task Board
 

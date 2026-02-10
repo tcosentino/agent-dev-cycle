@@ -21,6 +21,9 @@ export type { ModalProps } from './components/Modal/Modal'
 export { TaskCard } from './components/TaskCard/TaskCard'
 export type { TaskCardProps } from './components/TaskCard/TaskCard'
 
+export { TaskForm } from './components/TaskForm/TaskForm'
+export type { TaskFormProps, TaskFormData } from './components/TaskForm/TaskForm'
+
 // Badge variants
 export { AgentStatusBadge } from './components/badges/AgentStatusBadge'
 export { AssigneeBadge } from './components/badges/AssigneeBadge'
