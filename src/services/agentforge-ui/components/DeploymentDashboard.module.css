@@ -1,0 +1,104 @@
+.container {
+  padding: var(--space-lg);
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Loading state */
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+  color: var(--text-secondary);
+}
+
+.loadingIcon {
+  width: 48px;
+  height: 48px;
+  color: var(--accent-primary);
+  margin-bottom: var(--space-md);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.loadingState p {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Error state */
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.errorMessage {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--error);
+  margin-bottom: var(--space-md);
+}
+
+.retryButton {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--accent-tertiary);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.retryButton:hover {
+  opacity: 0.8;
+}
+
+/* Empty state */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl) var(--space-lg);
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 64px;
+  height: 64px;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-lg);
+}
+
+.emptyState h2 {
+  font-family: var(--font-sans);
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.emptyState p {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 400px;
+}

@@ -4,10 +4,10 @@
 - [x] 1.3 Create getWorkloadLogs(workloadId) in api.ts
 
 ## 2. Deployment Dashboard Page
-- [ ] 2.1 Create DeploymentDashboard component
-- [ ] 2.2 Fetch deployments on mount
-- [ ] 2.3 Display deployment cards in grid
-- [ ] 2.4 Add empty state for no deployments
+- [x] 2.1 Create DeploymentDashboard component
+- [x] 2.2 Fetch deployments on mount
+- [x] 2.3 Display deployment cards in grid
+- [x] 2.4 Add empty state for no deployments
 
 ## 3. Deployment Card
 - [x] 3.1 Create DeploymentCard component
