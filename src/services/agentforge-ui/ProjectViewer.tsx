@@ -839,7 +839,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     // Table tabs with rich view support
     if (t.type === 'table' && TABLES_WITH_VIEW.includes(t.path as DbTableName)) {
       const tableName = t.path as DbTableName
-      const defaultMode = tableName === 'tasks' ? 'view' : 'table'
+      const defaultMode = (tableName === 'tasks' || tableName === 'deployments') ? 'view' : 'table'
       const currentMode = viewModes[tableName] || defaultMode
 
       // Customize view labels based on table type
@@ -927,7 +927,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
 
     if (tab.type === 'table' && snapshot) {
       const tableName = tab.path as DbTableName
-      const defaultMode = tableName === 'tasks' ? 'view' : 'table'
+      const defaultMode = (tableName === 'tasks' || tableName === 'deployments') ? 'view' : 'table'
       const viewMode = viewModes[tableName] || defaultMode
       return (
         <DatabaseTableView

@@ -34,7 +34,7 @@
 - [x] 6.3 Add tooltip with last check time
 
 ## 7. Navigation Integration
-- [ ] 7.1 Add "Deployments" tab to ProjectViewer
+- [x] 7.1 Add "Deployments" tab to ProjectViewer
 
 ## 8. Testing
 - [ ] 8.1 Test deployment list rendering
