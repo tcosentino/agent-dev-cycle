@@ -29,9 +29,9 @@
 - [ ] 5.5 Style log lines with syntax highlighting
 
 ## 6. Health Badge
-- [ ] 6.1 Create HealthBadge component
-- [ ] 6.2 Display status based on deployment.status
-- [ ] 6.3 Add tooltip with last check time
+- [x] 6.1 Create HealthBadge component
+- [x] 6.2 Display status based on deployment.status
+- [x] 6.3 Add tooltip with last check time
 
 ## 7. Navigation Integration
 - [ ] 7.1 Add "Deployments" tab to ProjectViewer
