@@ -15,14 +15,14 @@
 
 ## 3. Core UI Components - Task Card
 
-- [ ] 3.1 Create TaskCard component in packages/ui-components/src/components/TaskCard/
-- [ ] 3.2 Add TaskCard.tsx with props: task, onClick, onDelete
-- [ ] 3.3 Display task key, title, priority indicator, assignee
-- [ ] 3.4 Add CSS module for TaskCard styling
-- [ ] 3.5 Add priority color coding (critical=red, high=orange, medium=yellow, low=gray)
-- [ ] 3.6 Add type icon (backend, frontend, testing, etc.)
-- [ ] 3.7 Add hover effects
-- [ ] 3.8 Export TaskCard from ui-components index
+- [x] 3.1 Create TaskCard component in packages/ui-components/src/components/TaskCard/
+- [x] 3.2 Add TaskCard.tsx with props: task, onClick, onDelete
+- [x] 3.3 Display task key, title, priority indicator, assignee
+- [x] 3.4 Add CSS module for TaskCard styling
+- [x] 3.5 Add priority color coding (critical=red, high=orange, medium=yellow, low=gray)
+- [x] 3.6 Add type icon (backend, frontend, testing, etc.)
+- [x] 3.7 Add hover effects
+- [x] 3.8 Export TaskCard from ui-components index
 
 ## 4. Core UI Components - Task Form
 

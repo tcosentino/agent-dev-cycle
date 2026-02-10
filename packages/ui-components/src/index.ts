@@ -17,6 +17,10 @@ export type { ListPanelProps, SidebarItem } from './components/ListPanel/types'
 export { Modal } from './components/Modal/Modal'
 export type { ModalProps } from './components/Modal/Modal'
 
+// Task components
+export { TaskCard } from './components/TaskCard/TaskCard'
+export type { TaskCardProps } from './components/TaskCard/TaskCard'
+
 // Badge variants
 export { AgentStatusBadge } from './components/badges/AgentStatusBadge'
 export { AssigneeBadge } from './components/badges/AssigneeBadge'
@@ -28,4 +32,4 @@ export { TypeBadge } from './components/badges/TypeBadge'
 export * from './icons/icons'
 
 // Shared types
-export type { AgentStatus, AgentRole, TaskPriority, TaskType } from './types'
+export type { AgentStatus, AgentRole, TaskPriority, TaskType, TaskStatus, Task } from './types'
