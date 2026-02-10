@@ -62,12 +62,12 @@
 
 ## 7. Keyboard Accessibility for Drag-and-Drop
 
-- [ ] 7.1 Add KeyboardSensor to DndContext
-- [ ] 7.2 Enable keyboard dragging with Space key
-- [ ] 7.3 Add arrow key navigation between columns
-- [ ] 7.4 Add visual focus indicators
-- [ ] 7.5 Add screen reader announcements for drag events
-- [ ] 7.6 Test keyboard-only board navigation
+- [x] 7.1 Add KeyboardSensor to DndContext
+- [x] 7.2 Enable keyboard dragging with Space key
+- [x] 7.3 Add arrow key navigation between columns
+- [x] 7.4 Add visual focus indicators
+- [x] 7.5 Add screen reader announcements for drag events
+- [x] 7.6 Test keyboard-only board navigation
 
 ## 8. Task Detail Panel
 
