@@ -1,9 +1,9 @@
 ## 1. Setup and Dependencies
 
-- [ ] 1.1 Add @dnd-kit/core dependency to root package.json
-- [ ] 1.2 Add @dnd-kit/sortable dependency
-- [ ] 1.3 Add @dnd-kit/utilities dependency
-- [ ] 1.4 Install dependencies with yarn
+- [x] 1.1 Add @dnd-kit/core dependency to root package.json
+- [x] 1.2 Add @dnd-kit/sortable dependency
+- [x] 1.3 Add @dnd-kit/utilities dependency
+- [x] 1.4 Install dependencies with yarn
 
 ## 2. API Client Functions
 
