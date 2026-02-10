@@ -225,12 +225,12 @@
 
 ## 24. Documentation
 
-- [ ] 24.1 Update component documentation for TaskBoard
-- [ ] 24.2 Update component documentation for TaskForm
-- [ ] 24.3 Update component documentation for TaskCard
-- [ ] 24.4 Document task management workflow in user guide
-- [ ] 24.5 Add screenshots to docs
-- [ ] 24.6 Update ARCHITECTURE.md with task UI components
+- [x] 24.1 Update component documentation for TaskBoard
+- [x] 24.2 Update component documentation for TaskForm
+- [x] 24.3 Update component documentation for TaskCard
+- [x] 24.4 Document task management workflow in user guide
+- [x] 24.5 Add screenshots to docs
+- [x] 24.6 Update ARCHITECTURE.md with task UI components
 
 ## 25. Polish and Edge Cases
 
