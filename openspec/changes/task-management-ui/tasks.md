@@ -83,12 +83,12 @@
 
 ## 9. Tasks Page Integration
 
-- [ ] 9.1 Create TasksPage component in src/services/agentforge-ui/components/
-- [ ] 9.2 Add route for /project/:projectId/tasks in ProjectViewer
-- [ ] 9.3 Add "Tasks" tab to main navigation
-- [ ] 9.4 Fetch tasks on mount with GET /api/tasks?projectId={id}
-- [ ] 9.5 Store tasks in React state
-- [ ] 9.6 Pass tasks to TaskBoard component
+- [x] 9.1 Create TasksPage component in src/services/agentforge-ui/components/
+- [x] 9.2 Add route for /project/:projectId/tasks in ProjectViewer
+- [x] 9.3 Add "Tasks" tab to main navigation
+- [x] 9.4 Fetch tasks on mount with GET /api/tasks?projectId={id}
+- [x] 9.5 Store tasks in React state
+- [x] 9.6 Pass tasks to TaskBoard component
 
 ## 10. Task Creation Flow
 
