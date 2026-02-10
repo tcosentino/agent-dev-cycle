@@ -154,19 +154,19 @@
 
 ## 16. Auto-Key Generation UI
 
-- [ ] 16.1 Display auto-generated key prominently in TaskCard header
-- [ ] 16.2 Show key in format "AF-5: Task title"
-- [ ] 16.3 Add click-to-copy functionality on task key
-- [ ] 16.4 Show toast "Copied AF-5" on copy
-- [ ] 16.5 Display key in task creation success toast
-- [ ] 16.6 Make key searchable (search by "AF-5" finds task)
+- [x] 16.1 Display auto-generated key prominently in TaskCard header
+- [x] 16.2 Show key in format "AF-5: Task title"
+- [x] 16.3 Add click-to-copy functionality on task key
+- [x] 16.4 Show toast "Copied AF-5" on copy
+- [x] 16.5 Display key in task creation success toast
+- [x] 16.6 Make key searchable (search by "AF-5" finds task)
 
 ## 17. Empty States
 
-- [ ] 17.1 Design empty state for TasksPage when no tasks exist
-- [ ] 17.2 Show illustration, message "No tasks yet", and "Create Task" CTA
-- [ ] 17.3 Design empty state for filtered results (no matches)
-- [ ] 17.4 Show message "No tasks match filters" with "Clear filters" button
+- [x] 17.1 Design empty state for TasksPage when no tasks exist
+- [x] 17.2 Show illustration, message "No tasks yet", and "Create Task" CTA
+- [x] 17.3 Design empty state for filtered results (no matches)
+- [x] 17.4 Show message "No tasks match filters" with "Clear filters" button
 
 ## 18. Loading and Error States
 
