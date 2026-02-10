@@ -170,30 +170,30 @@
 
 ## 18. Loading and Error States
 
-- [ ] 18.1 Show loading spinner while fetching tasks
-- [ ] 18.2 Show error message if task fetch fails
-- [ ] 18.3 Add "Retry" button for failed fetch
-- [ ] 18.4 Show skeleton loaders for task cards while loading
-- [ ] 18.5 Handle network errors gracefully
+- [x] 18.1 Show loading spinner while fetching tasks
+- [x] 18.2 Show error message if task fetch fails
+- [x] 18.3 Add "Retry" button for failed fetch
+- [x] 18.4 Show skeleton loaders for task cards while loading
+- [x] 18.5 Handle network errors gracefully
 
 ## 19. Responsive Design
 
-- [ ] 19.1 Test TaskBoard on tablet (768px) - horizontal scroll
-- [ ] 19.2 Test TaskBoard on mobile (375px) - stack columns vertically
-- [ ] 19.3 Make TaskForm responsive (full-width on mobile)
-- [ ] 19.4 Ensure TaskDetailPanel slides over on mobile
-- [ ] 19.5 Add touch-friendly drag-and-drop on mobile
-- [ ] 19.6 Test all interactions on touch devices
+- [x] 19.1 Test TaskBoard on tablet (768px) - horizontal scroll
+- [x] 19.2 Test TaskBoard on mobile (375px) - stack columns vertically
+- [x] 19.3 Make TaskForm responsive (full-width on mobile)
+- [x] 19.4 Ensure TaskDetailPanel slides over on mobile
+- [x] 19.5 Add touch-friendly drag-and-drop on mobile
+- [x] 19.6 Test all interactions on touch devices
 
 ## 20. Accessibility
 
-- [ ] 20.1 Add ARIA labels to all interactive elements
-- [ ] 20.2 Ensure keyboard navigation works (Tab, Enter, Escape)
-- [ ] 20.3 Add screen reader announcements for task creation/update/deletion
-- [ ] 20.4 Ensure color contrast meets WCAG AA standards
-- [ ] 20.5 Test with screen reader (VoiceOver, NVDA)
-- [ ] 20.6 Add skip links for keyboard users
-- [ ] 20.7 Ensure focus is managed correctly (modal open/close)
+- [x] 20.1 Add ARIA labels to all interactive elements
+- [x] 20.2 Ensure keyboard navigation works (Tab, Enter, Escape)
+- [x] 20.3 Add screen reader announcements for task creation/update/deletion
+- [x] 20.4 Ensure color contrast meets WCAG AA standards
+- [x] 20.5 Test with screen reader (VoiceOver, NVDA)
+- [x] 20.6 Add skip links for keyboard users
+- [x] 20.7 Ensure focus is managed correctly (modal open/close)
 
 ## 21. Performance Optimization
 
