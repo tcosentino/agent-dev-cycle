@@ -7,11 +7,11 @@
 
 ## 2. API Client Functions
 
-- [ ] 2.1 Create getTasks(projectId) function in src/services/agentforge-ui/api.ts
-- [ ] 2.2 Create createTask(projectId, taskData) function
-- [ ] 2.3 Create updateTask(taskId, updates) function
-- [ ] 2.4 Create deleteTask(taskId) function
-- [ ] 2.5 Add TypeScript types for task API responses
+- [x] 2.1 Create getTasks(projectId) function in src/services/agentforge-ui/api.ts
+- [x] 2.2 Create createTask(projectId, taskData) function
+- [x] 2.3 Create updateTask(taskId, updates) function
+- [x] 2.4 Create deleteTask(taskId) function
+- [x] 2.5 Add TypeScript types for task API responses
 
 ## 3. Core UI Components - Task Card
 

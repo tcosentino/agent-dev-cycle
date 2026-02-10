@@ -26,11 +26,30 @@ export interface ApiTask {
   key: string
   title: string
   description?: string
+  type?: string
   status: string
-  priority: string
+  priority?: string
   assignee?: string
   createdAt: string
   updatedAt: string
+}
+
+export interface CreateTaskInput {
+  projectId: string
+  title: string
+  description?: string
+  type?: string
+  priority?: string
+  assignee?: string
+}
+
+export interface UpdateTaskInput {
+  title?: string
+  description?: string
+  type?: string
+  priority?: string
+  status?: string
+  assignee?: string
 }
 
 export interface ApiChannel {
@@ -271,6 +290,22 @@ export const api = {
       return fetchJson<ApiTask[]>(`/tasks${query}`)
     },
     get: (id: string) => fetchJson<ApiTask>(`/tasks/${id}`),
+    create: (data: CreateTaskInput) =>
+      fetchJson<ApiTask>('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: UpdateTaskInput) =>
+      fetchJson<ApiTask>(`/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      fetchJson<{ success: boolean }>(`/tasks/${id}`, {
+        method: 'DELETE',
+      }),
   },
   channels: {
     list: (projectId?: string) => {
