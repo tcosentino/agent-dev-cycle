@@ -92,35 +92,35 @@
 
 ## 10. Task Creation Flow
 
-- [ ] 10.1 Add "New Task" button to TasksPage header
-- [ ] 10.2 Show TaskForm in modal on button click
-- [ ] 10.3 Create modal wrapper component (or reuse existing)
-- [ ] 10.4 Handle form submission: POST /api/tasks
-- [ ] 10.5 Add new task to local state (optimistic update)
-- [ ] 10.6 Close modal on success
-- [ ] 10.7 Show success toast "Task {key} created"
-- [ ] 10.8 Handle API errors and show error toast
+- [x] 10.1 Add "New Task" button to TasksPage header
+- [x] 10.2 Show TaskForm in modal on button click
+- [x] 10.3 Create modal wrapper component (or reuse existing)
+- [x] 10.4 Handle form submission: POST /api/tasks
+- [x] 10.5 Add new task to local state (optimistic update)
+- [x] 10.6 Close modal on success
+- [x] 10.7 Show success toast "Task {key} created"
+- [x] 10.8 Handle API errors and show error toast
 
 ## 11. Task Update Flow
 
-- [ ] 11.1 Implement onTaskMove handler in TasksPage
-- [ ] 11.2 Update task status in local state (optimistic)
-- [ ] 11.3 Call PATCH /api/tasks/{id} with new status
-- [ ] 11.4 Revert local state if API call fails
-- [ ] 11.5 Show error toast on failure
-- [ ] 11.6 Implement inline edit for task title in TaskCard
-- [ ] 11.7 Implement full edit in TaskDetailPanel
-- [ ] 11.8 Handle field validation and API errors
+- [x] 11.1 Implement onTaskMove handler in TasksPage
+- [x] 11.2 Update task status in local state (optimistic)
+- [x] 11.3 Call PATCH /api/tasks/{id} with new status
+- [x] 11.4 Revert local state if API call fails
+- [x] 11.5 Show error toast on failure
+- [x] 11.6 Implement inline edit for task title in TaskCard
+- [x] 11.7 Implement full edit in TaskDetailPanel
+- [x] 11.8 Handle field validation and API errors
 
 ## 12. Task Deletion Flow
 
-- [ ] 12.1 Add delete button to TaskCard and TaskDetailPanel
-- [ ] 12.2 Show confirmation dialog on delete click
-- [ ] 12.3 Call DELETE /api/tasks/{id} on confirmation
-- [ ] 12.4 Remove task from local state
-- [ ] 12.5 Close detail panel if open
-- [ ] 12.6 Show success toast "Task {key} deleted"
-- [ ] 12.7 Handle API errors
+- [x] 12.1 Add delete button to TaskCard and TaskDetailPanel
+- [x] 12.2 Show confirmation dialog on delete click
+- [x] 12.3 Call DELETE /api/tasks/{id} on confirmation
+- [x] 12.4 Remove task from local state
+- [x] 12.5 Close detail panel if open
+- [x] 12.6 Show success toast "Task {key} deleted"
+- [x] 12.7 Handle API errors
 
 ## 13. Filtering and Search
 
