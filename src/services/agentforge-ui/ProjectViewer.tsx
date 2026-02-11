@@ -389,6 +389,27 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     [fullTree, simpleMode]
   )
 
+  // Sync tab records with fresh snapshot data when snapshot updates
+  useEffect(() => {
+    if (!snapshot) return
+
+    setOpenTabs(prev => prev.map(tab => {
+      if (tab.type !== 'record' || !tab.tableName) return tab
+
+      // Get fresh record from snapshot
+      const [, key] = tab.path.split(':')
+      const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
+      const freshRecord = tableData?.find(r => String(r.id || r.key) === key)
+
+      // Update tab with fresh record if found
+      if (freshRecord) {
+        return { ...tab, record: freshRecord }
+      }
+
+      return tab
+    }))
+  }, [snapshot])
+
   // Eagerly load agent config, prompt, and service files when they're detected
   useEffect(() => {
     const configPaths = Object.keys(files).filter(path =>
@@ -927,24 +948,28 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     }
 
     if (tab.type === 'record') {
-      // Try to get record from tab, or fetch it from snapshot if tab was restored
-      let record = tab.record
-      if (!record && tab.tableName && snapshot) {
+      // Always try to get fresh record from snapshot first, fall back to tab.record
+      let record: Record<string, unknown> | undefined
+      if (tab.tableName && snapshot) {
         const [, key] = tab.path.split(':')
         const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
         record = tableData?.find(r => String(r.id || r.key) === key)
+      }
+      // Fall back to cached record if not in snapshot (e.g., during loading)
+      if (!record) {
+        record = tab.record
       }
       if (!record) {
         return <div className={styles.emptyState}>Record not found</div>
       }
 
-      const handleRecordUpdate = (updates: Record<string, unknown>) => {
-        // Update the record in the tab
+      const handleRecordUpdate = async (updates: Record<string, unknown>) => {
+        // Optimistically update the record in the tab
         setOpenTabs(prev => prev.map(t =>
           t.id === tab.id ? { ...t, record: { ...t.record, ...updates } } : t
         ))
-        // Trigger snapshot refresh
-        onRefreshSnapshot?.(activeProject)
+        // Trigger snapshot refresh and wait for it
+        await onRefreshSnapshot?.(activeProject)
       }
 
       const handleRecordDelete = async () => {
