@@ -50,15 +50,23 @@ function WorkloadStages({ workload }: { workload: Workload }) {
       rolledback: 'skipped',
     }
 
-    for (const result of workload.stages) {
-      statuses[result.stage] = result.status
-    }
+    if (workload.stages) {
+      for (const result of workload.stages) {
+        statuses[result.stage] = result.status
+      }
 
-    // Mark current stage as running if workload is running
-    if (workload.status === 'running' && workload.currentStage) {
-      const currentStageResult = workload.stages.find(s => s.stage === workload.currentStage)
-      if (!currentStageResult || currentStageResult.status === 'pending') {
-        statuses[workload.currentStage] = 'running'
+      // Mark current stage as running if workload is running
+      if (workload.status === 'running' && workload.currentStage) {
+        const currentStageResult = workload.stages.find(s => s.stage === workload.currentStage)
+        if (!currentStageResult || currentStageResult.status === 'pending') {
+          statuses[workload.currentStage] = 'running'
+        }
+      }
+    } else {
+      // Handle new workload schema with single stage field
+      const currentStage = (workload as any).stage as WorkloadStage
+      if (currentStage && statuses[currentStage] !== undefined) {
+        statuses[currentStage] = workload.status === 'running' ? 'running' : 'pending'
       }
     }
 
@@ -106,13 +114,17 @@ function WorkloadCard({
     return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
   }, [workload])
 
-  const hasLogs = workload.stages.some(stage => stage.logs && stage.logs.length > 0)
+  const hasLogs = workload.stages
+    ? workload.stages.some(stage => stage.logs && stage.logs.length > 0)
+    : (workload as any).logs?.length > 0
+
+  const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
 
   return (
     <button className={styles.workloadCard} onClick={onClick}>
       <div className={styles.workloadHeader}>
         <ServerIcon className={styles.workloadIcon} />
-        <span className={styles.workloadName}>{workload.moduleName}</span>
+        <span className={styles.workloadName}>{workloadName}</span>
         <span
           className={styles.workloadStatus}
           style={{ color: statusColors[workload.status] }}
@@ -175,6 +187,9 @@ function DeploymentCard({
   }
 
   const triggerLabel = useMemo(() => {
+    if (!deployment.trigger) {
+      return 'manual'
+    }
     switch (deployment.trigger.type) {
       case 'agent':
         return `by ${deployment.trigger.agentName || 'Agent'}`
@@ -189,21 +204,23 @@ function DeploymentCard({
     }
   }, [deployment.trigger])
 
+  const deploymentName = (deployment as any).serviceName || deployment.name || 'Unnamed deployment'
+
   return (
     <div className={styles.deploymentCard}>
       <div className={styles.deploymentHeader}>
         <div className={styles.deploymentTitle}>
           {statusIcons[deployment.status]}
           <RocketIcon className={styles.deploymentIcon} />
-          <span className={styles.deploymentName}>{deployment.name}</span>
-          <HealthBadge 
-            status={deployment.status} 
+          <span className={styles.deploymentName}>{deploymentName}</span>
+          <HealthBadge
+            status={deployment.status}
             lastCheckTime={deployment.updatedAt}
             showTooltip={true}
           />
         </div>
         <div className={styles.deploymentMeta}>
-          {deployment.trigger.branch && (
+          {deployment.trigger?.branch && (
             <span className={styles.deploymentBranch}>
               <GitBranchIcon className={styles.branchIcon} />
               {deployment.trigger.branch}
