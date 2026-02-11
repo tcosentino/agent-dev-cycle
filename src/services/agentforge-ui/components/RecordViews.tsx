@@ -113,8 +113,17 @@ export function TaskDetailView({
   }
 
   const handleAddComment = async (content: string) => {
+    if (!currentUserId) {
+      alert('You must be logged in to comment')
+      throw new Error('User not authenticated')
+    }
+
     try {
-      const newComment = await api.taskComments.create({ taskId, content })
+      const newComment = await api.taskComments.create({
+        taskId,
+        userId: currentUserId,
+        content
+      })
       setComments(prev => [...prev, {
         id: newComment.id,
         content: newComment.content,

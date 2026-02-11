@@ -66,6 +66,7 @@ export interface ApiTaskComment {
 
 export interface CreateTaskCommentInput {
   taskId: string
+  userId: string
   content: string
 }
 
