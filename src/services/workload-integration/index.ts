@@ -15,6 +15,10 @@ export const workloadIntegration: IntegrationService = {
       console.error('Workload store not found - workload operations will not work')
       return
     }
+
+    console.log('Workload store type:', typeof workloadStore)
+    console.log('Workload store has get:', typeof workloadStore.findById)
+
     orchestrator.setWorkloadStore(workloadStore)
 
     // POST /api/workloads/:id/start - Start a workload
@@ -23,7 +27,7 @@ export const workloadIntegration: IntegrationService = {
 
       try {
         // Get the workload to find the project path
-        const workload = await workloadStore.get(workloadId) as any
+        const workload = await workloadStore.findById(workloadId) as any
         if (!workload) {
           return c.json({ error: 'Workload not found' }, 404)
         }
@@ -34,7 +38,7 @@ export const workloadIntegration: IntegrationService = {
           return c.json({ error: 'Deployment store not found' }, 500)
         }
 
-        const deployment = await deploymentStore.get(workload.deploymentId) as any
+        const deployment = await deploymentStore.findById(workload.deploymentId) as any
         if (!deployment) {
           return c.json({ error: 'Deployment not found' }, 404)
         }
@@ -45,7 +49,7 @@ export const workloadIntegration: IntegrationService = {
           return c.json({ error: 'Project store not found' }, 500)
         }
 
-        const project = await projectStore.get(deployment.projectId) as any
+        const project = await projectStore.findById(deployment.projectId) as any
         if (!project) {
           return c.json({ error: 'Project not found' }, 404)
         }

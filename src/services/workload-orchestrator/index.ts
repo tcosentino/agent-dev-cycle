@@ -62,7 +62,7 @@ export class WorkloadOrchestrator {
 
     // Update workload in database
     try {
-      const workload = await this.workloadStore!.get(workloadId)
+      const workload = await this.workloadStore!.findById(workloadId)
       if (workload) {
         const updatedLogs = [
           ...(workload.logs || []),
@@ -94,7 +94,7 @@ export class WorkloadOrchestrator {
   async start(workloadId: string, projectPath: string): Promise<void> {
     try {
       // Get workload from database
-      const workload = await this.workloadStore!.get(workloadId)
+      const workload = await this.workloadStore!.findById(workloadId)
       if (!workload) {
         throw new Error(`Workload ${workloadId} not found`)
       }
@@ -320,7 +320,7 @@ app.listen(${port}, () => {
 
     // Get logs from database if not running
     try {
-      const workload = await this.workloadStore!.get(workloadId)
+      const workload = await this.workloadStore!.findById(workloadId)
       return workload?.logs || []
     } catch (error) {
       return []
