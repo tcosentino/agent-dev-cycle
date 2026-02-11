@@ -23,11 +23,6 @@ export const workloadIntegration: IntegrationService = {
 
       try {
         // Get the workload to find the project path
-        const workloadStore = ctx.stores.get('workload')
-        if (!workloadStore) {
-          return c.json({ error: 'Workload store not found' }, 500)
-        }
-
         const workload = await workloadStore.get(workloadId) as any
         if (!workload) {
           return c.json({ error: 'Workload not found' }, 404)
