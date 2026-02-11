@@ -51,7 +51,6 @@ export function getAgentIcon(role: string): ReactNode {
 
 export function parseAgentConfigs(files: Record<string, string>): AgentConfig[] {
   try {
-    console.log('[AgentBrowser] Parsing agent configs from folder structure')
     const agents: AgentConfig[] = []
 
     // Find all agent config.json files
@@ -64,7 +63,6 @@ export function parseAgentConfigs(files: Record<string, string>): AgentConfig[] 
 
       // Skip if file hasn't been loaded yet (empty string means not loaded)
       if (!fileContent || fileContent === '') {
-        console.log(`[AgentBrowser] Skipping ${configPath} - not loaded yet`)
         continue
       }
 
@@ -82,7 +80,6 @@ export function parseAgentConfigs(files: Record<string, string>): AgentConfig[] 
       }
     }
 
-    console.log('[AgentBrowser] Parsed agents from configs:', agents)
     return agents
   } catch (error) {
     console.error('Failed to parse agent configs:', error)

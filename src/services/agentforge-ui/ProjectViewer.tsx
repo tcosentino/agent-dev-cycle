@@ -441,26 +441,21 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   // Load agents from new folder structure (.agentforge/agents/{id}/config.json)
   // Fall back to legacy agents.yaml if new structure doesn't exist
   const agents = useMemo(() => {
-    console.log('[ProjectViewer] Loading agents...')
-
     // Try new structure first
     const hasNewStructure = Object.keys(files).some(path =>
       path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
 
     if (hasNewStructure) {
-      console.log('[ProjectViewer] Using new agent folder structure')
       return parseAgentConfigs(files)
     }
 
     // Fall back to legacy agents.yaml
     const agentsFile = files['.agentforge/agents.yaml']
     if (agentsFile && agentsFile !== '') {
-      console.log('[ProjectViewer] Using legacy agents.yaml')
       return parseAgentsYaml(agentsFile)
     }
 
-    console.log('[ProjectViewer] No agents found')
     return []
   }, [files])
 
