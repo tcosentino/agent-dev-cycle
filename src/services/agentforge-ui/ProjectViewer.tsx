@@ -831,6 +831,22 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   const focusedTab = activePane === 'left' ? activeLeftTab : activeRightTab
   const selectedFilePath = focusedTab?.type === 'file' ? focusedTab.path : null
 
+  // Refresh snapshot when switching to deployments or workloads tables or records
+  useEffect(() => {
+    const activeTab = activePane === 'left' ? activeLeftTab : activeRightTab
+    if (activeTab?.type === 'table') {
+      const tableName = activeTab.path as DbTableName
+      if (tableName === 'deployments' || tableName === 'workloads') {
+        onRefreshSnapshot?.(activeProject)
+      }
+    } else if (activeTab?.type === 'record') {
+      const tableName = activeTab.tableName
+      if (tableName === 'deployments' || tableName === 'workloads') {
+        onRefreshSnapshot?.(activeProject)
+      }
+    }
+  }, [activeLeftTab, activeRightTab, activePane, activeProject, onRefreshSnapshot])
+
   // Convert to Tab[] for TabbedPane
   const toTabs = (tabs: OpenTab[]): Tab[] => tabs.map(t => {
     // Add menu content for tabs with view options

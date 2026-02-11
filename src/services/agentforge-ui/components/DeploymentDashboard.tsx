@@ -50,6 +50,14 @@ export function DeploymentDashboard({ projectId, onWorkloadClick }: DeploymentDa
     }
 
     fetchData()
+
+    // Refetch when window gains focus
+    const handleFocus = () => {
+      fetchData()
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
   }, [projectId])
 
   if (loading) {
