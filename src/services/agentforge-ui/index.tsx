@@ -1,4 +1,4 @@
-import { StrictMode, useState, useEffect, useCallback } from 'react'
+import { StrictMode, useState, useEffect, useCallback, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Nav } from '../demo-ui/components/nav'
 import { ProjectViewer } from './ProjectViewer'
@@ -137,15 +137,24 @@ function ProjectViewerPage() {
     }
   }, [])
 
-  // Build display names and repo URLs for project selector
-  const projectDisplayNames: Record<string, string> = {}
-  const projectRepoUrls: Record<string, string> = {}
-  for (const project of projects) {
-    projectDisplayNames[project.id] = `${project.name} (${project.key})`
-    if (project.repoUrl) {
-      projectRepoUrls[project.id] = project.repoUrl
+  // Build display names and repo URLs for project selector (memoized to prevent recreating on every render)
+  const projectDisplayNames = useMemo(() => {
+    const names: Record<string, string> = {}
+    for (const project of projects) {
+      names[project.id] = `${project.name} (${project.key})`
     }
-  }
+    return names
+  }, [projects])
+
+  const projectRepoUrls = useMemo(() => {
+    const urls: Record<string, string> = {}
+    for (const project of projects) {
+      if (project.repoUrl) {
+        urls[project.id] = project.repoUrl
+      }
+    }
+    return urls
+  }, [projects])
 
   // Handler to refresh snapshot for a project
   const handleRefreshSnapshot = useCallback(async (projectId: string) => {

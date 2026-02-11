@@ -412,8 +412,13 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     }))
   }, [snapshot])
 
+  // Track which files have been requested to avoid duplicate loads
+  const loadingFilesRef = useRef<Set<string>>(new Set())
+
   // Eagerly load agent config, prompt, and service files when they're detected
   useEffect(() => {
+    if (!onLoadFileContent) return
+
     const configPaths = Object.keys(files).filter(path =>
       path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
@@ -429,12 +434,16 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     for (const filePath of pathsToLoad) {
       const fileExists = filePath in files
       const fileContent = files[filePath]
+      const loadKey = `${activeProject}:${filePath}`
 
-      // If file exists but content is empty, load it
-      if (fileExists && fileContent === '' && onLoadFileContent) {
+      // If file exists but content is empty, and we haven't already requested it, load it
+      if (fileExists && fileContent === '' && !loadingFilesRef.current.has(loadKey)) {
         console.log('[ProjectViewer] Eagerly loading', filePath)
+        loadingFilesRef.current.add(loadKey)
         onLoadFileContent(activeProject, filePath).catch((err: Error) => {
           console.error(`[ProjectViewer] Failed to load ${filePath}:`, err)
+          // Remove from loading set on error so it can be retried
+          loadingFilesRef.current.delete(loadKey)
         })
       }
     }
