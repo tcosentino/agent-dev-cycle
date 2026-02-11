@@ -92,7 +92,24 @@ function ProjectViewerPage() {
           }
         }
 
-        setProjectFiles(files)
+        setProjectFiles(prev => {
+          // Merge with existing files to preserve loaded content
+          // (handles StrictMode double-mount)
+          const merged: ProjectData = { ...prev }
+          for (const [projectId, projectFiles] of Object.entries(files)) {
+            merged[projectId] = {
+              ...prev[projectId], // Keep existing loaded content
+              ...projectFiles, // Add new file paths (but don't overwrite non-empty with empty)
+            }
+            // For each file, keep loaded content if it exists
+            for (const [filePath, content] of Object.entries(prev[projectId] || {})) {
+              if (content && content !== '' && (!projectFiles[filePath] || projectFiles[filePath] === '')) {
+                merged[projectId][filePath] = content
+              }
+            }
+          }
+          return merged
+        })
         setDbData(snapshots)
 
         // Set initial selected project (respect persisted selection)

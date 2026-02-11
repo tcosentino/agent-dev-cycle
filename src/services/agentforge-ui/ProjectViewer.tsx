@@ -461,14 +461,18 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   const agents = useMemo(() => {
     // Extract only agent config files that have loaded content
     const agentConfigPaths = Object.keys(files).filter(p =>
-      p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/) && files[p] && files[p] !== ''
+      p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
 
-    const hasNewStructure = agentConfigPaths.length > 0
+    console.log('[ProjectViewer] Agent config paths found:', agentConfigPaths)
+    console.log('[ProjectViewer] Loaded configs:', agentConfigPaths.filter(p => files[p] && files[p] !== ''))
+
+    const loadedConfigPaths = agentConfigPaths.filter(p => files[p] && files[p] !== '')
+    const hasNewStructure = loadedConfigPaths.length > 0
 
     if (hasNewStructure) {
       const agentFiles: Record<string, string> = {}
-      for (const path of agentConfigPaths) {
+      for (const path of loadedConfigPaths) {
         agentFiles[path] = files[path]
       }
 
@@ -483,6 +487,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       return parseAgentsYaml(agentsYaml)
     }
 
+    console.log('[ProjectViewer] No agents found')
     return []
   }, [
     // Only recalculate when agent config files change
