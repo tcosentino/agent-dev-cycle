@@ -17,7 +17,6 @@ export function CreateProjectModal({
 }: CreateProjectModalProps) {
   const [name, setName] = useState('')
   const [key, setKey] = useState('')
-  const [localPath, setLocalPath] = useState('')
   const [selectedRepo, setSelectedRepo] = useState<ApiGitHubRepo | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -124,7 +123,6 @@ export function CreateProjectModal({
         name: name.trim(),
         key: key.toUpperCase().trim(),
         repoUrl: selectedRepo?.html_url,
-        localPath: localPath.trim() || undefined,
       })
 
       onProjectCreated(project)
@@ -228,21 +226,6 @@ export function CreateProjectModal({
             onChange={e => setKey(e.target.value.toUpperCase().slice(0, 10))}
             placeholder="MAP"
             maxLength={10}
-          />
-        </div>
-
-        <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="localPath">
-            Local Path
-            <span className={styles.labelHint}>Optional - filesystem path for development</span>
-          </label>
-          <input
-            id="localPath"
-            type="text"
-            className={styles.input}
-            value={localPath}
-            onChange={e => setLocalPath(e.target.value)}
-            placeholder="/path/to/project"
           />
         </div>
 

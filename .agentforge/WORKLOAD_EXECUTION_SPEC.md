@@ -184,37 +184,6 @@ No schema changes needed! The current workload schema already supports everythin
    - Status: "running"
    - Stage: "running"
 
-## Development Setup
-
-### Creating a Test Project
-
-To test workload execution with the todo-app example:
-
-1. **Create a project** in the UI with:
-   - Name: "Todo App"
-   - Key: "TODO"
-   - Local Path: `/Users/[username]/Projects/agent-dev-cycle/examples/todo-app`
-     (Replace `[username]` with your actual username)
-
-2. **Navigate to the project** and view the services
-
-3. **Click "Start workload"** on any dataobject service (e.g., project-dataobject)
-
-4. **Check the deployment dashboard** to see the workload status and logs
-
-### Required Fields
-
-- **localPath**: Must be an absolute path to the project directory
-- For development, this points to a local folder (e.g., `examples/todo-app`)
-- For production, projects would be cloned from Git repos
-
-### Troubleshooting
-
-If workload fails to start:
-- Check that localPath is correct in the project settings
-- Verify the service exists at `{localPath}/src/services/{serviceName}`
-- Check logs in the workload detail view for specific errors
-
 ## Testing Strategy
 
 1. **Unit tests** for WorkloadOrchestrator

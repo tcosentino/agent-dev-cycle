@@ -16,7 +16,6 @@ export interface ApiProject {
   name: string
   key: string
   repoUrl?: string
-  localPath?: string
   createdAt: string
   updatedAt: string
 }
@@ -300,7 +299,7 @@ export const api = {
   projects: {
     list: (userId: string) => fetchJson<ApiProject[]>(`/projects?userId=${userId}`),
     get: (id: string) => fetchJson<ApiProject>(`/projects/${id}`),
-    create: (data: { userId: string; name: string; key: string; repoUrl?: string; localPath?: string }) =>
+    create: (data: { userId: string; name: string; key: string; repoUrl?: string }) =>
       fetchJson<ApiProject>('/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
