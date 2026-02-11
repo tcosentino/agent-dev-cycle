@@ -2303,7 +2303,6 @@
   border: 1px solid var(--border-color);
   text-align: left;
 }
-}
 
 .serviceReadme th {
   background: var(--bg-tertiary);
@@ -2390,5 +2389,4 @@
   font-size: 0.9rem;
   color: var(--text-primary);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-}
 }
