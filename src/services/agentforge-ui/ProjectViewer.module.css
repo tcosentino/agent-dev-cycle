@@ -2021,6 +2021,23 @@
   cursor: default;
 }
 
+.stageToggleIcon {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.stageToggleIcon.expanded {
+  transform: rotate(180deg);
+}
+
+.stageDetailContent {
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--bg-primary);
+}
+
 .stageDetailName {
   font-family: var(--font-sans);
   font-size: 0.8rem;

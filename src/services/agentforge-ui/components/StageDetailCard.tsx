@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ChevronDownIcon } from '@agentforge/ui-components'
 import type { StageResult } from '../types'
 import { formatStageName } from '../utils/deploymentUtils'
 import styles from '../ProjectViewer.module.css'
@@ -46,14 +47,23 @@ export function StageDetailCard({ stage }: StageDetailCardProps) {
         {stage.duration && (
           <span className={styles.stageDetailDuration}>{stage.duration}ms</span>
         )}
+        {hasContent && (
+          <span className={`${styles.stageToggleIcon} ${isExpanded ? styles.expanded : ''}`}>
+            <ChevronDownIcon />
+          </span>
+        )}
       </button>
-      {stage.logs && stage.logs.length > 0 && (
-        <pre className={styles.stageDetailLogs}>
-          {stage.logs.join('\n')}
-        </pre>
-      )}
-      {stage.error && (
-        <div className={styles.stageDetailError}>{stage.error}</div>
+      {isExpanded && hasContent && (
+        <div className={styles.stageDetailContent}>
+          {stage.logs && stage.logs.length > 0 && (
+            <pre className={styles.stageDetailLogs}>
+              {stage.logs.join('\n')}
+            </pre>
+          )}
+          {stage.error && (
+            <div className={styles.stageDetailError}>{stage.error}</div>
+          )}
+        </div>
       )}
     </div>
   )
