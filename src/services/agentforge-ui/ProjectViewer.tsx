@@ -948,14 +948,23 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     }
 
     if (tab.type === 'record') {
+      // Show loading state if snapshot is not yet available
+      if (!snapshot) {
+        return (
+          <div className={styles.emptyState}>
+            <div>Loading...</div>
+          </div>
+        )
+      }
+
       // Always try to get fresh record from snapshot first, fall back to tab.record
       let record: Record<string, unknown> | undefined
-      if (tab.tableName && snapshot) {
+      if (tab.tableName) {
         const [, key] = tab.path.split(':')
         const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
         record = tableData?.find(r => String(r.id || r.key) === key)
       }
-      // Fall back to cached record if not in snapshot (e.g., during loading)
+      // Fall back to cached record if not in snapshot (e.g., during initial load)
       if (!record) {
         record = tab.record
       }
