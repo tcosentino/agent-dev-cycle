@@ -456,44 +456,49 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     }
   }, [files, activeProject, onLoadFileContent])
 
-  // Extract only agent-related files to prevent recalculating when unrelated files load
-  const agentFiles = useMemo(() => {
-    const relevant: Record<string, string> = {}
-    for (const [path, content] of Object.entries(files)) {
-      if (path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/) || path === '.agentforge/agents.yaml') {
-        relevant[path] = content
-      }
-    }
-    return relevant
-  }, [
-    // Only recalculate when agent config file paths or contents change
-    Object.keys(files)
-      .filter(p => p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/) || p === '.agentforge/agents.yaml')
-      .sort()
-      .map(p => `${p}:${files[p]?.substring(0, 50)}`) // Include content hash to detect changes
-      .join('|')
-  ])
-
   // Load agents from new folder structure (.agentforge/agents/{id}/config.json)
   // Fall back to legacy agents.yaml if new structure doesn't exist
   const agents = useMemo(() => {
-    // Try new structure first
-    const hasNewStructure = Object.keys(agentFiles).some(path =>
-      path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
+    // Extract only agent config files
+    const agentConfigPaths = Object.keys(files).filter(p =>
+      p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
 
+    const hasNewStructure = agentConfigPaths.length > 0
+
     if (hasNewStructure) {
-      return parseAgentConfigs(agentFiles)
+      // Only parse if all config files have content loaded
+      const allLoaded = agentConfigPaths.every(p => files[p] && files[p] !== '')
+      if (!allLoaded) {
+        console.log('[ProjectViewer] Agent configs not fully loaded yet')
+        return []
+      }
+
+      const agentFiles: Record<string, string> = {}
+      for (const path of agentConfigPaths) {
+        agentFiles[path] = files[path]
+      }
+
+      const parsed = parseAgentConfigs(agentFiles)
+      console.log('[ProjectViewer] Parsed agents:', parsed.map(a => a.id))
+      return parsed
     }
 
     // Fall back to legacy agents.yaml
-    const agentsFile = agentFiles['.agentforge/agents.yaml']
-    if (agentsFile && agentsFile !== '') {
-      return parseAgentsYaml(agentsFile)
+    const agentsYaml = files['.agentforge/agents.yaml']
+    if (agentsYaml && agentsYaml !== '') {
+      return parseAgentsYaml(agentsYaml)
     }
 
     return []
-  }, [agentFiles])
+  }, [
+    // Only recalculate when agent config files change
+    Object.keys(files)
+      .filter(p => p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/) || p === '.agentforge/agents.yaml')
+      .sort()
+      .map(p => files[p]) // Use actual content as dependency
+      .join('|')
+  ])
 
   // Split tabs by pane
   const leftTabs = useMemo(() => openTabs.filter(t => t.pane === 'left'), [openTabs])
