@@ -225,3 +225,13 @@ workloadEvents.emitDeploymentDeleted({ deploymentId, projectId })
 - Use TypeScript interfaces for event payloads
 - Keep event names consistent (e.g., 'deployment-deleted', 'workload-update')
 - When completing work, suggest changes to CLAUDE.md based on new learnings
+
+## Agent Memory
+
+The `.agentforge/memory/` directory contains memories of bugs fixed, patterns learned, and architectural decisions. See [.agentforge/memory/index.md](.agentforge/memory/index.md) for a complete list.
+
+When fixing bugs or learning new patterns:
+
+1. Document the finding in a new memory file (topic-based name)
+2. Update the index with a 1-line summary and date
+3. Include code references and before/after examples
