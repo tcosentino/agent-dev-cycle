@@ -1,6 +1,6 @@
 import { spawn, ChildProcess } from 'child_process'
 import { existsSync } from 'fs'
-import { rm } from 'fs/promises'
+import { rm, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { promisify } from 'util'
@@ -20,7 +20,7 @@ interface LogEntry {
 
 interface RunningWorkload {
   workloadId: string
-  process: ChildProcess
+  containerId: string
   port: number
   logs: LogEntry[]
   workDir: string
@@ -112,8 +112,7 @@ export class WorkloadOrchestrator {
       await this.updateStage(workloadId, 'starting-container')
       await this.addLog(workloadId, 'starting-container', 'Preparing container environment')
 
-      // TODO: Check if prebuilt image exists if repo is a parameter
-      // For now, we'll prepare a directory for the workload
+      // Prepare work directory for building container
       workDir = join(tmpdir(), 'workloads', workloadId)
       await this.addLog(workloadId, 'starting-container', `Preparing work directory: ${workDir}`)
 
@@ -156,50 +155,134 @@ export class WorkloadOrchestrator {
       // Update workload with port
       await this.workloadStore!.update(workloadId, { port })
 
-      await this.addLog(workloadId, 'starting-service', 'Starting service process')
+      // Read service.json to get entry point
+      const serviceConfig = JSON.parse(await readFile(serviceJsonPath, 'utf-8'))
+      const entryFile = serviceConfig.entry || 'index.js'
 
-      // For dataobjects, we need to start a temporary API server
-      const serverProcess = await this.startDataobjectServer(servicePath, port, workloadId)
+      // Create package.json if it doesn't exist
+      const packageJsonPath = join(servicePath, 'package.json')
+      if (!existsSync(packageJsonPath)) {
+        await this.addLog(workloadId, 'starting-service', 'Creating package.json')
+        const packageJson = {
+          name: 'dataobject-runtime',
+          version: '1.0.0',
+          private: true,
+          dependencies: {
+            express: '^4.18.2',
+            tsx: '^4.7.0',
+            zod: '^3.22.4',
+          },
+        }
+        await writeFile(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf-8')
+      }
 
-      // Wait a moment to ensure the process starts
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Create mock @agentforge/dataobject module if it doesn't exist
+      const nodeModulesPath = join(servicePath, 'node_modules')
+      const agentforgeModulePath = join(nodeModulesPath, '@agentforge')
+      const dataobjectModulePath = join(agentforgeModulePath, 'dataobject')
 
-      // Stage 4: Running
-      await this.updateStage(workloadId, 'running')
-      await this.addLog(workloadId, 'running', `Service running on port ${port} (PID: ${serverProcess.pid})`)
+      if (!existsSync(dataobjectModulePath)) {
+        await this.addLog(workloadId, 'starting-service', 'Creating mock dataobject module')
+        await exec(`mkdir -p "${dataobjectModulePath}"`)
 
-      // Store running workload info
-      this.runningWorkloads.set(workloadId, {
-        workloadId,
-        process: serverProcess,
-        port,
-        logs: [],
-        workDir,
-      })
+        // Create a minimal mock implementation
+        const mockDataobject = `
+const { z } = require('zod');
 
-      // Update workload with container ID (process ID)
-      await this.workloadStore!.update(workloadId, {
-        containerId: serverProcess.pid?.toString(),
-      })
+function defineResource(config) {
+  return {
+    name: config.name,
+    schema: config.schema,
+    list: async (query) => [],
+    get: async (id) => null,
+    create: async (data) => ({ id: 'mock-id', ...data }),
+    update: async (id, data) => ({ id, ...data }),
+    delete: async (id) => {},
+  };
+}
 
-      await this.addLog(workloadId, 'running', `Service started on port ${port} (PID: ${serverProcess.pid})`)
+module.exports = {
+  defineResource,
+  z,
+};
+`
+        const mockPackageJson = {
+          name: '@agentforge/dataobject',
+          version: '0.0.1',
+          main: 'index.js',
+        }
 
-      // Set up process monitoring
-      serverProcess.on('exit', async (code) => {
-        await this.addLog(workloadId, 'stopped', `Process exited with code ${code}`, code === 0 ? 'info' : 'error')
-        await this.updateStage(workloadId, code === 0 ? 'stopped' : 'failed', code !== 0 ? `Process exited with code ${code}` : undefined)
-        this.releasePort(port)
-        this.runningWorkloads.delete(workloadId)
-        await this.cleanupWorkDir(workloadId, workDir)
-      })
+        await writeFile(join(dataobjectModulePath, 'index.js'), mockDataobject, 'utf-8')
+        await writeFile(join(dataobjectModulePath, 'package.json'), JSON.stringify(mockPackageJson), 'utf-8')
+      }
 
-      serverProcess.on('error', async (err) => {
-        await this.addLog(workloadId, 'failed', `Process error: ${err.message}`, 'error')
-        await this.updateStage(workloadId, 'failed', err.message)
-        this.releasePort(port)
-        this.runningWorkloads.delete(workloadId)
-        await this.cleanupWorkDir(workloadId, workDir)
-      })
+      // Create Dockerfile
+      await this.addLog(workloadId, 'starting-service', 'Creating Dockerfile')
+      await this.createDockerfile(servicePath, entryFile, workloadId)
+
+      // Build Docker image
+      await this.addLog(workloadId, 'starting-service', 'Building Docker image')
+      const imageName = `workload-${workloadId}`
+      try {
+        await exec(`docker build -t ${imageName} .`, { cwd: servicePath })
+        await this.addLog(workloadId, 'starting-service', 'Docker image built successfully')
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`Failed to build Docker image: ${message}`)
+      }
+
+      // Run Docker container
+      await this.addLog(workloadId, 'starting-service', 'Starting Docker container')
+      const containerName = `workload-${workloadId}`
+      try {
+        const runResult = await exec(
+          `docker run -d --name ${containerName} -p ${port}:3000 ${imageName}`
+        )
+        const containerId = runResult.stdout.trim()
+        await this.addLog(workloadId, 'starting-service', `Container started: ${containerId.substring(0, 12)}`)
+
+        // Capture container logs for debugging
+        try {
+          const logsResult = await exec(`docker logs ${containerId}`)
+          if (logsResult.stdout) {
+            await this.addLog(workloadId, 'starting-service', `Container stdout: ${logsResult.stdout}`)
+          }
+          if (logsResult.stderr) {
+            await this.addLog(workloadId, 'starting-service', `Container stderr: ${logsResult.stderr}`, 'warn')
+          }
+        } catch (err) {
+          // Ignore log errors
+        }
+
+        // Wait for container to be ready
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        // Stage 4: Running
+        await this.updateStage(workloadId, 'running')
+        await this.addLog(workloadId, 'running', `Service running on port ${port} (Container: ${containerId.substring(0, 12)})`)
+
+        // Store running workload info
+        this.runningWorkloads.set(workloadId, {
+          workloadId,
+          containerId,
+          port,
+          logs: [],
+          workDir,
+        })
+
+        // Update workload with container ID
+        await this.workloadStore!.update(workloadId, {
+          containerId,
+        })
+
+        await this.addLog(workloadId, 'running', `Service started on port ${port}`)
+
+        // Monitor container in background
+        this.monitorContainer(workloadId, containerId, port, workDir)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`Failed to start Docker container: ${message}`)
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -223,30 +306,36 @@ export class WorkloadOrchestrator {
     }
   }
 
-  private async startDataobjectServer(servicePath: string, port: number, workloadId: string): Promise<ChildProcess> {
-    // For now, we'll create a simple Express server that loads the dataobject
-    // In a real implementation, this would be a more robust server generator
+  private async createDockerfile(servicePath: string, entryFile: string, workloadId: string): Promise<void> {
+    const isTypeScript = entryFile.endsWith('.ts')
 
-    const serverCode = `
-const express = require('express');
+    // For TypeScript, we need to use tsx to load the module
+    // For JavaScript, we can use require directly
+    const loadModule = isTypeScript
+      ? `const { register } = require('tsx/cjs/api');
+register();
+const resourceModule = require(path.join(__dirname, '${entryFile}'));`
+      : `const resourceModule = require(path.join(__dirname, '${entryFile}'));`
+
+    // Create server.js file separately to avoid shell escaping issues
+    const serverJs = `const express = require('express');
 const path = require('path');
 
 const app = express();
 app.use(express.json());
 
 // Load the dataobject resource
-const servicePath = ${JSON.stringify(servicePath)};
-const resourceModule = require(path.join(servicePath, 'index.js'));
+${loadModule}
 
 // Extract the resource definition
-const resource = resourceModule.default || resourceModule.resource || resourceModule;
+const resource = resourceModule.default || resourceModule.projectResource || resourceModule;
 
 if (!resource) {
   console.error('Could not find resource export in service');
   process.exit(1);
 }
 
-console.log('Starting server for resource:', resource.name);
+console.log('Starting server for resource:', resource.name || 'unknown');
 
 // Basic CRUD endpoints for the dataobject
 app.get('/api/${workloadId}', async (req, res) => {
@@ -297,30 +386,94 @@ app.delete('/api/${workloadId}/:id', async (req, res) => {
   }
 });
 
-app.listen(${port}, () => {
-  console.log(\`Server listening on port ${port}\`);
+const port = process.env.PORT || 3000;
+app.listen(port, '0.0.0.0', () => {
+  console.log(\`Server listening on port \${port}\`);
 });
 `
 
-    // Spawn Node.js process to run the server
-    const nodeProcess = spawn('node', ['-e', serverCode], {
-      cwd: servicePath,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    })
+    // Write server.js to the service directory
+    await writeFile(join(servicePath, 'server.js'), serverJs, 'utf-8')
 
-    // Capture stdout
-    nodeProcess.stdout?.on('data', async (data) => {
-      const message = data.toString().trim()
-      await this.addLog(workloadId, 'running', message)
-    })
+    // Create Dockerfile that uses node to run server.js (tsx is loaded programmatically)
+    const dockerfile = `FROM node:20-alpine
 
-    // Capture stderr
-    nodeProcess.stderr?.on('data', async (data) => {
-      const message = data.toString().trim()
-      await this.addLog(workloadId, 'running', message, 'error')
-    })
+WORKDIR /app
 
-    return nodeProcess
+# Copy package files
+COPY package.json yarn.lock* package-lock.json* ./
+
+# Install dependencies
+RUN if [ -f yarn.lock ]; then yarn install --frozen-lockfile; \\
+    elif [ -f package-lock.json ]; then npm ci; \\
+    else npm install; fi
+
+# Copy service files
+COPY . .
+
+EXPOSE 3000
+
+CMD ["node", "server.js"]
+`
+
+    await writeFile(join(servicePath, 'Dockerfile'), dockerfile, 'utf-8')
+  }
+
+  private monitorContainer(workloadId: string, containerId: string, port: number, workDir: string): void {
+    // Poll container status
+    const checkInterval = setInterval(async () => {
+      try {
+        const inspectResult = await exec(`docker inspect ${containerId}`)
+        const containerInfo = JSON.parse(inspectResult.stdout)[0]
+
+        if (!containerInfo.State.Running) {
+          clearInterval(checkInterval)
+          const exitCode = containerInfo.State.ExitCode
+
+          await this.addLog(
+            workloadId,
+            'stopped',
+            `Container exited with code ${exitCode}`,
+            exitCode === 0 ? 'info' : 'error'
+          )
+          await this.updateStage(
+            workloadId,
+            exitCode === 0 ? 'stopped' : 'failed',
+            exitCode !== 0 ? `Container exited with code ${exitCode}` : undefined
+          )
+          this.releasePort(port)
+          this.runningWorkloads.delete(workloadId)
+          await this.cleanupContainer(workloadId, containerId, workDir)
+        }
+      } catch (error) {
+        clearInterval(checkInterval)
+        await this.addLog(workloadId, 'failed', `Container monitoring error: ${error}`, 'error')
+        this.releasePort(port)
+        this.runningWorkloads.delete(workloadId)
+        await this.cleanupContainer(workloadId, containerId, workDir)
+      }
+    }, 5000) // Check every 5 seconds
+  }
+
+  private async cleanupContainer(workloadId: string, containerId: string, workDir: string): Promise<void> {
+    try {
+      // Remove container
+      await this.addLog(workloadId, 'stopped', 'Removing container')
+      await exec(`docker rm -f ${containerId}`)
+      await this.addLog(workloadId, 'stopped', 'Container removed')
+
+      // Remove image
+      const imageName = `workload-${workloadId}`
+      await exec(`docker rmi -f ${imageName}`).catch(() => {
+        // Ignore errors if image doesn't exist
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      await this.addLog(workloadId, 'stopped', `Failed to cleanup container: ${message}`, 'warn')
+    }
+
+    // Cleanup work directory
+    await this.cleanupWorkDir(workloadId, workDir)
   }
 
   async stop(workloadId: string): Promise<void> {
@@ -333,25 +486,26 @@ app.listen(${port}, () => {
     await this.updateStage(workloadId, 'graceful-shutdown')
     await this.addLog(workloadId, 'graceful-shutdown', 'Initiating graceful shutdown')
 
-    // Send SIGTERM for graceful shutdown
-    running.process.kill('SIGTERM')
-    await this.addLog(workloadId, 'graceful-shutdown', 'Sent SIGTERM signal to process')
+    // Stop Docker container gracefully
+    try {
+      await exec(`docker stop ${running.containerId}`)
+      await this.addLog(workloadId, 'graceful-shutdown', 'Container stopped gracefully')
+    } catch (error) {
+      await this.addLog(workloadId, 'graceful-shutdown', 'Failed to stop gracefully, forcing', 'warn')
+      await exec(`docker kill ${running.containerId}`)
+    }
 
-    // Give it time to shut down gracefully, then force kill if needed
-    setTimeout(async () => {
-      if (!running.process.killed) {
-        await this.addLog(workloadId, 'graceful-shutdown', 'Process did not stop gracefully, forcing shutdown', 'warn')
-        running.process.kill('SIGKILL')
-      }
-      await this.cleanupWorkDir(workloadId, running.workDir)
-    }, 5000)
+    // Cleanup
+    await this.cleanupContainer(workloadId, running.containerId, running.workDir)
+    this.releasePort(running.port)
+    this.runningWorkloads.delete(workloadId)
 
     // Stage: Stopped
     await this.updateStage(workloadId, 'stopped')
     await this.addLog(workloadId, 'stopped', 'Service stopped')
   }
 
-  async getStatus(workloadId: string): Promise<{ running: boolean; port?: number; pid?: number }> {
+  async getStatus(workloadId: string): Promise<{ running: boolean; port?: number; containerId?: string }> {
     const running = this.runningWorkloads.get(workloadId)
     if (!running) {
       return { running: false }
@@ -360,7 +514,7 @@ app.listen(${port}, () => {
     return {
       running: true,
       port: running.port,
-      pid: running.process.pid,
+      containerId: running.containerId,
     }
   }
 
