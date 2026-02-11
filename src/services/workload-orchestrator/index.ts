@@ -1,8 +1,7 @@
 import { spawn, ChildProcess } from 'child_process'
 import { existsSync } from 'fs'
 import { join } from 'path'
-import { workloadResource } from '../workload-dataobject'
-import type { z } from 'zod'
+import type { ResourceStore } from '@agentforge/dataobject'
 
 type WorkloadStage = 'pending' | 'validate' | 'build' | 'deploy' | 'running' | 'failed' | 'stopped'
 
@@ -21,6 +20,7 @@ interface RunningWorkload {
 }
 
 export class WorkloadOrchestrator {
+  private workloadStore?: ResourceStore<any>
   private runningWorkloads: Map<string, RunningWorkload> = new Map()
   private availablePorts: Set<number> = new Set()
   private portRange = { min: 3100, max: 3200 }
@@ -30,6 +30,10 @@ export class WorkloadOrchestrator {
     for (let port = this.portRange.min; port <= this.portRange.max; port++) {
       this.availablePorts.add(port)
     }
+  }
+
+  setWorkloadStore(store: ResourceStore<any>) {
+    this.workloadStore = store
   }
 
   private assignPort(): number | null {
@@ -58,7 +62,7 @@ export class WorkloadOrchestrator {
 
     // Update workload in database
     try {
-      const workload = await workloadResource.get(workloadId)
+      const workload = await this.workloadStore!.get(workloadId)
       if (workload) {
         const updatedLogs = [
           ...(workload.logs || []),
@@ -69,7 +73,7 @@ export class WorkloadOrchestrator {
             level,
           },
         ]
-        await workloadResource.update(workloadId, { logs: updatedLogs })
+        await this.workloadStore!.update(workloadId, { logs: updatedLogs })
       }
     } catch (error) {
       console.error(`Failed to update workload logs: ${error}`)
@@ -78,7 +82,7 @@ export class WorkloadOrchestrator {
 
   private async updateStage(workloadId: string, stage: WorkloadStage, error?: string): Promise<void> {
     try {
-      await workloadResource.update(workloadId, {
+      await this.workloadStore!.update(workloadId, {
         stage,
         error,
       })
@@ -90,7 +94,7 @@ export class WorkloadOrchestrator {
   async start(workloadId: string, projectPath: string): Promise<void> {
     try {
       // Get workload from database
-      const workload = await workloadResource.get(workloadId)
+      const workload = await this.workloadStore!.get(workloadId)
       if (!workload) {
         throw new Error(`Workload ${workloadId} not found`)
       }
@@ -127,7 +131,7 @@ export class WorkloadOrchestrator {
       await this.addLog(workloadId, 'deploy', `Assigned port ${port}`)
 
       // Update workload with port
-      await workloadResource.update(workloadId, { port })
+      await this.workloadStore!.update(workloadId, { port })
 
       // Stage 4: Running - Start the service
       await this.updateStage(workloadId, 'running')
@@ -145,7 +149,7 @@ export class WorkloadOrchestrator {
       })
 
       // Update workload with container ID (process ID)
-      await workloadResource.update(workloadId, {
+      await this.workloadStore!.update(workloadId, {
         containerId: serverProcess.pid?.toString(),
       })
 
@@ -190,7 +194,7 @@ const servicePath = ${JSON.stringify(servicePath)};
 const resourceModule = require(path.join(servicePath, 'index.js'));
 
 // Extract the resource definition
-const resource = resourceModule.default || resourceModule.workloadResource || resourceModule;
+const resource = resourceModule.default || resourceModule.resource || resourceModule;
 
 if (!resource) {
   console.error('Could not find resource export in service');
@@ -316,7 +320,7 @@ app.listen(${port}, () => {
 
     // Get logs from database if not running
     try {
-      const workload = await workloadResource.get(workloadId)
+      const workload = await this.workloadStore!.get(workloadId)
       return workload?.logs || []
     } catch (error) {
       return []

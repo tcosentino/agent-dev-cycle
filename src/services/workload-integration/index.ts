@@ -9,6 +9,14 @@ export const workloadIntegration: IntegrationService = {
   version: '1.0.0',
 
   register(app: OpenAPIHono, ctx: IntegrationContext) {
+    // Inject workload store into orchestrator
+    const workloadStore = ctx.stores.get('workload')
+    if (!workloadStore) {
+      console.error('Workload store not found - workload operations will not work')
+      return
+    }
+    orchestrator.setWorkloadStore(workloadStore)
+
     // POST /api/workloads/:id/start - Start a workload
     app.post('/api/workloads/:id/start', async (c) => {
       const workloadId = c.req.param('id')
