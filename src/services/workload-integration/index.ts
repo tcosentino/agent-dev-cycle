@@ -241,8 +241,12 @@ export const workloadIntegration: IntegrationService = {
       const deploymentId = c.req.param('id')
 
       const deploymentStore = ctx.stores.get('deployment')
+      const workloadStore = ctx.stores.get('workload')
       if (!deploymentStore) {
         return c.json({ error: 'Deployment store not found' }, 500)
+      }
+      if (!workloadStore) {
+        return c.json({ error: 'Workload store not found' }, 500)
       }
 
       try {
@@ -253,6 +257,30 @@ export const workloadIntegration: IntegrationService = {
         }
 
         const projectId = deployment.projectId
+
+        // Find all workloads for this deployment
+        const allWorkloads = await workloadStore.findAll() as any[]
+        const workloadsToDelete = allWorkloads.filter((w: any) => w.deploymentId === deploymentId)
+
+        console.log(`[WorkloadIntegration] Deleting deployment ${deploymentId} with ${workloadsToDelete.length} workloads`)
+
+        // Stop and delete each workload's container
+        for (const workload of workloadsToDelete) {
+          console.log(`[WorkloadIntegration] Cleaning up workload ${workload.id}`)
+
+          // Force cleanup any containers, images, and resources
+          try {
+            await orchestrator.forceCleanup(workload.id)
+            console.log(`[WorkloadIntegration] Cleaned up workload ${workload.id}`)
+          } catch (error) {
+            console.error(`[WorkloadIntegration] Failed to cleanup workload ${workload.id}:`, error)
+            // Continue with deletion even if cleanup fails
+          }
+
+          // Delete the workload record
+          await workloadStore.delete(workload.id)
+          console.log(`[WorkloadIntegration] Deleted workload ${workload.id}`)
+        }
 
         // Delete the deployment
         await deploymentStore.delete(deploymentId)

@@ -144,6 +144,68 @@ export class DockerClient {
     }
   }
 
+  async streamContainerLogs(
+    id: string,
+    onLog: (log: string) => void,
+    signal?: AbortSignal
+  ): Promise<void> {
+    try {
+      const container = this.docker.getContainer(id)
+      const logStream = await container.logs({
+        stdout: true,
+        stderr: true,
+        follow: true,
+        timestamps: false,
+      })
+
+      // Docker multiplexes stdout/stderr in a special format
+      // Each frame has an 8-byte header: [stream_type, 0, 0, 0, size1, size2, size3, size4]
+      let buffer = Buffer.alloc(0)
+
+      const processChunk = (chunk: Buffer) => {
+        buffer = Buffer.concat([buffer, chunk])
+
+        while (buffer.length >= 8) {
+          const header = buffer.slice(0, 8)
+          const payloadSize = header.readUInt32BE(4)
+
+          if (buffer.length < 8 + payloadSize) {
+            break // Wait for more data
+          }
+
+          const payload = buffer.slice(8, 8 + payloadSize)
+          buffer = buffer.slice(8 + payloadSize)
+
+          const logLine = payload.toString('utf-8').trim()
+          if (logLine) {
+            onLog(logLine)
+          }
+        }
+      }
+
+      logStream.on('data', processChunk)
+
+      // Handle abort signal
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          logStream.destroy()
+        })
+      }
+
+      // Wait for stream to end
+      await new Promise<void>((resolve, reject) => {
+        logStream.on('end', resolve)
+        logStream.on('error', reject)
+      })
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('aborted')) {
+        return // Normal abort
+      }
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      throw new Error(`Failed to stream logs for container ${id}: ${message}`)
+    }
+  }
+
   async buildImage(context: string, options: BuildOptions): Promise<string> {
     try {
       const stream = await this.docker.buildImage(

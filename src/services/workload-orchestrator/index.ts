@@ -453,6 +453,12 @@ export class WorkloadOrchestrator {
       console.log(`[Orchestrator] Starting container monitoring for ${workloadId}`)
       this.monitorContainer(workloadId, containerId, port, workDir)
 
+      // Stream container logs in background
+      console.log(`[Orchestrator] Starting log streaming for ${workloadId}`)
+      this.streamContainerLogs(workloadId, containerId).catch(err => {
+        console.error(`[Orchestrator] Log streaming error for ${workloadId}:`, err)
+      })
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       console.error(`[Orchestrator] Failed to start workload ${workloadId}: ${errorMessage}`)
@@ -526,6 +532,35 @@ export class WorkloadOrchestrator {
     })
   }
 
+  private async streamContainerLogs(workloadId: string, containerId: string): Promise<void> {
+    const abortController = new AbortController()
+    const running = this.runningWorkloads.get(workloadId)
+
+    if (!running) {
+      console.log(`[Orchestrator] Cannot stream logs - workload ${workloadId} not found`)
+      return
+    }
+
+    // Store abort controller so we can stop streaming when workload stops
+    const stopStreaming = () => abortController.abort()
+
+    try {
+      await this.dockerClient.streamContainerLogs(
+        containerId,
+        async (logLine) => {
+          // Add each log line to the workload
+          await this.addLog(workloadId, 'running', logLine)
+          console.log(`[Container ${containerId.substring(0, 12)}] ${logLine}`)
+        },
+        abortController.signal
+      )
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('aborted')) {
+        console.error(`[Orchestrator] Log streaming failed for ${workloadId}:`, error)
+      }
+    }
+  }
+
   private async cleanupContainer(workloadId: string, containerId: string, workDir: string): Promise<void> {
     try {
       console.log(`[Orchestrator] Cleaning up container ${containerId}`)
@@ -584,6 +619,59 @@ export class WorkloadOrchestrator {
     await this.updateStage(workloadId, 'stopped', 'success')
     await this.addLog(workloadId, 'stopped', 'Service stopped')
     console.log(`[Orchestrator] Workload ${workloadId} stopped successfully`)
+  }
+
+  async forceCleanup(workloadId: string): Promise<void> {
+    console.log(`[Orchestrator] Force cleanup workload ${workloadId}`)
+
+    // Try to get workload from database to find container info
+    const workload = await this.workloadStore?.findById(workloadId) as any
+
+    // Clean up if in running state
+    const running = this.runningWorkloads.get(workloadId)
+    if (running) {
+      console.log(`[Orchestrator] Cleaning up running workload`)
+      try {
+        await this.containerLifecycle.stop(running.containerId, false)
+      } catch (error) {
+        console.log(`[Orchestrator] Container already stopped or not found`)
+      }
+      await this.cleanupContainer(workloadId, running.containerId, running.workDir)
+      this.portPool.release(running.port)
+      this.runningWorkloads.delete(workloadId)
+      this.resources.untrack(workloadId)
+    } else if (workload?.containerId) {
+      // Workload not in memory but has container ID in DB
+      console.log(`[Orchestrator] Cleaning up stopped workload with container ${workload.containerId}`)
+      try {
+        await this.containerLifecycle.cleanup(workload.containerId)
+      } catch (error) {
+        console.log(`[Orchestrator] Container already removed`)
+      }
+
+      // Try to remove image
+      const imageName = `workload-${workloadId}`
+      try {
+        await this.imageBuilder.removeImage(imageName, true)
+      } catch (error) {
+        console.log(`[Orchestrator] Image already removed`)
+      }
+
+      // Try to cleanup work directory
+      const workDir = join(tmpdir(), 'workloads', workloadId)
+      try {
+        await rm(workDir, { recursive: true, force: true })
+      } catch (error) {
+        console.log(`[Orchestrator] Work directory already removed`)
+      }
+
+      // Release port if it was assigned
+      if (workload.port) {
+        this.portPool.release(workload.port)
+      }
+    }
+
+    console.log(`[Orchestrator] Force cleanup completed for workload ${workloadId}`)
   }
 
   async getStatus(workloadId: string): Promise<{ running: boolean; port?: number; containerId?: string }> {

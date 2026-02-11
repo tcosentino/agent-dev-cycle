@@ -8,6 +8,7 @@ This directory contains memories of bugs fixed, patterns learned, and decisions 
 - [duplicate-file-loads.md](duplicate-file-loads.md) - Fixed agent files loading 6+ times due to parent component recreating objects (2026-02-11)
 - [agent-list-flashing.md](agent-list-flashing.md) - Fixed agent list flashing/disappearing due to StrictMode double-mount wiping state (2026-02-11)
 - [deployment-context-state-management.md](deployment-context-state-management.md) - Fixed UI not updating on deployment deletion using centralized React Context (2026-02-11)
+- [deployment-cascade-delete.md](deployment-cascade-delete.md) - Fixed orphaned Docker containers/images when deployments deleted (2026-02-11)
 
 ## Patterns Learned
 
