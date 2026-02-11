@@ -1,7 +1,8 @@
 import type { OpenAPIHono } from '@hono/zod-openapi'
 import type { IntegrationService, IntegrationContext } from '../../../packages/server/src/types'
+import { streamSSE } from 'hono/streaming'
 import { orchestrator } from '../workload-orchestrator'
-import { z } from 'zod'
+import { workloadEvents } from '../workload-orchestrator/events'
 
 export const workloadIntegration: IntegrationService = {
   name: 'workload-operations',
@@ -122,6 +123,138 @@ export const workloadIntegration: IntegrationService = {
         const message = error instanceof Error ? error.message : 'Unknown error'
         return c.json({
           error: 'Failed to get workload logs',
+          message
+        }, 500)
+      }
+    })
+
+    // GET /api/projects/:projectId/deployments/stream - SSE stream for deployment updates
+    app.get('/api/projects/:projectId/deployments/stream', async (c) => {
+      const { projectId } = c.req.param()
+
+      const deploymentStore = ctx.stores.get('deployment')
+      if (!deploymentStore) {
+        return c.json({ error: 'Deployment store not found' }, 500)
+      }
+
+      return streamSSE(c, async (stream) => {
+        try {
+          // Send initial data
+          const deployments = await deploymentStore.findAll({
+            where: { projectId }
+          }) as any[]
+
+          // Fetch workloads for each deployment
+          const deploymentsWithWorkloads = await Promise.all(
+            deployments.map(async (deployment) => {
+              const workloads = await workloadStore.findAll({
+                where: { deploymentId: deployment.id }
+              }) as any[]
+              return {
+                ...deployment,
+                workloads
+              }
+            })
+          )
+
+          await stream.writeSSE({
+            event: 'init',
+            data: JSON.stringify({
+              type: 'init',
+              deployments: deploymentsWithWorkloads
+            })
+          })
+
+          // Listen for workload updates
+          const updateListener = async (update: any) => {
+            // Only send updates for this project
+            if (update.projectId === projectId) {
+              await stream.writeSSE({
+                event: 'workload-update',
+                data: JSON.stringify({
+                  type: 'workload-update',
+                  update
+                })
+              })
+            }
+          }
+
+          workloadEvents.onWorkloadUpdate(updateListener)
+
+          // Keep connection alive and check if client disconnected
+          const keepAliveInterval = setInterval(async () => {
+            try {
+              await stream.writeSSE({
+                event: 'ping',
+                data: JSON.stringify({ type: 'ping' })
+              })
+            } catch (err) {
+              clearInterval(keepAliveInterval)
+              workloadEvents.offWorkloadUpdate(updateListener)
+            }
+          }, 15000) // Ping every 15 seconds
+
+          // Listen for deployment deletions
+          const deleteListener = async (event: any) => {
+            // Only send updates for this project
+            if (event.projectId === projectId) {
+              await stream.writeSSE({
+                event: 'deployment-deleted',
+                data: JSON.stringify({
+                  type: 'deployment-deleted',
+                  deploymentId: event.deploymentId
+                })
+              })
+            }
+          }
+
+          workloadEvents.onDeploymentDeleted(deleteListener)
+
+          // Wait for client disconnect
+          c.req.raw.signal.addEventListener('abort', () => {
+            clearInterval(keepAliveInterval)
+            workloadEvents.offWorkloadUpdate(updateListener)
+            workloadEvents.offDeploymentDeleted(deleteListener)
+          })
+
+        } catch (error) {
+          console.error('Error in deployment stream:', error)
+        }
+      })
+    })
+
+    // DELETE /api/deployments/:id - Delete a deployment and emit event
+    app.delete('/api/deployments/:id', async (c) => {
+      const deploymentId = c.req.param('id')
+
+      const deploymentStore = ctx.stores.get('deployment')
+      if (!deploymentStore) {
+        return c.json({ error: 'Deployment store not found' }, 500)
+      }
+
+      try {
+        // Get deployment to find projectId before deleting
+        const deployment = await deploymentStore.findById(deploymentId) as any
+        if (!deployment) {
+          return c.json({ error: 'Deployment not found' }, 404)
+        }
+
+        const projectId = deployment.projectId
+
+        // Delete the deployment
+        await deploymentStore.delete(deploymentId)
+
+        // Emit deployment deleted event
+        workloadEvents.emitDeploymentDeleted({
+          deploymentId,
+          projectId
+        })
+
+        return c.json({ success: true })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        return c.json({
+          error: 'Failed to delete deployment',
           message
         }, 500)
       }

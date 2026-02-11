@@ -393,6 +393,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   useEffect(() => {
     if (!snapshot) return
 
+    console.log('[ProjectViewer] Snapshot changed, syncing tab records')
     setOpenTabs(prev => prev.map(tab => {
       if (tab.type !== 'record' || !tab.tableName) return tab
 
@@ -403,6 +404,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
 
       // Update tab with fresh record if found
       if (freshRecord) {
+        console.log('[ProjectViewer] Updated record for tab:', tab.tableName, key)
         return { ...tab, record: freshRecord }
       }
 
@@ -832,20 +834,31 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   const selectedFilePath = focusedTab?.type === 'file' ? focusedTab.path : null
 
   // Refresh snapshot when switching to deployments or workloads tables or records
+  // NOTE: Workloads and deployments use SSE for real-time updates, but we still
+  // refresh on tab switch to catch any missed updates or initial load
   useEffect(() => {
-    const activeTab = activePane === 'left' ? activeLeftTab : activeRightTab
+    // Use tab IDs instead of tab objects to avoid re-triggering when tab contents change
+    const activeTabId = activePane === 'left' ? activeTabIds.left : activeTabIds.right
+    const activeTab = openTabs.find(t => t.id === activeTabId)
+
+    console.log('[ProjectViewer] Refresh effect triggered', {
+      tabType: activeTab?.type,
+      tabPath: activeTab?.path,
+      tableName: activeTab?.tableName,
+      activePane,
+      activeProject
+    })
     if (activeTab?.type === 'table') {
       const tableName = activeTab.path as DbTableName
       if (tableName === 'deployments' || tableName === 'workloads') {
-        onRefreshSnapshot?.(activeProject)
-      }
-    } else if (activeTab?.type === 'record') {
-      const tableName = activeTab.tableName
-      if (tableName === 'deployments' || tableName === 'workloads') {
+        console.log('[ProjectViewer] Refreshing snapshot for table:', tableName)
         onRefreshSnapshot?.(activeProject)
       }
     }
-  }, [activeLeftTab, activeRightTab, activePane, activeProject, onRefreshSnapshot])
+    // Don't refresh for workload/deployment records - SSE provides real-time updates
+    // and polling causes unnecessary load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabIds.left, activeTabIds.right, activePane, activeProject])
 
   // Convert to Tab[] for TabbedPane
   const toTabs = (tabs: OpenTab[]): Tab[] => tabs.map(t => {
