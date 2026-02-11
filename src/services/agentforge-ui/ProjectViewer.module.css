@@ -2009,6 +2009,16 @@
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   background: var(--bg-tertiary);
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+
+.stageDetailHeader:disabled {
+  cursor: default;
 }
 
 .stageDetailName {
