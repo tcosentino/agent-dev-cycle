@@ -49,12 +49,24 @@ export function ServiceView({ metadata, onFileClick, servicePath, projectId }: S
       })
 
       // Create workload for the deployment
-      await createWorkload.mutateAsync({
+      const workload = await createWorkload.mutateAsync({
         deploymentId: deployment.id,
         servicePath,
       })
 
+      // Start the workload
+      const response = await fetch(`/api/workloads/${workload.id}/start`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to start workload')
+      }
+
       // TODO: Navigate to workloads page or show success message
+      console.log('Workload started successfully:', workload.id)
     } catch (error) {
       console.error('Failed to start workload:', error)
       // TODO: Show error message to user

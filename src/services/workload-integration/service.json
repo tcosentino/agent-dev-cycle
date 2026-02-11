@@ -1,0 +1,7 @@
+{
+  "name": "workload-operations",
+  "type": "integration",
+  "version": "1.0.0",
+  "description": "Workload execution and management operations",
+  "entry": "index.ts"
+}
