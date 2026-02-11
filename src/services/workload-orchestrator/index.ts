@@ -9,7 +9,7 @@ import type { ResourceStore } from '@agentforge/dataobject'
 
 const exec = promisify(execCallback)
 
-type WorkloadStage = 'pending' | 'validate' | 'build' | 'deploy' | 'running' | 'failed' | 'stopped'
+type WorkloadStage = 'pending' | 'starting-container' | 'cloning-repo' | 'starting-service' | 'running' | 'graceful-shutdown' | 'stopped' | 'failed'
 
 interface LogEntry {
   timestamp: Date
@@ -108,17 +108,22 @@ export class WorkloadOrchestrator {
         throw new Error(`Workload ${workloadId} not found`)
       }
 
-      // Stage 1: Validate
-      await this.updateStage(workloadId, 'validate')
-      await this.addLog(workloadId, 'validate', 'Cloning repository')
+      // Stage 1: Starting Container (prepare environment)
+      await this.updateStage(workloadId, 'starting-container')
+      await this.addLog(workloadId, 'starting-container', 'Preparing container environment')
 
-      // Clone the repository to a temporary directory
+      // TODO: Check if prebuilt image exists if repo is a parameter
+      // For now, we'll prepare a directory for the workload
       workDir = join(tmpdir(), 'workloads', workloadId)
-      await this.addLog(workloadId, 'validate', `Cloning ${repoUrl} to ${workDir}`)
+      await this.addLog(workloadId, 'starting-container', `Preparing work directory: ${workDir}`)
+
+      // Stage 2: Cloning Repository
+      await this.updateStage(workloadId, 'cloning-repo')
+      await this.addLog(workloadId, 'cloning-repo', `Cloning repository from ${repoUrl}`)
 
       try {
         await exec(`git clone ${repoUrl} ${workDir}`)
-        await this.addLog(workloadId, 'validate', 'Repository cloned successfully')
+        await this.addLog(workloadId, 'cloning-repo', 'Repository cloned successfully')
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
         throw new Error(`Failed to clone repository: ${message}`)
@@ -135,32 +140,33 @@ export class WorkloadOrchestrator {
         throw new Error(`service.json not found at: ${serviceJsonPath}`)
       }
 
-      await this.addLog(workloadId, 'validate', 'Service configuration is valid')
+      await this.addLog(workloadId, 'cloning-repo', 'Service configuration validated')
 
-      // Stage 2: Build (skip for MVP - no dependency installation)
-      await this.updateStage(workloadId, 'build')
-      await this.addLog(workloadId, 'build', 'Skipping build (dependencies assumed installed)')
-
-      // Stage 3: Deploy
-      await this.updateStage(workloadId, 'deploy')
-      await this.addLog(workloadId, 'deploy', 'Preparing runtime environment')
+      // Stage 3: Starting Service
+      await this.updateStage(workloadId, 'starting-service')
+      await this.addLog(workloadId, 'starting-service', 'Preparing runtime environment')
 
       const port = this.assignPort()
       if (!port) {
         throw new Error('No available ports')
       }
 
-      await this.addLog(workloadId, 'deploy', `Assigned port ${port}`)
+      await this.addLog(workloadId, 'starting-service', `Assigned port ${port}`)
 
       // Update workload with port
       await this.workloadStore!.update(workloadId, { port })
 
-      // Stage 4: Running - Start the service
-      await this.updateStage(workloadId, 'running')
-      await this.addLog(workloadId, 'running', 'Starting service')
+      await this.addLog(workloadId, 'starting-service', 'Starting service process')
 
       // For dataobjects, we need to start a temporary API server
       const serverProcess = await this.startDataobjectServer(servicePath, port, workloadId)
+
+      // Wait a moment to ensure the process starts
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Stage 4: Running
+      await this.updateStage(workloadId, 'running')
+      await this.addLog(workloadId, 'running', `Service running on port ${port} (PID: ${serverProcess.pid})`)
 
       // Store running workload info
       this.runningWorkloads.set(workloadId, {
@@ -323,20 +329,26 @@ app.listen(${port}, () => {
       throw new Error(`Workload ${workloadId} is not running`)
     }
 
-    await this.addLog(workloadId, 'stopped', 'Stopping service')
+    // Stage: Graceful Shutdown
+    await this.updateStage(workloadId, 'graceful-shutdown')
+    await this.addLog(workloadId, 'graceful-shutdown', 'Initiating graceful shutdown')
 
-    // Kill the process
+    // Send SIGTERM for graceful shutdown
     running.process.kill('SIGTERM')
+    await this.addLog(workloadId, 'graceful-shutdown', 'Sent SIGTERM signal to process')
 
     // Give it time to shut down gracefully, then force kill if needed
     setTimeout(async () => {
       if (!running.process.killed) {
+        await this.addLog(workloadId, 'graceful-shutdown', 'Process did not stop gracefully, forcing shutdown', 'warn')
         running.process.kill('SIGKILL')
       }
       await this.cleanupWorkDir(workloadId, running.workDir)
     }, 5000)
 
+    // Stage: Stopped
     await this.updateStage(workloadId, 'stopped')
+    await this.addLog(workloadId, 'stopped', 'Service stopped')
   }
 
   async getStatus(workloadId: string): Promise<{ running: boolean; port?: number; pid?: number }> {

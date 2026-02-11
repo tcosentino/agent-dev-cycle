@@ -23,14 +23,13 @@ export type ProjectData = Record<string, Record<string, string>>
 // Workload stage types (matches @agentforge/runtime)
 export type WorkloadStage =
   | 'pending'
-  | 'validate'
-  | 'build'
-  | 'deploy'
-  | 'healthcheck'
-  | 'test'
-  | 'complete'
+  | 'starting-container'
+  | 'cloning-repo'
+  | 'starting-service'
+  | 'running'
+  | 'graceful-shutdown'
+  | 'stopped'
   | 'failed'
-  | 'rolledback'
 
 export type StageStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped'
 

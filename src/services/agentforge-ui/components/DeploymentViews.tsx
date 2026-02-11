@@ -22,7 +22,22 @@ import modalStyles from '@agentforge/ui-components/components/Modal/Modal.module
 
 // --- Stage Progress Indicator ---
 
-const STAGE_ORDER: WorkloadStage[] = ['validate', 'build', 'deploy', 'healthcheck', 'test', 'complete']
+const STAGE_ORDER: WorkloadStage[] = ['starting-container', 'cloning-repo', 'starting-service', 'running', 'graceful-shutdown', 'stopped']
+
+const STAGE_LABELS: Record<WorkloadStage, string> = {
+  'pending': 'Pending',
+  'starting-container': 'Starting Container',
+  'cloning-repo': 'Cloning Repository',
+  'starting-service': 'Starting Service',
+  'running': 'Running',
+  'graceful-shutdown': 'Graceful Shutdown',
+  'stopped': 'Stopped',
+  'failed': 'Failed',
+}
+
+function formatStageName(stage: WorkloadStage): string {
+  return STAGE_LABELS[stage] || stage
+}
 
 function StageIndicator({ stage, status }: { stage: WorkloadStage; status: StageStatus }) {
   const getIcon = () => {
@@ -33,9 +48,9 @@ function StageIndicator({ stage, status }: { stage: WorkloadStage; status: Stage
   }
 
   return (
-    <div className={`${styles.stageIndicator} ${styles[`stage-${status}`]}`} title={`${stage}: ${status}`}>
+    <div className={`${styles.stageIndicator} ${styles[`stage-${status}`]}`} title={`${formatStageName(stage)}: ${status}`}>
       {getIcon()}
-      <span className={styles.stageLabel}>{stage}</span>
+      <span className={styles.stageLabel}>{formatStageName(stage)}</span>
     </div>
   )
 }
@@ -44,14 +59,13 @@ function WorkloadStages({ workload }: { workload: Workload }) {
   const stageStatuses = useMemo(() => {
     const statuses: Record<WorkloadStage, StageStatus> = {
       pending: 'pending',
-      validate: 'pending',
-      build: 'pending',
-      deploy: 'pending',
-      healthcheck: 'pending',
-      test: 'pending',
-      complete: 'pending',
+      'starting-container': 'pending',
+      'cloning-repo': 'pending',
+      'starting-service': 'pending',
+      running: 'pending',
+      'graceful-shutdown': 'pending',
+      stopped: 'pending',
       failed: 'skipped',
-      rolledback: 'skipped',
     }
 
     if (workload.stages) {
@@ -540,7 +554,7 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
         {workload.stages ? workload.stages.map((stage, i) => (
           <div key={i} className={`${styles.stageDetail} ${styles[`stage-${stage.status}`]}`}>
             <div className={styles.stageDetailHeader}>
-              <span className={styles.stageDetailName}>{stage.stage}</span>
+              <span className={styles.stageDetailName}>{formatStageName(stage.stage)}</span>
               <span className={styles.stageDetailStatus}>{stage.status}</span>
               {stage.duration && (
                 <span className={styles.stageDetailDuration}>{stage.duration}ms</span>
@@ -558,7 +572,7 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
         )) : (
           <div className={styles.stageDetail}>
             <div className={styles.stageDetailHeader}>
-              <span className={styles.stageDetailName}>{(workload as any).stage || 'pending'}</span>
+              <span className={styles.stageDetailName}>{formatStageName((workload as any).stage || 'pending')}</span>
               <span className={styles.stageDetailStatus}>{workload.status}</span>
             </div>
             {(workload as any).logs && (workload as any).logs.length > 0 && (
