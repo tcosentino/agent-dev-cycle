@@ -1541,6 +1541,30 @@
   color: var(--text-muted);
 }
 
+.deleteDeploymentButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.deleteDeploymentButton:hover {
+  background: var(--bg-secondary);
+  color: var(--error);
+}
+
+.deleteDeploymentButton svg {
+  width: 18px;
+  height: 18px;
+}
+
 .deploymentBranch {
   display: flex;
   align-items: center;

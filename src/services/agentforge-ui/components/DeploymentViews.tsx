@@ -173,11 +173,13 @@ function DeploymentCard({
   workloads,
   onWorkloadClick,
   onViewLogs,
+  onDelete,
 }: {
   deployment: Deployment
   workloads: Workload[]
   onWorkloadClick: (workload: Workload) => void
   onViewLogs: (workload: Workload) => void
+  onDelete: (deployment: Deployment) => void
 }) {
   const statusIcons: Record<Deployment['status'], React.ReactNode> = {
     pending: <ClockIcon className={styles.deploymentStatusIcon} />,
@@ -231,6 +233,13 @@ function DeploymentCard({
           <span className={styles.deploymentTime}>
             {new Date(deployment.createdAt).toLocaleString()}
           </span>
+          <button
+            className={styles.deleteDeploymentButton}
+            onClick={() => onDelete(deployment)}
+            title="Delete deployment"
+          >
+            <XCircleIcon />
+          </button>
         </div>
       </div>
       {deployment.description && (
@@ -267,12 +276,19 @@ export function DeploymentListView({
     logs: LogEntry[]
   } | null>(null)
   const [loadingLogs, setLoadingLogs] = useState(false)
+  const [deletingDeployment, setDeletingDeployment] = useState<string | null>(null)
 
   const deploymentsWithWorkloads = useMemo(() => {
-    return deployments.map(dep => ({
-      deployment: dep,
-      workloads: workloads.filter(w => w.deploymentId === dep.id),
-    }))
+    return deployments
+      .map(dep => ({
+        deployment: dep,
+        workloads: workloads.filter(w => w.deploymentId === dep.id),
+      }))
+      .sort((a, b) => {
+        const dateA = new Date(a.deployment.createdAt || 0).getTime()
+        const dateB = new Date(b.deployment.createdAt || 0).getTime()
+        return dateB - dateA // Most recent first
+      })
   }, [deployments, workloads])
 
   const handleViewLogs = async (workload: Workload) => {
@@ -283,12 +299,73 @@ export function DeploymentListView({
     } catch (error) {
       console.error('Failed to load logs:', error)
       // Show empty logs with error
-      setLogViewerState({ 
-        workload, 
-        logs: [{ stage: 'error', log: 'Failed to load logs', error: String(error) }] 
+      setLogViewerState({
+        workload,
+        logs: [{ stage: 'error', log: 'Failed to load logs', error: String(error) }]
       })
     } finally {
       setLoadingLogs(false)
+    }
+  }
+
+  const handleDeleteDeployment = async (deployment: Deployment) => {
+    if (!confirm(`Are you sure you want to delete deployment "${(deployment as any).serviceName || deployment.name}"? This will stop all running workloads and clean up resources.`)) {
+      return
+    }
+
+    setDeletingDeployment(deployment.id)
+    try {
+      // Get all workloads for this deployment
+      const deploymentWorkloads = workloads.filter(w => w.deploymentId === deployment.id)
+
+      // Stop all running workloads
+      for (const workload of deploymentWorkloads) {
+        if (workload.status === 'running') {
+          try {
+            await fetch(`/api/workloads/${workload.id}/stop`, {
+              method: 'POST',
+              credentials: 'include',
+            })
+          } catch (error) {
+            console.error(`Failed to stop workload ${workload.id}:`, error)
+          }
+        }
+      }
+
+      // TODO: Clean up Docker containers/processes
+      // TODO: Clean up any persistent volumes
+      // TODO: Clean up network resources
+      // TODO: Clean up any environment-specific resources
+
+      // Delete all workloads
+      for (const workload of deploymentWorkloads) {
+        try {
+          await fetch(`/api/workloads/${workload.id}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          })
+        } catch (error) {
+          console.error(`Failed to delete workload ${workload.id}:`, error)
+        }
+      }
+
+      // Delete the deployment
+      const response = await fetch(`/api/deployments/${deployment.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete deployment')
+      }
+
+      // Refresh the page to show updated list
+      window.location.reload()
+    } catch (error) {
+      console.error('Failed to delete deployment:', error)
+      alert('Failed to delete deployment. Please try again.')
+    } finally {
+      setDeletingDeployment(null)
     }
   }
 
@@ -306,6 +383,7 @@ export function DeploymentListView({
             workloads={workloads}
             onWorkloadClick={onWorkloadClick}
             onViewLogs={handleViewLogs}
+            onDelete={handleDeleteDeployment}
           />
         ))}
       </div>
