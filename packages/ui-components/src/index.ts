@@ -31,6 +31,9 @@ export type { ListPanelProps, SidebarItem } from './components/ListPanel/types'
 export { Modal } from './components/Modal/Modal'
 export type { ModalProps } from './components/Modal/Modal'
 
+export { Card } from './components/Card/Card'
+export type { CardProps } from './components/Card/Card'
+
 export { ToastProvider, useToast } from './components/Toast/Toast'
 export type { ToastOptions, ToastType } from './components/Toast/Toast'
 

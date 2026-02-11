@@ -1,0 +1,65 @@
+.stageDetail {
+  /* Base styles inherited from Card component */
+}
+
+.stageDetail.stage-success {
+  border-left: 3px solid var(--success);
+}
+
+.stageDetail.stage-failed {
+  border-left: 3px solid var(--error);
+}
+
+.stageDetail.stage-running {
+  border-left: 3px solid var(--accent-primary);
+}
+
+.stageDetailName {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.stageDetailStatus {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stageDetailTimestamp {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+}
+
+.stageDetailDuration {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
+}
+
+.stageDetailLogs {
+  padding: var(--space-sm) var(--space-md);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.stageDetailError {
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--error);
+  background: rgba(255, 100, 100, 0.1);
+}
