@@ -394,22 +394,29 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     if (!snapshot) return
 
     console.log('[ProjectViewer] Snapshot changed, syncing tab records')
-    setOpenTabs(prev => prev.map(tab => {
-      if (tab.type !== 'record' || !tab.tableName) return tab
+    setOpenTabs(prev => {
+      let hasChanges = false
+      const updated = prev.map(tab => {
+        if (tab.type !== 'record' || !tab.tableName) return tab
 
-      // Get fresh record from snapshot
-      const [, key] = tab.path.split(':')
-      const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
-      const freshRecord = tableData?.find(r => String(r.id || r.key) === key)
+        // Get fresh record from snapshot
+        const [, key] = tab.path.split(':')
+        const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
+        const freshRecord = tableData?.find(r => String(r.id || r.key) === key)
 
-      // Update tab with fresh record if found
-      if (freshRecord) {
-        console.log('[ProjectViewer] Updated record for tab:', tab.tableName, key)
-        return { ...tab, record: freshRecord }
-      }
+        // Only update if record content actually changed
+        if (freshRecord && JSON.stringify(tab.record) !== JSON.stringify(freshRecord)) {
+          console.log('[ProjectViewer] Updated record for tab:', tab.tableName, key)
+          hasChanges = true
+          return { ...tab, record: freshRecord }
+        }
 
-      return tab
-    }))
+        return tab
+      })
+
+      // Only update state if something actually changed
+      return hasChanges ? updated : prev
+    })
   }, [snapshot])
 
   // Track which files have been requested to avoid duplicate loads
