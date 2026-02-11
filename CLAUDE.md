@@ -238,6 +238,11 @@ workloadEvents.emitDeploymentDeleted({ deploymentId, projectId })
 
 - When completing work, suggest changes to CLAUDE.md based on new learnings
 
+### Communication
+
+- When applicable, end messages with short instructions on what the user needs to do to test/validate the changes
+- Keep validation steps concise and actionable (e.g., "Run `yarn dev` and check the deployment dashboard")
+
 ## Agent Memory
 
 The `.agentforge/memory/` directory contains memories of bugs fixed, patterns learned, and architectural decisions. See [.agentforge/memory/index.md](.agentforge/memory/index.md) for a complete list.
