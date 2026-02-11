@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { SearchIcon, DownloadIcon, XIcon } from '@agentforge/ui-components'
+import { SearchIcon, DownloadIcon, XIcon, ClipboardIcon } from '@agentforge/ui-components'
 import styles from './LogViewer.module.css'
 
 export interface LogEntry {
@@ -27,6 +27,7 @@ type LogLevel = 'all' | 'error' | 'warn' | 'info'
 export function LogViewer({ workloadId, workloadName, logs, onClose }: LogViewerProps) {
   const [searchText, setSearchText] = useState('')
   const [logLevel, setLogLevel] = useState<LogLevel>('all')
+  const [copied, setCopied] = useState(false)
 
   // Filter logs
   const filteredLogs = useMemo(() => {
@@ -57,12 +58,27 @@ export function LogViewer({ workloadId, workloadName, logs, onClose }: LogViewer
     return filtered
   }, [logs, searchText, logLevel])
 
+  // Copy logs to clipboard
+  const handleCopy = async () => {
+    const content = logs
+      .map(entry => `[${entry.stage}] ${entry.log}`)
+      .join('\n')
+
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy logs:', err)
+    }
+  }
+
   // Download logs as text file
   const handleDownload = () => {
     const content = logs
       .map(entry => `[${entry.stage}] ${entry.log}`)
       .join('\n')
-    
+
     const blob = new Blob([content], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -133,9 +149,19 @@ export function LogViewer({ workloadId, workloadName, logs, onClose }: LogViewer
             </select>
           </div>
 
+          {/* Copy button */}
+          <button
+            className={styles.copyButton}
+            onClick={handleCopy}
+            title="Copy logs to clipboard"
+          >
+            <ClipboardIcon />
+            <span>{copied ? 'Copied!' : 'Copy'}</span>
+          </button>
+
           {/* Download button */}
-          <button 
-            className={styles.downloadButton} 
+          <button
+            className={styles.downloadButton}
             onClick={handleDownload}
             title="Download logs"
           >

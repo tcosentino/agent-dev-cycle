@@ -135,6 +135,31 @@
   border-color: var(--accent-primary);
 }
 
+.copyButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--background-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.copyButton:hover {
+  background: var(--background-tertiary);
+  border-color: var(--accent-primary);
+}
+
+.copyButton svg {
+  width: 16px;
+  height: 16px;
+}
+
 .downloadButton {
   display: flex;
   align-items: center;
