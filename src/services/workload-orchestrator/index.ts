@@ -331,38 +331,76 @@ export class WorkloadOrchestrator {
       console.log(`[Orchestrator] Docker image built: ${imageId}`)
       await this.addLog(workloadId, 'starting-service', 'Docker image built successfully')
 
-      // Create and start container
+      // Create and start container with port retry logic
       await this.addLog(workloadId, 'starting-service', 'Starting Docker container')
       const containerName = `workload-${workloadId}`
       const imageName = `workload-${workloadId}`
 
       let containerId: string | null = null
-      try {
-        console.log(`[Orchestrator] Creating container ${containerName} from image ${imageName}`)
-        containerId = await this.containerLifecycle.create({
-          name: containerName,
-          image: imageName,
-          ports: [{ container: 3000, host: port }],
-        })
-        console.log(`[Orchestrator] Container created: ${containerId}`)
-        await this.addLog(workloadId, 'starting-service', `Container created: ${containerId.substring(0, 12)}`)
+      let currentPort = port
+      let retryCount = 0
+      const maxRetries = 5
 
-        console.log(`[Orchestrator] Starting container ${containerId}`)
-        await this.containerLifecycle.start(containerId)
-        console.log(`[Orchestrator] Container started successfully`)
-        await this.addLog(workloadId, 'starting-service', `Container started: ${containerId.substring(0, 12)}`)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error'
-        console.error(`[Orchestrator] Failed to create/start container: ${message}`)
-        // Clean up container if start failed
-        if (containerId) {
-          try {
-            await this.containerLifecycle.cleanup(containerId)
-          } catch (cleanupError) {
-            console.error(`[Orchestrator] Failed to cleanup container: ${cleanupError}`)
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`[Orchestrator] Creating container ${containerName} from image ${imageName} on port ${currentPort}`)
+          containerId = await this.containerLifecycle.create({
+            name: containerName,
+            image: imageName,
+            ports: [{ container: 3000, host: currentPort }],
+          })
+          console.log(`[Orchestrator] Container created: ${containerId}`)
+          await this.addLog(workloadId, 'starting-service', `Container created: ${containerId.substring(0, 12)}`)
+
+          console.log(`[Orchestrator] Starting container ${containerId}`)
+          await this.containerLifecycle.start(containerId)
+          console.log(`[Orchestrator] Container started successfully`)
+          await this.addLog(workloadId, 'starting-service', `Container started on port ${currentPort}`)
+
+          // Success - update port if it changed
+          if (currentPort !== port) {
+            this.portPool.release(port)
+            await this.workloadStore!.update(workloadId, { port: currentPort })
+            console.log(`[Orchestrator] Port updated from ${port} to ${currentPort}`)
           }
+
+          break // Exit retry loop on success
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Unknown error'
+          const isPortConflict = message.includes('port is already allocated') ||
+                                message.includes('address already in use')
+
+          console.error(`[Orchestrator] Failed to start container: ${message}`)
+
+          // Clean up container if it was created
+          if (containerId) {
+            try {
+              await this.containerLifecycle.cleanup(containerId)
+              containerId = null
+            } catch (cleanupError) {
+              console.error(`[Orchestrator] Failed to cleanup container: ${cleanupError}`)
+            }
+          }
+
+          // If port conflict, retry with new port
+          if (isPortConflict && retryCount < maxRetries - 1) {
+            console.log(`[Orchestrator] Port ${currentPort} already allocated, retrying with new port...`)
+            await this.addLog(workloadId, 'starting-service', `Port ${currentPort} unavailable, retrying...`)
+
+            // Release current port and get a new one
+            this.portPool.release(currentPort)
+            const newPort = this.portPool.assign()
+            if (!newPort) {
+              throw new Error('No available ports after retry')
+            }
+            currentPort = newPort
+            retryCount++
+            continue
+          }
+
+          // Not a port conflict or max retries reached
+          throw error
         }
-        throw error
       }
 
       // Capture container logs for debugging
