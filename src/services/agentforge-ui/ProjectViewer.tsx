@@ -459,28 +459,21 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   // Load agents from new folder structure (.agentforge/agents/{id}/config.json)
   // Fall back to legacy agents.yaml if new structure doesn't exist
   const agents = useMemo(() => {
-    // Extract only agent config files
+    // Extract only agent config files that have loaded content
     const agentConfigPaths = Object.keys(files).filter(p =>
-      p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
+      p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/) && files[p] && files[p] !== ''
     )
 
     const hasNewStructure = agentConfigPaths.length > 0
 
     if (hasNewStructure) {
-      // Only parse if all config files have content loaded
-      const allLoaded = agentConfigPaths.every(p => files[p] && files[p] !== '')
-      if (!allLoaded) {
-        console.log('[ProjectViewer] Agent configs not fully loaded yet')
-        return []
-      }
-
       const agentFiles: Record<string, string> = {}
       for (const path of agentConfigPaths) {
         agentFiles[path] = files[path]
       }
 
       const parsed = parseAgentConfigs(agentFiles)
-      console.log('[ProjectViewer] Parsed agents:', parsed.map(a => a.id))
+      console.log('[ProjectViewer] Parsed agents from loaded configs:', parsed.map(a => a.id))
       return parsed
     }
 
