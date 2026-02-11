@@ -57,7 +57,9 @@ export const workloadIntegration: IntegrationService = {
         // Determine project path
         // For now, assume projects are in examples/ directory
         // In production, this would be a cloned git repo
-        const projectPath = resolve(process.cwd(), 'examples', project.name.toLowerCase().replace(/\s+/g, '-'))
+        // Go up to project root from packages/server
+        const projectRoot = resolve(process.cwd(), '..', '..')
+        const projectPath = resolve(projectRoot, 'examples', project.name.toLowerCase().replace(/\s+/g, '-'))
 
         // Start the workload
         await orchestrator.start(workloadId, projectPath)
