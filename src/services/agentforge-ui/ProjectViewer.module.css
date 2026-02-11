@@ -59,7 +59,7 @@
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--text-muted);
-  padding: 6px var(--space-lg);
+  padding: 6px 12px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border-color);
   position: sticky;
@@ -783,6 +783,33 @@
   border-bottom-color: var(--accent-tertiary);
 }
 
+.actionsColumn {
+  width: 80px;
+  text-align: center !important;
+}
+
+.actionsCell {
+  text-align: center !important;
+}
+
+.deleteButton {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 1.2rem;
+  line-height: 1;
+  transition: all var(--transition-fast);
+}
+
+.deleteButton:hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: rgb(239, 68, 68);
+}
+
 /* Editor area (right of sidebar) */
 .editorArea {
   flex: 1;
@@ -944,6 +971,45 @@
   overflow: auto;
   min-height: 0;
   padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.taskBoardHeader {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 var(--space-md) 0;
+}
+
+.newTaskButton {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+  background: var(--accent-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.newTaskButton:hover {
+  opacity: 0.9;
+}
+
+.modalContent {
+  padding: var(--space-lg);
+  max-width: 600px;
+  width: 100%;
+}
+
+.modalTitle {
+  font-family: var(--font-sans);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-lg) 0;
 }
 
 .taskBoardWithDetail {
@@ -1119,14 +1185,16 @@
 
 /* Nice task detail view */
 .taskDetailView {
-  max-width: 600px;
+  max-width: 700px;
+  padding: var(--space-xl) var(--space-lg);
 }
 
 .taskDetailHeader {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--space-md);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .taskDetailKey {
@@ -1149,10 +1217,10 @@
 
 .taskDetailTitle {
   font-family: var(--font-sans);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--space-md);
+  margin: 0 0 var(--space-md) 0;
   line-height: 1.3;
 }
 
@@ -1167,8 +1235,9 @@
 .taskDetailMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-lg);
-  padding: var(--space-md) 0;
+  gap: var(--space-xl);
+  padding: var(--space-lg) 0;
+  margin: var(--space-lg) 0;
   border-top: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
 }
@@ -1201,6 +1270,60 @@
   font-family: var(--font-sans);
   font-size: 0.8rem;
   color: var(--text-secondary);
+}
+
+.taskDetailHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.editButton {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.editButton:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.editFormContainer {
+  margin: var(--space-lg) 0;
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+
+.dangerZone {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.deleteButton {
+  background: transparent;
+  border: 1px solid rgb(239, 68, 68);
+  border-radius: var(--radius-sm);
+  color: rgb(239, 68, 68);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.deleteButton:hover {
+  background: rgb(239, 68, 68);
+  color: white;
 }
 
 /* Tab menu content */
@@ -2156,4 +2279,62 @@
 .serviceReadme th {
   background: var(--bg-tertiary);
   font-weight: 600;
+}
+
+/* Delete confirmation modal */
+.deleteConfirmMessage {
+  margin: var(--space-md) 0;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.modalActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+  margin-top: var(--space-lg);
+}
+
+.cancelButton {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.cancelButton:hover {
+  background: var(--bg-tertiary);
+}
+
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.deleteConfirmButton {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: white;
+  background: rgb(239, 68, 68);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.deleteConfirmButton:hover {
+  background: rgb(220, 38, 38);
+}
+
+.deleteConfirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -33,6 +33,9 @@ export type { TaskFilters as TaskFiltersType, TaskFiltersProps } from './compone
 export { TaskDetailPanel } from './components/TaskDetailPanel/TaskDetailPanel'
 export type { TaskDetailPanelProps } from './components/TaskDetailPanel/TaskDetailPanel'
 
+export { CommentThread } from './components/CommentThread/CommentThread'
+export type { CommentThreadProps, Comment } from './components/CommentThread/CommentThread'
+
 // Badge variants
 export { AgentStatusBadge } from './components/badges/AgentStatusBadge'
 export { AssigneeBadge } from './components/badges/AssigneeBadge'

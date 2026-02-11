@@ -21,10 +21,10 @@ import {
   StartAgentSessionModal,
 } from './components/AgentSessionPanel'
 import type { FileCategory, ProjectData, ProjectDbData, DbTableName, Workload, ServiceMetadata } from './types'
+import { api } from './api'
 import {
   categorizeFile,
   buildFileTree,
-  getDefaultExpanded,
   filterTreeForSimpleMode,
   TABLE_NAMES,
   TABLE_LABELS,
@@ -244,10 +244,12 @@ interface ProjectViewerProps {
   dbData: ProjectDbData
   projectDisplayNames?: Record<string, string>
   selectedProjectId?: string
+  currentUserId?: string
   onLoadFileContent?: (projectId: string, filePath: string) => Promise<string>
+  onRefreshSnapshot?: (projectId: string) => Promise<void>
 }
 
-export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedProjectId, onLoadFileContent }: ProjectViewerProps) {
+export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedProjectId, currentUserId, onLoadFileContent, onRefreshSnapshot }: ProjectViewerProps) {
   const projectIds = useMemo(() => Object.keys(projects).sort(), [projects])
 
   // Load persisted state once on mount
@@ -445,11 +447,6 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   const leftTabs = useMemo(() => openTabs.filter(t => t.pane === 'left'), [openTabs])
   const rightTabs = useMemo(() => openTabs.filter(t => t.pane === 'right'), [openTabs])
   const hasRightPane = rightTabs.length > 0
-
-  // Set default expanded folders when tree changes
-  useEffect(() => {
-    setExpandedFolders(getDefaultExpanded(tree))
-  }, [tree])
 
   const toggleFolder = useCallback((path: string) => {
     setExpandedFolders(prev => {
@@ -918,11 +915,13 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       const viewMode = viewModes[tableName] || defaultMode
       return (
         <DatabaseTableView
+          projectId={activeProject}
           snapshot={snapshot}
           tableName={tableName}
           viewMode={viewMode}
           onRowClick={(record, key) => openRecord(tableName, record, key)}
           onWorkloadClick={(workload: Workload) => openRecord('workloads', workload as unknown as Record<string, unknown>, workload.id)}
+          onDataChange={() => onRefreshSnapshot?.(activeProject)}
         />
       )
     }
@@ -938,12 +937,42 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       if (!record) {
         return <div className={styles.emptyState}>Record not found</div>
       }
+
+      const handleRecordUpdate = (updates: Record<string, unknown>) => {
+        // Update the record in the tab
+        setOpenTabs(prev => prev.map(t =>
+          t.id === tab.id ? { ...t, record: { ...t.record, ...updates } } : t
+        ))
+        // Trigger snapshot refresh
+        onRefreshSnapshot?.(activeProject)
+      }
+
+      const handleRecordDelete = async () => {
+        const recordId = String(record.id || '')
+        try {
+          // Delete via API based on table type
+          if (tab.tableName === 'tasks') {
+            await api.tasks.delete(recordId)
+          }
+          // Close the tab
+          closeTab(tab.id, tab.pane)
+          // Refresh snapshot
+          onRefreshSnapshot?.(activeProject)
+        } catch (err) {
+          console.error('Failed to delete record:', err)
+          alert('Failed to delete record. Please try again.')
+        }
+      }
+
       return (
         <div className={styles.tabContentInner}>
           <RecordDetailView
             record={record}
             tableName={tab.tableName || 'Record'}
             viewMode={getRecordViewMode(tab.id)}
+            currentUserId={currentUserId}
+            onUpdate={handleRecordUpdate}
+            onDelete={handleRecordDelete}
           />
         </div>
       )

@@ -145,6 +145,16 @@ function ProjectViewerPage() {
     }
   }
 
+  // Handler to refresh snapshot for a project
+  const handleRefreshSnapshot = useCallback(async (projectId: string) => {
+    try {
+      const snapshot = await fetchProjectSnapshot(projectId)
+      setDbData(prev => ({ ...prev, [projectId]: snapshot as unknown as DbSnapshot }))
+    } catch (err) {
+      console.error(`Failed to refresh snapshot for project ${projectId}:`, err)
+    }
+  }, [])
+
   // Handler to load file content on demand
   const handleLoadFileContent = useCallback(async (projectId: string, filePath: string): Promise<string> => {
     const repoUrl = projectRepoUrls[projectId]
@@ -344,7 +354,9 @@ function ProjectViewerPage() {
           dbData={dbData}
           projectDisplayNames={projectDisplayNames}
           selectedProjectId={selectedProjectId}
+          currentUserId={user?.id}
           onLoadFileContent={handleLoadFileContent}
+          onRefreshSnapshot={handleRefreshSnapshot}
         />
       </div>
       {showCreateModal && user && (

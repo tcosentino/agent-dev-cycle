@@ -1,0 +1,6 @@
+{
+  "name": "task-comment",
+  "type": "dataobject",
+  "version": "1.0.0",
+  "description": "Task comment data object for AgentForge"
+}

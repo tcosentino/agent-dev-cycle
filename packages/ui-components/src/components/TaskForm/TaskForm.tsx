@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react'
-import type { TaskType, TaskPriority } from '../../types'
+import type { TaskType, TaskPriority, TaskStatus } from '../../types'
 import styles from './TaskForm.module.css'
 
 export interface TaskFormData {
@@ -7,6 +7,7 @@ export interface TaskFormData {
   description?: string
   type?: TaskType
   priority?: TaskPriority
+  status?: TaskStatus
   assignee?: string
 }
 
@@ -20,6 +21,7 @@ export interface TaskFormProps {
 
 const taskTypes: TaskType[] = ['epic', 'api', 'backend', 'frontend', 'testing', 'documentation', 'devops']
 const priorities: TaskPriority[] = ['low', 'medium', 'high', 'critical']
+const statuses: TaskStatus[] = ['todo', 'in-progress', 'review', 'done', 'blocked']
 const assignees = ['pm', 'engineer', 'qa', 'lead']
 
 export function TaskForm({ 
@@ -33,7 +35,8 @@ export function TaskForm({
     title: initialData.title || '',
     description: initialData.description || '',
     type: initialData.type,
-    priority: initialData.priority,
+    priority: initialData.priority || 'medium',
+    status: initialData.status || 'todo',
     assignee: initialData.assignee,
   })
 
@@ -140,11 +143,10 @@ export function TaskForm({
           <select
             id="priority"
             className={styles.select}
-            value={formData.priority || ''}
+            value={formData.priority || 'medium'}
             onChange={(e) => handleChange('priority', e.target.value)}
             disabled={isLoading}
           >
-            <option value="">None</option>
             {priorities.map(priority => (
               <option key={priority} value={priority}>
                 {priority.charAt(0).toUpperCase() + priority.slice(1)}
@@ -154,24 +156,45 @@ export function TaskForm({
         </div>
       </div>
 
-      <div className={styles.field}>
-        <label htmlFor="assignee" className={styles.label}>
-          Assignee
-        </label>
-        <select
-          id="assignee"
-          className={styles.select}
-          value={formData.assignee || ''}
-          onChange={(e) => handleChange('assignee', e.target.value)}
-          disabled={isLoading}
-        >
-          <option value="">Unassigned</option>
-          {assignees.map(assignee => (
-            <option key={assignee} value={assignee}>
-              {assignee.toUpperCase()}
-            </option>
-          ))}
-        </select>
+      <div className={styles.row}>
+        <div className={styles.field}>
+          <label htmlFor="status" className={styles.label}>
+            Status
+          </label>
+          <select
+            id="status"
+            className={styles.select}
+            value={formData.status || 'todo'}
+            onChange={(e) => handleChange('status', e.target.value)}
+            disabled={isLoading}
+          >
+            {statuses.map(status => (
+              <option key={status} value={status}>
+                {status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className={styles.field}>
+          <label htmlFor="assignee" className={styles.label}>
+            Assignee
+          </label>
+          <select
+            id="assignee"
+            className={styles.select}
+            value={formData.assignee || ''}
+            onChange={(e) => handleChange('assignee', e.target.value)}
+            disabled={isLoading}
+          >
+            <option value="">Unassigned</option>
+            {assignees.map(assignee => (
+              <option key={assignee} value={assignee}>
+                {assignee.toUpperCase()}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className={styles.actions}>

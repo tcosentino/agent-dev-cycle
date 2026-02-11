@@ -39,6 +39,7 @@ export interface CreateTaskInput {
   title: string
   description?: string
   type?: string
+  status?: string
   priority?: string
   assignee?: string
 }
@@ -50,6 +51,26 @@ export interface UpdateTaskInput {
   priority?: string
   status?: string
   assignee?: string
+}
+
+export interface ApiTaskComment {
+  id: string
+  taskId: string
+  userId: string
+  content: string
+  authorName?: string
+  authorEmail?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateTaskCommentInput {
+  taskId: string
+  content: string
+}
+
+export interface UpdateTaskCommentInput {
+  content: string
 }
 
 export interface ApiChannel {
@@ -304,6 +325,25 @@ export const api = {
       }),
     delete: (id: string) =>
       fetchJson<{ success: boolean }>(`/tasks/${id}`, {
+        method: 'DELETE',
+      }),
+  },
+  taskComments: {
+    list: (taskId: string) => fetchJson<ApiTaskComment[]>(`/taskComments?taskId=${taskId}`),
+    create: (data: CreateTaskCommentInput) =>
+      fetchJson<ApiTaskComment>('/taskComments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: UpdateTaskCommentInput) =>
+      fetchJson<ApiTaskComment>(`/taskComments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    delete: (id: string) =>
+      fetchJson<{ success: boolean }>(`/taskComments/${id}`, {
         method: 'DELETE',
       }),
   },

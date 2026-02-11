@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n agentforge,demo,api -c blue,magenta,green \"yarn dev:agentforge\" \"yarn dev:demo\" \"yarn dev:server\"",
+    "dev": "concurrently -n agentforge,api -c blue,green \"yarn dev:agentforge\" \"yarn dev:server\"",
     "dev:agentforge": "vite --config src/services/agentforge-ui/vite.config.ts",
     "dev:demo": "vite --config src/services/demo-ui/vite.config.ts",
     "dev:server": "yarn workspace @agentforge/server dev",
