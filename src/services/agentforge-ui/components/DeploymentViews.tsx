@@ -9,6 +9,7 @@ import {
   RocketIcon,
   FileDocumentIcon,
   ClipboardIcon,
+  XCircleIcon,
 } from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage, StageStatus } from '../types'
 import { HealthBadge } from './HealthBadge'
