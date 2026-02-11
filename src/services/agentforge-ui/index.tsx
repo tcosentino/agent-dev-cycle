@@ -4,6 +4,7 @@ import { Nav } from '../demo-ui/components/nav'
 import { ProjectViewer } from './ProjectViewer'
 import { CreateProjectModal } from './components/CreateProjectModal'
 import { SettingsPage } from './components/SettingsPage'
+import { QueryProvider } from '../../providers/QueryProvider'
 import { api, fetchProjectSnapshot, fetchProjectFiles, fetchFileContent, AuthError } from './api'
 import type { ApiProject, ApiUser } from './api'
 import type { ProjectData, DbSnapshot, ProjectDbData } from './types'
@@ -372,6 +373,8 @@ function ProjectViewerPage() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ProjectViewerPage />
+    <QueryProvider>
+      <ProjectViewerPage />
+    </QueryProvider>
   </StrictMode>
 )
