@@ -253,7 +253,7 @@ export function DeploymentListView({
   const deploymentsWithWorkloads = useMemo(() => {
     return deployments.map(dep => ({
       deployment: dep,
-      workloads: workloads.filter(w => dep.workloadIds.includes(w.id)),
+      workloads: workloads.filter(w => w.deploymentId === dep.id),
     }))
   }, [deployments, workloads])
 
