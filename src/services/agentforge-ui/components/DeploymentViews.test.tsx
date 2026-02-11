@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { DeploymentListView, WorkloadDetailView } from './DeploymentViews'
 import type { DbSnapshot, Workload } from '../types'
 
@@ -82,6 +82,36 @@ describe('DeploymentViews', () => {
 
       const deleteButton = screen.getByTitle('Delete deployment')
       expect(deleteButton).toBeInTheDocument()
+    })
+
+    it('shows confirmation modal when delete button is clicked', () => {
+      const snapshot: DbSnapshot = {
+        deployments: [
+          {
+            id: '1',
+            name: 'Test Deployment',
+            status: 'running',
+            createdAt: '2024-01-01T00:00:00Z',
+            updatedAt: '2024-01-01T00:00:00Z',
+          },
+        ],
+        workloads: [],
+      }
+
+      render(
+        <DeploymentListView
+          snapshot={snapshot}
+          onWorkloadClick={vi.fn()}
+        />
+      )
+
+      const deleteButton = screen.getByTitle('Delete deployment')
+      fireEvent.click(deleteButton)
+
+      expect(screen.getByText('Delete Deployment')).toBeInTheDocument()
+      expect(screen.getByText(/Are you sure you want to delete/)).toBeInTheDocument()
+      expect(screen.getByText('Cancel')).toBeInTheDocument()
+      expect(screen.getByText('Delete')).toBeInTheDocument()
     })
   })
 

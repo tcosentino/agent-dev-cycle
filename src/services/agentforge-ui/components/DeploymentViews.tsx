@@ -10,6 +10,7 @@ import {
   FileDocumentIcon,
   ClipboardIcon,
   XCircleIcon,
+  Modal,
 } from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage, StageStatus } from '../types'
 import { HealthBadge } from './HealthBadge'
@@ -17,6 +18,7 @@ import { LogViewer } from './LogViewer'
 import { getWorkloadLogs } from '../api'
 import type { LogEntry } from './LogViewer'
 import styles from '../ProjectViewer.module.css'
+import modalStyles from '@agentforge/ui-components/components/Modal/Modal.module.css'
 
 // --- Stage Progress Indicator ---
 
@@ -278,6 +280,7 @@ export function DeploymentListView({
   } | null>(null)
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [deletingDeployment, setDeletingDeployment] = useState<string | null>(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState<Deployment | null>(null)
 
   const deploymentsWithWorkloads = useMemo(() => {
     return deployments
@@ -310,14 +313,17 @@ export function DeploymentListView({
   }
 
   const handleDeleteDeployment = async (deployment: Deployment) => {
-    if (!confirm(`Are you sure you want to delete deployment "${(deployment as any).serviceName || deployment.name}"? This will stop all running workloads and clean up resources.`)) {
-      return
-    }
+    setDeleteConfirmation(deployment)
+  }
 
-    setDeletingDeployment(deployment.id)
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return
+
+    setDeletingDeployment(deleteConfirmation.id)
+    setDeleteConfirmation(null)
     try {
       // Get all workloads for this deployment
-      const deploymentWorkloads = workloads.filter(w => w.deploymentId === deployment.id)
+      const deploymentWorkloads = workloads.filter(w => w.deploymentId === deleteConfirmation.id)
 
       // Stop all running workloads
       for (const workload of deploymentWorkloads) {
@@ -351,7 +357,7 @@ export function DeploymentListView({
       }
 
       // Delete the deployment
-      const response = await fetch(`/api/deployments/${deployment.id}`, {
+      const response = await fetch(`/api/deployments/${deleteConfirmation.id}`, {
         method: 'DELETE',
         credentials: 'include',
       })
@@ -400,6 +406,38 @@ export function DeploymentListView({
         <div className={styles.loadingOverlay}>
           <div className={styles.loadingSpinner}>Loading logs...</div>
         </div>
+      )}
+      {deleteConfirmation && (
+        <Modal
+          title="Delete Deployment"
+          onClose={() => setDeleteConfirmation(null)}
+        >
+          <div className={modalStyles.modalBody}>
+            <p style={{ marginBottom: 'var(--space-md)' }}>
+              Are you sure you want to delete deployment "{(deleteConfirmation as any).serviceName || deleteConfirmation.name}"?
+            </p>
+            <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--text-secondary)' }}>
+              This will stop all running workloads and clean up resources. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
+              <button
+                className={modalStyles.modalButton}
+                onClick={() => setDeleteConfirmation(null)}
+                style={{ background: 'var(--bg-secondary)' }}
+              >
+                Cancel
+              </button>
+              <button
+                className={modalStyles.modalButton}
+                onClick={confirmDelete}
+                disabled={deletingDeployment !== null}
+                style={{ background: 'var(--error)', color: 'white' }}
+              >
+                {deletingDeployment === deleteConfirmation.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
     </>
   )
