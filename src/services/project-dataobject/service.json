@@ -1,0 +1,14 @@
+{
+  "name": "project",
+  "type": "dataobject",
+  "version": "1.0.0",
+  "description": "Project management dataobject",
+  "entry": "index.ts",
+  "endpoints": [
+    { "method": "GET", "path": "/api/projects", "description": "List all projects" },
+    { "method": "GET", "path": "/api/projects/:id", "description": "Get project by ID" },
+    { "method": "POST", "path": "/api/projects", "description": "Create a new project" },
+    { "method": "PUT", "path": "/api/projects/:id", "description": "Update a project" },
+    { "method": "DELETE", "path": "/api/projects/:id", "description": "Delete a project" }
+  ]
+}
