@@ -4,6 +4,7 @@ import { Nav } from '../demo-ui/components/nav'
 import { ProjectViewer } from './ProjectViewer'
 import { CreateProjectModal } from './components/CreateProjectModal'
 import { SettingsPage } from './components/SettingsPage'
+import { QueryProvider } from '../../providers/QueryProvider'
 import { api, fetchProjectSnapshot, fetchProjectFiles, fetchFileContent, AuthError } from './api'
 import type { ApiProject, ApiUser } from './api'
 import type { ProjectData, DbSnapshot, ProjectDbData } from './types'
@@ -144,6 +145,16 @@ function ProjectViewerPage() {
       projectRepoUrls[project.id] = project.repoUrl
     }
   }
+
+  // Handler to refresh snapshot for a project
+  const handleRefreshSnapshot = useCallback(async (projectId: string) => {
+    try {
+      const snapshot = await fetchProjectSnapshot(projectId)
+      setDbData(prev => ({ ...prev, [projectId]: snapshot as unknown as DbSnapshot }))
+    } catch (err) {
+      console.error(`Failed to refresh snapshot for project ${projectId}:`, err)
+    }
+  }, [])
 
   // Handler to load file content on demand
   const handleLoadFileContent = useCallback(async (projectId: string, filePath: string): Promise<string> => {
@@ -344,7 +355,9 @@ function ProjectViewerPage() {
           dbData={dbData}
           projectDisplayNames={projectDisplayNames}
           selectedProjectId={selectedProjectId}
+          currentUserId={user?.id}
           onLoadFileContent={handleLoadFileContent}
+          onRefreshSnapshot={handleRefreshSnapshot}
         />
       </div>
       {showCreateModal && user && (
@@ -360,6 +373,8 @@ function ProjectViewerPage() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ProjectViewerPage />
+    <QueryProvider>
+      <ProjectViewerPage />
+    </QueryProvider>
   </StrictMode>
 )

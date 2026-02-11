@@ -10,6 +10,9 @@ export default defineConfig({
       '@agentforge/ui-components': resolve(__dirname, '../../../packages/ui-components/src')
     }
   },
+  optimizeDeps: {
+    exclude: ['@agentforge/dataobject']
+  },
   server: {
     port: 5173,
     proxy: {

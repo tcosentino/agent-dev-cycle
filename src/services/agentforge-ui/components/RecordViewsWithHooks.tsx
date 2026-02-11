@@ -1,42 +1,58 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   PriorityBadge,
   TypeBadge,
   AssigneeBadge,
   CommentThread,
   TaskForm,
-  Modal,
-  XIcon
 } from '@agentforge/ui-components'
 import type { Comment, TaskFormData } from '@agentforge/ui-components'
 import type { TaskStatus, TaskPriority, TaskType, AgentRole } from '../../demo-ui/components/task-board/types'
-import type { DbTableName, Workload } from '../types'
-import { TABLE_LABELS, TABLES_WITH_DETAIL_VIEW } from './constants'
-import type { RecordViewMode } from './constants'
-import { WorkloadDetailView } from './DeploymentViews'
-import { TaskDetailViewWithHooks } from './RecordViewsWithHooks'
-import { api } from '../api'
+import { useTask, useUpdateTask, useDeleteTask } from '../../../services/task-dataobject/hooks'
+import {
+  useTaskComments,
+  useCreateTaskComment,
+  useUpdateTaskComment,
+  useDeleteTaskComment,
+} from '../../../services/task-comment-dataobject/hooks'
 import styles from '../ProjectViewer.module.css'
 
-// --- Nice Task Detail View ---
-
-export function TaskDetailView({
-  record,
+export function TaskDetailViewWithHooks({
+  taskId,
   currentUserId,
   onUpdate,
   onDelete,
 }: {
-  record: Record<string, unknown>
+  taskId: string
   currentUserId?: string
   onUpdate?: (updates: Record<string, unknown>) => void
   onDelete?: () => void
 }) {
   const [isEditing, setIsEditing] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
-  const [comments, setComments] = useState<Comment[]>([])
-  const [isLoadingComments, setIsLoadingComments] = useState(true)
 
-  const taskId = String(record.id || '')
+  // Use generated hooks!
+  const { data: record, isLoading: isLoadingTask } = useTask(taskId)
+  const updateTask = useUpdateTask()
+  const deleteTask = useDeleteTask()
+
+  const { data: apiComments = [], isLoading: isLoadingComments } = useTaskComments({
+    where: { taskId },
+  })
+  const createComment = useCreateTaskComment()
+  const updateComment = useUpdateTaskComment()
+  const deleteComment = useDeleteTaskComment()
+
+  if (isLoadingTask) {
+    return (
+      <div className={styles.emptyState}>
+        <div>Loading task...</div>
+      </div>
+    )
+  }
+
+  if (!record) {
+    return <div className={styles.emptyState}>Task not found</div>
+  }
 
   const task = {
     id: taskId,
@@ -66,50 +82,36 @@ export function TaskDetailView({
     }
   }
 
-  // Load comments
-  useEffect(() => {
-    const loadComments = async () => {
-      try {
-        setIsLoadingComments(true)
-        const apiComments = await api.taskComments.list(taskId)
-        setComments(apiComments.map(c => ({
-          id: c.id,
-          content: c.content,
-          authorName: c.authorName,
-          authorEmail: c.authorEmail,
-          createdAt: c.createdAt,
-          updatedAt: c.updatedAt,
-          userId: c.userId,
-        })))
-      } catch (err) {
-        console.error('Failed to load comments:', err)
-      } finally {
-        setIsLoadingComments(false)
-      }
-    }
-
-    if (taskId) {
-      loadComments()
-    }
-  }, [taskId])
+  const comments: Comment[] = apiComments.map(c => ({
+    id: c.id,
+    content: c.content,
+    authorName: c.authorName,
+    authorEmail: c.authorEmail,
+    createdAt: c.createdAt,
+    updatedAt: c.updatedAt,
+    userId: c.userId,
+  }))
 
   const handleUpdate = async (formData: TaskFormData) => {
     try {
-      setIsUpdating(true)
-      const updated = await api.tasks.update(taskId, formData)
-      onUpdate?.(updated)
+      await updateTask.mutateAsync({ id: taskId, ...formData })
+      onUpdate?.(formData)
       setIsEditing(false)
     } catch (err) {
       console.error('Failed to update task:', err)
       alert('Failed to update task. Please try again.')
-    } finally {
-      setIsUpdating(false)
     }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (confirm(`Delete task ${task.key}?\n\nThis action cannot be undone.`)) {
-      onDelete?.()
+      try {
+        await deleteTask.mutateAsync(taskId)
+        onDelete?.()
+      } catch (err) {
+        console.error('Failed to delete task:', err)
+        alert('Failed to delete task. Please try again.')
+      }
     }
   }
 
@@ -119,49 +121,22 @@ export function TaskDetailView({
       throw new Error('User not authenticated')
     }
 
-    try {
-      const newComment = await api.taskComments.create({
-        taskId,
-        userId: currentUserId,
-        content
-      })
-      setComments(prev => [...prev, {
-        id: newComment.id,
-        content: newComment.content,
-        authorName: newComment.authorName,
-        authorEmail: newComment.authorEmail,
-        createdAt: newComment.createdAt,
-        updatedAt: newComment.updatedAt,
-        userId: newComment.userId,
-      }])
-    } catch (err) {
-      console.error('Failed to add comment:', err)
-      throw err // Re-throw so CommentThread can handle it
-    }
+    await createComment.mutateAsync({
+      taskId,
+      userId: currentUserId,
+      content,
+    })
+    // React Query automatically refetches comments!
   }
 
   const handleEditComment = async (id: string, content: string) => {
-    try {
-      const updated = await api.taskComments.update(id, { content })
-      setComments(prev => prev.map(c => c.id === id ? {
-        ...c,
-        content: updated.content,
-        updatedAt: updated.updatedAt,
-      } : c))
-    } catch (err) {
-      console.error('Failed to edit comment:', err)
-      throw err
-    }
+    await updateComment.mutateAsync({ id, content })
+    // React Query automatically updates the cache!
   }
 
   const handleDeleteComment = async (id: string) => {
-    try {
-      await api.taskComments.delete(id)
-      setComments(prev => prev.filter(c => c.id !== id))
-    } catch (err) {
-      console.error('Failed to delete comment:', err)
-      throw err
-    }
+    await deleteComment.mutateAsync(id)
+    // React Query automatically removes from cache!
   }
 
   return (
@@ -195,7 +170,7 @@ export function TaskDetailView({
             onSubmit={handleUpdate}
             onCancel={() => setIsEditing(false)}
             submitLabel="Save Changes"
-            isLoading={isUpdating}
+            isLoading={updateTask.isLoading}
           />
         </div>
       ) : (
@@ -260,81 +235,4 @@ export function TaskDetailView({
       )}
     </div>
   )
-}
-
-// --- Raw Record View ---
-
-export function RawRecordView({ record, tableName }: { record: Record<string, unknown>; tableName: string }) {
-  const formatValue = (value: unknown): string => {
-    if (value === null) return 'null'
-    if (value === undefined) return 'undefined'
-    if (typeof value === 'object') return JSON.stringify(value, null, 2)
-    return String(value)
-  }
-
-  return (
-    <div className={styles.recordView}>
-      <div className={styles.recordHeader}>{tableName} Record</div>
-      <div className={styles.recordFields}>
-        {Object.entries(record).map(([key, value]) => (
-          <div key={key} className={styles.detailField}>
-            <div className={styles.detailLabel}>{key}</div>
-            <div className={styles.detailValue}>
-              {typeof value === 'object' && value !== null ? (
-                <pre className={styles.detailValueCode}>{formatValue(value)}</pre>
-              ) : (
-                formatValue(value)
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// --- Record Detail View with Toggle ---
-
-export function RecordDetailView({
-  record,
-  tableName,
-  viewMode,
-  currentUserId,
-  onUpdate,
-  onDelete,
-}: {
-  record: Record<string, unknown>
-  tableName: DbTableName | string
-  viewMode: RecordViewMode
-  currentUserId?: string
-  onUpdate?: (updates: Record<string, unknown>) => void
-  onDelete?: () => void
-}) {
-  const tableNameStr = typeof tableName === 'string' && tableName in TABLE_LABELS
-    ? TABLE_LABELS[tableName as DbTableName]
-    : String(tableName)
-
-  const hasNiceView = typeof tableName === 'string' && TABLES_WITH_DETAIL_VIEW.includes(tableName as DbTableName)
-
-  // If no nice view available, just show raw
-  if (!hasNiceView) {
-    return <RawRecordView record={record} tableName={tableNameStr} />
-  }
-
-  if (viewMode === 'view' && tableName === 'tasks') {
-    return (
-      <TaskDetailView
-        record={record}
-        currentUserId={currentUserId}
-        onUpdate={onUpdate}
-        onDelete={onDelete}
-      />
-    )
-  }
-
-  if (viewMode === 'view' && tableName === 'workloads') {
-    return <WorkloadDetailView workload={record as unknown as Workload} />
-  }
-
-  return <RawRecordView record={record} tableName={tableNameStr} />
 }

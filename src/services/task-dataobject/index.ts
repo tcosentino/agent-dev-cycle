@@ -35,7 +35,7 @@ export const taskResource = defineResource({
     assignee: z.string().optional(), // agent role: 'pm', 'engineer', 'qa', 'lead'
   }),
 
-  createFields: ['projectId', 'key', 'title', 'description', 'type', 'priority', 'assignee'],
+  createFields: ['projectId', 'key', 'title', 'description', 'type', 'priority', 'status', 'assignee'],
   updateFields: ['title', 'description', 'type', 'priority', 'status', 'assignee'],
   unique: ['key'],
   searchable: ['title', 'key', 'assignee'],

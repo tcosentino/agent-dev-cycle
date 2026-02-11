@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n agentforge,demo,api -c blue,magenta,green \"yarn dev:agentforge\" \"yarn dev:demo\" \"yarn dev:server\"",
+    "dev": "bash scripts/kill-ports.sh && concurrently -n agentforge,api -c blue,green \"yarn dev:agentforge\" \"yarn dev:server\"",
     "dev:agentforge": "vite --config src/services/agentforge-ui/vite.config.ts",
     "dev:demo": "vite --config src/services/demo-ui/vite.config.ts",
     "dev:server": "yarn workspace @agentforge/server dev",
@@ -27,18 +27,27 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.3",
     "@vitest/browser-playwright": "^4.0.16",
     "@vitest/coverage-v8": "^4.0.16",
     "concurrently": "^9.2.1",
+    "jsdom": "^28.0.0",
     "playwright": "^1.57.0",
     "typescript": "~5.9.3",
     "vite": "^7.2.4",
     "vitest": "^4.0.16"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^9.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@tanstack/react-query": "^5.90.20",
     "mermaid": "^11.12.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
