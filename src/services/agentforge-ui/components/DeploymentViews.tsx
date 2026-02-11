@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Modal, useToast, ServerIcon, ClipboardIcon, ChevronDownIcon } from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage } from '../types'
 import { DeploymentCard } from './DeploymentCard'
@@ -7,6 +7,7 @@ import { LogViewer } from './LogViewer'
 import { getWorkloadLogs } from '../api'
 import type { LogEntry } from './LogViewer'
 import { formatStageName, formatUptime, formatDuration, transformLogsToStages } from '../utils/deploymentUtils'
+import { useDeployments } from '../contexts/DeploymentContext'
 import styles from '../ProjectViewer.module.css'
 import modalStyles from '@agentforge/ui-components/components/Modal/Modal.module.css'
 
@@ -23,11 +24,25 @@ export function DeploymentListView({
   snapshot,
   onWorkloadClick,
 }: {
-  snapshot: DbSnapshot
+  snapshot?: DbSnapshot
   onWorkloadClick: (workload: Workload) => void
 }) {
-  const deployments = snapshot.deployments || []
-  const workloads = snapshot.workloads || []
+  const { deployments: deploymentsFromContext, isLoading, error } = useDeployments()
+
+  // Flatten deployments and workloads from context (SSE data)
+  const deployments = deploymentsFromContext.map(d => ({
+    id: d.id,
+    projectId: d.projectId,
+    name: d.name,
+    description: d.description,
+    trigger: d.trigger,
+    status: d.status,
+    workloadIds: d.workloadIds,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+    completedAt: d.completedAt,
+  }))
+  const workloads = deploymentsFromContext.flatMap(d => d.workloads)
 
   const [logViewerState, setLogViewerState] = useState<{
     workload: Workload
@@ -215,7 +230,15 @@ export function DeploymentListView({
 
 // --- Workload Detail View ---
 
-export function WorkloadDetailView({ workload }: { workload: Workload }) {
+export function WorkloadDetailView({ workload: initialWorkload }: { workload: Workload }) {
+  const { getWorkloadById, getDeploymentById } = useDeployments()
+
+  // Always use the fresh workload from context if available
+  const workload = getWorkloadById(initialWorkload.id) || initialWorkload
+
+  // Check if the workload's deployment has been deleted
+  const deployment = workload.deploymentId ? getDeploymentById(workload.deploymentId) : undefined
+  const isDeleted = !getWorkloadById(initialWorkload.id)
   const [copied, setCopied] = useState(false)
   const [allExpanded, setAllExpanded] = useState(true)
   const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
@@ -283,6 +306,17 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
     } catch (err) {
       console.error('Failed to copy logs:', err)
     }
+  }
+
+  if (isDeleted) {
+    return (
+      <div className={styles.workloadDetailView}>
+        <div className={styles.emptyState}>
+          <h2>Workload Deleted</h2>
+          <p>This workload has been deleted.</p>
+        </div>
+      </div>
+    )
   }
 
   return (

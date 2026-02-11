@@ -1,22 +1,21 @@
 import { RocketIcon } from '@agentforge/ui-components'
 import type { Workload } from '../types'
 import { DeploymentListView } from './DeploymentViews'
-import { useDeploymentStream } from '../hooks/useDeploymentStream'
+import { useDeployments } from '../contexts/DeploymentContext'
 import styles from './DeploymentDashboard.module.css'
 
 export interface DeploymentDashboardProps {
-  projectId: string
   onWorkloadClick: (workload: Workload) => void
 }
 
 /**
  * Deployment Dashboard - View all deployments and workloads for a project
- * - Uses SSE stream for real-time deployment updates
+ * - Uses SSE stream for real-time deployment updates via DeploymentContext
  * - Displays deployment cards in grid
  * - Shows empty state when no deployments
  */
-export function DeploymentDashboard({ projectId, onWorkloadClick }: DeploymentDashboardProps) {
-  const { deployments, isLoading, isConnected, error, reconnect } = useDeploymentStream(projectId)
+export function DeploymentDashboard({ onWorkloadClick }: DeploymentDashboardProps) {
+  const { deployments, isLoading, isConnected, error, reconnect } = useDeployments()
 
   if (isLoading) {
     return (

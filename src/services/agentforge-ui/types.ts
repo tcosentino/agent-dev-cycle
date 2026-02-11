@@ -89,6 +89,10 @@ export interface Deployment {
   completedAt?: string
 }
 
+export interface DeploymentWithWorkloads extends Deployment {
+  workloads: Workload[]
+}
+
 export interface DbSnapshot {
   projects: Record<string, unknown>[]
   tasks: Record<string, unknown>[]

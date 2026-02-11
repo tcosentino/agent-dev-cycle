@@ -12,14 +12,20 @@ export const workloadIntegration: IntegrationService = {
     // Inject workload store into orchestrator
     const workloadStore = ctx.stores.get('workload')
     if (!workloadStore) {
-      console.error('Workload store not found - workload operations will not work')
+      console.error('[WorkloadIntegration] Workload store not found - workload operations will not work')
       return
     }
 
-    console.log('Workload store type:', typeof workloadStore)
-    console.log('Workload store has get:', typeof workloadStore.findById)
+    const deploymentStore = ctx.stores.get('deployment')
+    if (!deploymentStore) {
+      console.error('[WorkloadIntegration] Deployment store not found - workload operations will not work')
+      return
+    }
+
+    console.log('[WorkloadIntegration] Configuring orchestrator with stores')
 
     orchestrator.setWorkloadStore(workloadStore)
+    orchestrator.setDeploymentStore(deploymentStore)
 
     // POST /api/workloads/:id/start - Start a workload
     app.post('/api/workloads/:id/start', async (c) => {

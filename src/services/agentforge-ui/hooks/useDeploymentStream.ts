@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { api } from '../api'
-import type { Deployment, Workload } from '../types'
-
-export interface DeploymentWithWorkloads extends Deployment {
-  workloads: Workload[]
-}
+import type { DeploymentWithWorkloads } from '../types'
 
 export interface WorkloadUpdate {
   workloadId: string

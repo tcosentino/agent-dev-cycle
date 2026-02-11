@@ -36,6 +36,7 @@ interface RunningWorkload {
 
 export class WorkloadOrchestrator {
   private workloadStore?: ResourceStore<any>
+  private deploymentStore?: ResourceStore<any>
   private runningWorkloads: Map<string, RunningWorkload> = new Map()
   private dockerClient: DockerClient
   private containerLifecycle: ContainerLifecycle
@@ -57,6 +58,10 @@ export class WorkloadOrchestrator {
     this.workloadStore = store
   }
 
+  setDeploymentStore(store: ResourceStore<any>) {
+    this.deploymentStore = store
+  }
+
   private async addLog(workloadId: string, stage: WorkloadStage, message: string, level: 'info' | 'warn' | 'error' = 'info'): Promise<void> {
     const running = this.runningWorkloads.get(workloadId)
     if (running) {
@@ -75,87 +80,85 @@ export class WorkloadOrchestrator {
   private async updateStage(workloadId: string, stage: WorkloadStage, stageStatus: 'running' | 'success' | 'failed' = 'running', error?: string): Promise<void> {
     try {
       const workload = await this.workloadStore!.findById(workloadId)
-      if (!workload) return
-
-      // Initialize stages array if it doesn't exist
-      const stages = workload.stages || []
-
-      // Find or create stage result
-      let stageResult = stages.find((s: any) => s.stage === stage)
-      if (!stageResult) {
-        stageResult = {
-          stage,
-          status: 'pending',
-          logs: [],
-        }
-        stages.push(stageResult)
+      if (!workload) {
+        console.error(`[Orchestrator] Workload ${workloadId} not found when updating stage`)
+        return
       }
 
-      // Update stage status
-      stageResult.status = stageStatus
-      if (stageStatus === 'running' && !stageResult.startedAt) {
-        stageResult.startedAt = new Date().toISOString()
-      }
-      if ((stageStatus === 'success' || stageStatus === 'failed') && !stageResult.completedAt) {
-        stageResult.completedAt = new Date().toISOString()
-      }
-      if (error) {
-        stageResult.error = error
-      }
+      console.log(`[Orchestrator] Updating workload ${workloadId} stage to ${stage} (${stageStatus})`)
 
-      // Add in-memory logs to this stage's logs
+      // Get in-memory logs for this workload
       const running = this.runningWorkloads.get(workloadId)
+      const inMemoryLogs = running ? running.logs : []
+
+      // Combine existing logs from DB with new in-memory logs
+      const existingLogs = Array.isArray(workload.logs) ? workload.logs : []
+      const allLogs = [...existingLogs, ...inMemoryLogs]
+
+      // Clear in-memory logs after writing to DB
       if (running) {
-        const stageLogs = running.logs
-          .filter(log => log.stage === stage)
-          .map(log => log.message)
-
-        if (stageLogs.length > 0) {
-          stageResult.logs = [...(stageResult.logs || []), ...stageLogs]
-        }
+        running.logs = []
       }
 
-      // Determine overall workload status
-      let workloadStatus: 'pending' | 'running' | 'success' | 'failed' = 'running'
-      if (stageStatus === 'failed') {
-        workloadStatus = 'failed'
-      } else if (stage === 'stopped' && stageStatus === 'success') {
-        workloadStatus = 'success'
-      }
-
+      // Update workload with current stage and all logs
       await this.workloadStore!.update(workloadId, {
-        currentStage: stage,
-        status: workloadStatus,
-        stages,
-        updatedAt: new Date().toISOString(),
+        stage,
+        logs: allLogs,
+        error: error || workload.error,
       })
+
+      console.log(`[Orchestrator] Updated workload ${workloadId}: stage=${stage}, logs=${allLogs.length} entries`)
 
       // Emit workload update event for real-time UI updates
       await this.emitWorkloadUpdate(workloadId)
     } catch (err) {
-      console.error(`Failed to update workload stage: ${err}`)
+      console.error(`[Orchestrator] Failed to update workload stage: ${err}`)
     }
   }
 
   private async emitWorkloadUpdate(workloadId: string): Promise<void> {
     try {
       const workload = await this.workloadStore!.findById(workloadId) as any
-      if (!workload) return
+      if (!workload) {
+        console.error(`[Orchestrator] Workload ${workloadId} not found when emitting update`)
+        return
+      }
+
+      console.log(`[Orchestrator] Emitting workload update for ${workloadId}`)
+
+      // Get deployment to find projectId
+      let projectId = workload.projectId
+      if (!projectId && this.deploymentStore) {
+        const deployment = await this.deploymentStore.findById(workload.deploymentId) as any
+        projectId = deployment?.projectId
+      }
 
       // Transform flat logs array into grouped stages for the SSE event
       const stages = this.transformLogsToStages(workload.logs || [])
 
+      // Determine status based on current stage
+      let status = 'running'
+      if (workload.stage === 'stopped') {
+        status = 'success'
+      } else if (workload.stage === 'failed' || workload.error) {
+        status = 'failed'
+      } else if (workload.stage === 'pending') {
+        status = 'pending'
+      }
+
       workloadEvents.emitWorkloadUpdate({
         workloadId: workload.id,
         deploymentId: workload.deploymentId,
-        projectId: workload.projectId,
-        currentStage: workload.currentStage || workload.stage,
-        status: workload.status || 'running',
+        projectId: projectId || '',
+        currentStage: workload.stage,
+        status,
         stages,
         updatedAt: new Date().toISOString(),
       })
+
+      console.log(`[Orchestrator] Emitted workload update: stage=${workload.stage}, status=${status}, stages=${stages.length}`)
     } catch (err) {
-      console.error(`Failed to emit workload update: ${err}`)
+      console.error(`[Orchestrator] Failed to emit workload update: ${err}`)
     }
   }
 
@@ -227,45 +230,70 @@ export class WorkloadOrchestrator {
   async start(workloadId: string, repoUrl: string): Promise<void> {
     let workDir: string | null = null
 
+    console.log(`[Orchestrator] Starting workload ${workloadId} with repo ${repoUrl}`)
+
     try {
       // Get workload from database
       const workload = await this.workloadStore!.findById(workloadId)
       if (!workload) {
-        throw new Error(`Workload ${workloadId} not found`)
+        const error = `Workload ${workloadId} not found`
+        console.error(`[Orchestrator] ${error}`)
+        throw new Error(error)
       }
 
+      console.log(`[Orchestrator] Found workload: deploymentId=${workload.deploymentId}, servicePath=${workload.servicePath}`)
+
+      // Initialize running workload entry early so addLog() works
+      workDir = join(tmpdir(), 'workloads', workloadId)
+      this.runningWorkloads.set(workloadId, {
+        workloadId,
+        containerId: '',
+        port: 0,
+        logs: [],
+        workDir,
+      })
+
       // Stage 1: Starting Container (prepare environment)
-      await this.updateStage(workloadId, 'starting-container')
+      await this.updateStage(workloadId, 'starting-container', 'running')
       await this.addLog(workloadId, 'starting-container', 'Preparing container environment')
 
-      // Prepare work directory for building container
-      workDir = join(tmpdir(), 'workloads', workloadId)
+      console.log(`[Orchestrator] Work directory: ${workDir}`)
       await this.addLog(workloadId, 'starting-container', `Preparing work directory: ${workDir}`)
       await this.updateStage(workloadId, 'starting-container', 'success')
 
       // Stage 2: Cloning Repository
       await this.updateStage(workloadId, 'cloning-repo', 'running')
       await this.addLog(workloadId, 'cloning-repo', `Cloning repository from ${repoUrl}`)
+      console.log(`[Orchestrator] Cloning ${repoUrl} into ${workDir}`)
 
       try {
-        await exec(`git clone ${repoUrl} ${workDir}`)
+        const { stdout, stderr } = await exec(`git clone ${repoUrl} ${workDir}`)
+        console.log(`[Orchestrator] Git clone stdout: ${stdout}`)
+        if (stderr) console.log(`[Orchestrator] Git clone stderr: ${stderr}`)
         await this.addLog(workloadId, 'cloning-repo', 'Repository cloned successfully')
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error'
+        console.error(`[Orchestrator] Failed to clone repository: ${message}`)
         throw new Error(`Failed to clone repository: ${message}`)
       }
 
       // Validate service exists
       const servicePath = join(workDir, workload.servicePath)
+      console.log(`[Orchestrator] Validating service path: ${servicePath}`)
       if (!existsSync(servicePath)) {
-        throw new Error(`Service path does not exist: ${servicePath}`)
+        const error = `Service path does not exist: ${servicePath}`
+        console.error(`[Orchestrator] ${error}`)
+        throw new Error(error)
       }
 
       const serviceJsonPath = join(servicePath, 'service.json')
       if (!existsSync(serviceJsonPath)) {
-        throw new Error(`service.json not found at: ${serviceJsonPath}`)
+        const error = `service.json not found at: ${serviceJsonPath}`
+        console.error(`[Orchestrator] ${error}`)
+        throw new Error(error)
       }
 
+      console.log(`[Orchestrator] Service configuration validated`)
       await this.addLog(workloadId, 'cloning-repo', 'Service configuration validated')
       await this.updateStage(workloadId, 'cloning-repo', 'success')
 
@@ -275,9 +303,12 @@ export class WorkloadOrchestrator {
 
       const port = this.portPool.assign()
       if (!port) {
-        throw new Error('No available ports')
+        const error = 'No available ports'
+        console.error(`[Orchestrator] ${error}`)
+        throw new Error(error)
       }
 
+      console.log(`[Orchestrator] Assigned port ${port} to workload ${workloadId}`)
       await this.addLog(workloadId, 'starting-service', `Assigned port ${port}`)
 
       // Update workload with port
@@ -286,15 +317,18 @@ export class WorkloadOrchestrator {
       // Read service.json to get entry point
       const serviceConfig = JSON.parse(await readFile(serviceJsonPath, 'utf-8'))
       const entryFile = serviceConfig.entry || 'index.js'
+      console.log(`[Orchestrator] Service entry file: ${entryFile}`)
 
       // Build container using ExpressServiceBuilder
       await this.addLog(workloadId, 'starting-service', 'Building Docker image')
+      console.log(`[Orchestrator] Building Docker image for ${servicePath}`)
       const imageId = await this.expressBuilder.buildContainer(servicePath, {
         workloadId,
         entryFile,
         port: 3000,
         resourcePath: workload.servicePath,
       })
+      console.log(`[Orchestrator] Docker image built: ${imageId}`)
       await this.addLog(workloadId, 'starting-service', 'Docker image built successfully')
 
       // Create and start container
@@ -304,22 +338,28 @@ export class WorkloadOrchestrator {
 
       let containerId: string | null = null
       try {
+        console.log(`[Orchestrator] Creating container ${containerName} from image ${imageName}`)
         containerId = await this.containerLifecycle.create({
           name: containerName,
           image: imageName,
           ports: [{ container: 3000, host: port }],
         })
+        console.log(`[Orchestrator] Container created: ${containerId}`)
         await this.addLog(workloadId, 'starting-service', `Container created: ${containerId.substring(0, 12)}`)
 
+        console.log(`[Orchestrator] Starting container ${containerId}`)
         await this.containerLifecycle.start(containerId)
+        console.log(`[Orchestrator] Container started successfully`)
         await this.addLog(workloadId, 'starting-service', `Container started: ${containerId.substring(0, 12)}`)
       } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        console.error(`[Orchestrator] Failed to create/start container: ${message}`)
         // Clean up container if start failed
         if (containerId) {
           try {
             await this.containerLifecycle.cleanup(containerId)
           } catch (cleanupError) {
-            // Ignore cleanup errors
+            console.error(`[Orchestrator] Failed to cleanup container: ${cleanupError}`)
           }
         }
         throw error
@@ -329,29 +369,29 @@ export class WorkloadOrchestrator {
       try {
         const logs = await this.dockerClient.getContainerLogs(containerId)
         if (logs) {
+          console.log(`[Orchestrator] Container logs: ${logs}`)
           await this.addLog(workloadId, 'starting-service', `Container logs: ${logs}`)
         }
       } catch (err) {
-        // Ignore log errors
+        console.error(`[Orchestrator] Failed to get container logs: ${err}`)
       }
 
       // Wait for container to be ready
+      console.log(`[Orchestrator] Waiting for container to be ready...`)
       await new Promise(resolve => setTimeout(resolve, 2000))
 
       await this.updateStage(workloadId, 'starting-service', 'success')
 
       // Stage 4: Running
       await this.updateStage(workloadId, 'running', 'running')
+      console.log(`[Orchestrator] Workload ${workloadId} is now running on port ${port}`)
       await this.addLog(workloadId, 'running', `Service running on port ${port} (Container: ${containerId.substring(0, 12)})`)
 
-      // Store running workload info
-      this.runningWorkloads.set(workloadId, {
-        workloadId,
-        containerId,
-        port,
-        logs: [],
-        workDir,
-      })
+      // Update running workload info with container details
+      const running = this.runningWorkloads.get(workloadId)!
+      running.containerId = containerId
+      running.port = port
+      console.log(`[Orchestrator] Updated running workload info for ${workloadId}`)
 
       // Track resources
       this.resources.track(workloadId, {
@@ -372,16 +412,19 @@ export class WorkloadOrchestrator {
       await this.addLog(workloadId, 'running', `Service started on port ${port}`)
 
       // Monitor container in background
+      console.log(`[Orchestrator] Starting container monitoring for ${workloadId}`)
       this.monitorContainer(workloadId, containerId, port, workDir)
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error(`[Orchestrator] Failed to start workload ${workloadId}: ${errorMessage}`)
       await this.addLog(workloadId, 'failed', `Failed to start workload: ${errorMessage}`, 'error')
       await this.updateStage(workloadId, 'failed', 'failed', errorMessage)
 
       // Release port if it was assigned
       const running = this.runningWorkloads.get(workloadId)
       if (running?.port) {
+        console.log(`[Orchestrator] Releasing port ${running.port}`)
         this.portPool.release(running.port)
       }
 
@@ -394,11 +437,14 @@ export class WorkloadOrchestrator {
 
   private async cleanupWorkDir(workloadId: string, workDir: string): Promise<void> {
     try {
+      console.log(`[Orchestrator] Cleaning up work directory: ${workDir}`)
       await this.addLog(workloadId, 'stopped', `Cleaning up work directory: ${workDir}`)
       await rm(workDir, { recursive: true, force: true })
+      console.log(`[Orchestrator] Work directory cleaned up`)
       await this.addLog(workloadId, 'stopped', 'Work directory cleaned up')
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
+      console.error(`[Orchestrator] Failed to cleanup work directory: ${message}`)
       await this.addLog(workloadId, 'stopped', `Failed to cleanup work directory: ${message}`, 'warn')
     }
   }
@@ -406,11 +452,15 @@ export class WorkloadOrchestrator {
   private monitorContainer(workloadId: string, containerId: string, port: number, workDir: string): void {
     let lastRunningState: boolean | null = null
 
+    console.log(`[Orchestrator] Monitoring container ${containerId} for workload ${workloadId}`)
+
     // Use dockerClient to monitor container state
     this.dockerClient.monitorContainer(containerId, async (state) => {
       // Only process if state changed from running to not running
       if (lastRunningState === true && !state.running) {
         const exitCode = state.exitCode || 0
+
+        console.log(`[Orchestrator] Container ${containerId} exited with code ${exitCode}`)
 
         await this.addLog(
           workloadId,
@@ -425,6 +475,7 @@ export class WorkloadOrchestrator {
           exitCode !== 0 ? `Container exited with code ${exitCode}` : undefined
         )
         this.portPool.release(port)
+        console.log(`[Orchestrator] Released port ${port} after container exit`)
         this.runningWorkloads.delete(workloadId)
         this.resources.untrack(workloadId)
         await this.cleanupContainer(workloadId, containerId, workDir)
@@ -433,25 +484,30 @@ export class WorkloadOrchestrator {
       // Track last state
       lastRunningState = state.running
     }).catch(err => {
-      console.error(`Failed to monitor container ${containerId}:`, err)
+      console.error(`[Orchestrator] Failed to monitor container ${containerId}:`, err)
     })
   }
 
   private async cleanupContainer(workloadId: string, containerId: string, workDir: string): Promise<void> {
     try {
+      console.log(`[Orchestrator] Cleaning up container ${containerId}`)
       await this.addLog(workloadId, 'stopped', 'Removing container')
       await this.containerLifecycle.cleanup(containerId)
+      console.log(`[Orchestrator] Container removed`)
       await this.addLog(workloadId, 'stopped', 'Container removed')
 
       // Remove image
       const imageName = `workload-${workloadId}`
       try {
+        console.log(`[Orchestrator] Removing image ${imageName}`)
         await this.imageBuilder.removeImage(imageName, true)
+        console.log(`[Orchestrator] Image removed`)
       } catch (error) {
-        // Ignore errors if image doesn't exist
+        console.log(`[Orchestrator] Image ${imageName} not found or already removed`)
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'
+      console.error(`[Orchestrator] Failed to cleanup container: ${message}`)
       await this.addLog(workloadId, 'stopped', `Failed to cleanup container: ${message}`, 'warn')
     }
 
@@ -460,9 +516,12 @@ export class WorkloadOrchestrator {
   }
 
   async stop(workloadId: string): Promise<void> {
+    console.log(`[Orchestrator] Stopping workload ${workloadId}`)
     const running = this.runningWorkloads.get(workloadId)
     if (!running) {
-      throw new Error(`Workload ${workloadId} is not running`)
+      const error = `Workload ${workloadId} is not running`
+      console.error(`[Orchestrator] ${error}`)
+      throw new Error(error)
     }
 
     // Stage: Graceful Shutdown
@@ -470,19 +529,23 @@ export class WorkloadOrchestrator {
     await this.addLog(workloadId, 'graceful-shutdown', 'Initiating graceful shutdown')
 
     // Stop Docker container gracefully
+    console.log(`[Orchestrator] Stopping container ${running.containerId}`)
     await this.containerLifecycle.stop(running.containerId, true)
+    console.log(`[Orchestrator] Container stopped`)
     await this.addLog(workloadId, 'graceful-shutdown', 'Container stopped')
     await this.updateStage(workloadId, 'graceful-shutdown', 'success')
 
     // Cleanup
     await this.cleanupContainer(workloadId, running.containerId, running.workDir)
     this.portPool.release(running.port)
+    console.log(`[Orchestrator] Released port ${running.port}`)
     this.runningWorkloads.delete(workloadId)
     this.resources.untrack(workloadId)
 
     // Stage: Stopped
     await this.updateStage(workloadId, 'stopped', 'success')
     await this.addLog(workloadId, 'stopped', 'Service stopped')
+    console.log(`[Orchestrator] Workload ${workloadId} stopped successfully`)
   }
 
   async getStatus(workloadId: string): Promise<{ running: boolean; port?: number; containerId?: string }> {

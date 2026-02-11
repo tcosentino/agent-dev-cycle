@@ -16,6 +16,7 @@ import {
   TabbedPane,
   type Tab,
 } from '@agentforge/ui-components'
+import { DeploymentProvider } from './contexts/DeploymentContext'
 import {
   AgentSessionProgressPanel,
   StartAgentSessionModal,
@@ -1158,7 +1159,8 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   }
 
   return (
-    <div className={styles.container} ref={containerRef}>
+    <DeploymentProvider projectId={activeProject}>
+      <div className={styles.container} ref={containerRef}>
       <div className={styles.splitPane}>
         <div className={styles.sidebar} style={{ width: sidebarWidth }}>
           <div className={styles.sidebarSection}>
@@ -1311,5 +1313,6 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
         />
       )}
     </div>
+    </DeploymentProvider>
   )
 }
