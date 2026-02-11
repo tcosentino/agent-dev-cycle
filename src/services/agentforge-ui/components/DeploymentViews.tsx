@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Modal, useToast, ServerIcon, ClipboardIcon } from '@agentforge/ui-components'
+import { Modal, useToast, ServerIcon, ClipboardIcon, ChevronDownIcon } from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage } from '../types'
 import { DeploymentCard } from './DeploymentCard'
 import { StageDetailCard } from './StageDetailCard'
@@ -217,6 +217,7 @@ export function DeploymentListView({
 
 export function WorkloadDetailView({ workload }: { workload: Workload }) {
   const [copied, setCopied] = useState(false)
+  const [allExpanded, setAllExpanded] = useState(true)
   const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
   const workloadType = workload.moduleType || 'service'
   const port = (workload as any).port || workload.artifacts?.port
@@ -355,6 +356,14 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
           <h3>Pipeline Stages</h3>
           <button
             className={styles.copyLogsButton}
+            onClick={() => setAllExpanded(!allExpanded)}
+            title={allExpanded ? 'Collapse all stages' : 'Expand all stages'}
+          >
+            <ChevronDownIcon />
+            <span>{allExpanded ? 'Collapse All' : 'Expand All'}</span>
+          </button>
+          <button
+            className={styles.copyLogsButton}
             onClick={handleCopyLogs}
             title="Copy all logs to clipboard"
           >
@@ -364,7 +373,7 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
         </div>
         <div className={styles.stageDetailsContainer}>
           {stages.length > 0 ? stages.map((stage, i) => (
-            <StageDetailCard key={i} stage={stage} />
+            <StageDetailCard key={i} stage={stage} expanded={allExpanded} />
           )) : (
             <div className={styles.emptyState}>No stage data available</div>
           )}

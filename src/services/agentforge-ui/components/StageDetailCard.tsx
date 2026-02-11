@@ -6,10 +6,14 @@ import styles from '../ProjectViewer.module.css'
 
 export interface StageDetailCardProps {
   stage: StageResult
+  expanded?: boolean
 }
 
-export function StageDetailCard({ stage }: StageDetailCardProps) {
+export function StageDetailCard({ stage, expanded }: StageDetailCardProps) {
   const [isExpanded, setIsExpanded] = useState(true)
+
+  // Use parent-controlled expanded state if provided
+  const actualExpanded = expanded !== undefined ? expanded : isExpanded
 
   const formatTimestamp = (timestamp?: string) => {
     if (!timestamp) return null
@@ -30,7 +34,7 @@ export function StageDetailCard({ stage }: StageDetailCardProps) {
       <button
         className={styles.stageDetailHeader}
         onClick={() => setIsExpanded(!isExpanded)}
-        disabled={!hasContent}
+        disabled={!hasContent || expanded !== undefined}
       >
         <span className={styles.stageDetailName}>{formatStageName(stage.stage)}</span>
         <span className={styles.stageDetailStatus}>{stage.status}</span>
@@ -48,12 +52,12 @@ export function StageDetailCard({ stage }: StageDetailCardProps) {
           <span className={styles.stageDetailDuration}>{stage.duration}ms</span>
         )}
         {hasContent && (
-          <span className={`${styles.stageToggleIcon} ${isExpanded ? styles.expanded : ''}`}>
+          <span className={`${styles.stageToggleIcon} ${actualExpanded ? styles.expanded : ''}`}>
             <ChevronDownIcon />
           </span>
         )}
       </button>
-      {isExpanded && hasContent && (
+      {actualExpanded && hasContent && (
         <div className={styles.stageDetailContent}>
           {stage.logs && stage.logs.length > 0 && (
             <pre className={styles.stageDetailLogs}>
