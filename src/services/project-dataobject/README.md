@@ -15,7 +15,6 @@ A "project" in AgentForge is an **external codebase** (typically a git repositor
 - `name` (string) - Project name (e.g., "Todo App")
 - `key` (string) - Project key/code (e.g., "TODO")
 - `repoUrl` (string, optional) - Git repository URL to clone
-- `localPath` (string, optional) - Local filesystem path (for development)
 - `createdAt` (date) - When project was added to AgentForge
 - `updatedAt` (date) - Last update timestamp
 

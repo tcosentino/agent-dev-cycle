@@ -9,13 +9,12 @@ export const projectResource = defineResource({
     name: z.string().min(1).max(100),
     key: z.string().min(2).max(10).toUpperCase(),
     repoUrl: z.string().url().optional(),
-    localPath: z.string().optional(),
     createdAt: z.date().default(() => new Date()),
     updatedAt: z.date().default(() => new Date()),
   }),
 
-  createFields: ['userId', 'name', 'key', 'repoUrl', 'localPath'],
-  updateFields: ['name', 'repoUrl', 'localPath'],
+  createFields: ['userId', 'name', 'key', 'repoUrl'],
+  updateFields: ['name', 'repoUrl'],
   unique: ['key'],
   searchable: ['name', 'key'],
   relations: {

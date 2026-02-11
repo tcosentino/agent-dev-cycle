@@ -55,17 +55,11 @@ export const workloadIntegration: IntegrationService = {
         }
 
         // Determine project path
-        let projectPath: string
-        if (project.localPath) {
-          // Use local path if provided (for development)
-          projectPath = project.localPath
-        } else if (project.repoUrl) {
-          // In production, this would clone the repo and return the path
-          // For now, we'll error if no localPath is set
-          return c.json({ error: 'Git repository cloning not yet implemented. Please set localPath for development.' }, 501)
-        } else {
-          return c.json({ error: 'Project has no localPath or repoUrl configured' }, 400)
-        }
+        // For now, assume projects are in examples/ directory
+        // In production, this would be a cloned git repo
+        // Go up to project root from packages/server
+        const projectRoot = resolve(process.cwd(), '..', '..')
+        const projectPath = resolve(projectRoot, 'examples', project.name.toLowerCase().replace(/\s+/g, '-'))
 
         // Start the workload
         await orchestrator.start(workloadId, projectPath)
