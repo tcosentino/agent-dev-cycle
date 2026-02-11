@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
-import { 
-  TaskBoard, 
-  TaskDetailPanel, 
+import {
+  TaskBoard,
+  TaskDetailPanel,
   TaskForm,
   TaskFilters,
   Modal,
@@ -9,7 +9,7 @@ import {
   type Task as UITask,
   type TaskFiltersType
 } from '@agentforge/ui-components'
-import { api, type ApiTask } from '../../api'
+import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../../../task-dataobject/hooks'
 import styles from './TasksPage.module.css'
 
 interface TasksPageProps {
@@ -17,19 +17,27 @@ interface TasksPageProps {
 }
 
 export function TasksPage({ projectId }: TasksPageProps) {
-  const [tasks, setTasks] = useState<UITask[]>([])
-  const [selectedTask, setSelectedTask] = useState<UITask | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // Use React Query hooks instead of manual state management
+  const { data: tasks = [], isLoading, error: queryError } = useTasks({ where: { projectId } })
+  const createTask = useCreateTask()
+  const updateTask = useUpdateTask()
+  const deleteTask = useDeleteTask()
+
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
-  const [isUpdating, setIsUpdating] = useState(false)
   const [filters, setFilters] = useState<TaskFiltersType>({
     search: '',
     assignees: [],
     priorities: [],
     types: [],
   })
+
+  // Derive selected task from tasks array (which is managed by React Query)
+  // React Query's refetchQueries ensures this always has the latest data
+  const selectedTask = useMemo(() => {
+    if (!selectedTaskId) return null
+    return tasks.find(t => t.id === selectedTaskId) || null
+  }, [selectedTaskId, tasks])
 
   // Load filters from localStorage
   useEffect(() => {
@@ -87,91 +95,45 @@ export function TasksPage({ projectId }: TasksPageProps) {
     })
   }, [tasks, filters])
 
-  // Convert API task to UI task
-  const convertTask = (apiTask: ApiTask): UITask => ({
-    ...apiTask,
-    status: apiTask.status as any,
-    priority: apiTask.priority as any,
-    type: apiTask.type as any,
-  })
-
-  // Load tasks on mount
-  useEffect(() => {
-    loadTasks()
-  }, [projectId])
-
-  const loadTasks = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const apiTasks = await api.tasks.list(projectId)
-      setTasks(apiTasks.map(convertTask))
-    } catch (err) {
-      console.error('Failed to load tasks:', err)
-      setError('Failed to load tasks. Please try again.')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleCreateTask = async (formData: any) => {
     try {
-      setIsCreating(true)
-      const newTask = await api.tasks.create({
+      const newTask = await createTask.mutateAsync({
         projectId,
         ...formData,
       })
-      setTasks(prev => [...prev, convertTask(newTask)])
       setShowCreateModal(false)
-      
+
       // Show success toast (you can implement toast later)
       console.log(`Task ${newTask.key} created successfully`)
     } catch (err) {
       console.error('Failed to create task:', err)
       alert('Failed to create task. Please try again.')
-    } finally {
-      setIsCreating(false)
     }
   }
 
   const handleTaskMove = async (taskId: string, newStatus: any) => {
-    // Optimistic update
-    const prevTasks = [...tasks]
-    setTasks(prev => prev.map(t => 
-      t.id === taskId ? { ...t, status: newStatus } : t
-    ))
-
     try {
-      await api.tasks.update(taskId, { status: newStatus })
+      await updateTask.mutateAsync({ id: taskId, status: newStatus })
     } catch (err) {
       console.error('Failed to update task status:', err)
-      // Revert on error
-      setTasks(prevTasks)
       alert('Failed to update task status. Please try again.')
     }
   }
 
   const handleTaskUpdate = async (taskId: string, updates: Partial<UITask>) => {
     try {
-      setIsUpdating(true)
-      const updatedTask = await api.tasks.update(taskId, updates)
-      setTasks(prev => prev.map(t => 
-        t.id === taskId ? convertTask(updatedTask) : t
-      ))
-      setSelectedTask(convertTask(updatedTask))
+      await updateTask.mutateAsync({ id: taskId, ...updates })
+      // No need to setSelectedTask - it will update automatically from React Query cache
     } catch (err) {
       console.error('Failed to update task:', err)
       alert('Failed to update task. Please try again.')
-    } finally {
-      setIsUpdating(false)
     }
   }
 
   const handleTaskDelete = async (task: UITask) => {
     try {
-      await api.tasks.delete(task.id)
-      setTasks(prev => prev.filter(t => t.id !== task.id))
-      setSelectedTask(null)
+      await deleteTask.mutateAsync(task.id)
+      setSelectedTaskId(null)
       console.log(`Task ${task.key} deleted`)
     } catch (err) {
       console.error('Failed to delete task:', err)
@@ -188,13 +150,10 @@ export function TasksPage({ projectId }: TasksPageProps) {
     )
   }
 
-  if (error) {
+  if (queryError) {
     return (
       <div className={styles.error}>
-        <p>{error}</p>
-        <button onClick={loadTasks} className={styles.retryButton}>
-          Retry
-        </button>
+        <p>Failed to load tasks. Please try again.</p>
       </div>
     )
   }
@@ -218,7 +177,7 @@ export function TasksPage({ projectId }: TasksPageProps) {
       <div className={styles.boardContainer}>
         <TaskBoard
           tasks={filteredTasks}
-          onTaskClick={setSelectedTask}
+          onTaskClick={(task) => setSelectedTaskId(task.id)}
           onTaskMove={handleTaskMove}
           onTaskDelete={handleTaskDelete}
         />
@@ -226,10 +185,10 @@ export function TasksPage({ projectId }: TasksPageProps) {
 
       <TaskDetailPanel
         task={selectedTask}
-        onClose={() => setSelectedTask(null)}
+        onClose={() => setSelectedTaskId(null)}
         onUpdate={handleTaskUpdate}
         onDelete={handleTaskDelete}
-        isUpdating={isUpdating}
+        isUpdating={updateTask.isPending}
       />
 
       {showCreateModal && (
@@ -240,7 +199,7 @@ export function TasksPage({ projectId }: TasksPageProps) {
               onSubmit={handleCreateTask}
               onCancel={() => setShowCreateModal(false)}
               submitLabel="Create Task"
-              isLoading={isCreating}
+              isLoading={createTask.isPending}
             />
           </div>
         </Modal>
