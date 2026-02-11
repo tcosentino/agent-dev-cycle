@@ -408,30 +408,26 @@ export function DeploymentListView({
         </div>
       )}
       {deleteConfirmation && (
-        <Modal
-          title="Delete Deployment"
-          onClose={() => setDeleteConfirmation(null)}
-        >
-          <div className={modalStyles.modalBody}>
-            <p style={{ marginBottom: 'var(--space-md)' }}>
-              Are you sure you want to delete deployment "{(deleteConfirmation as any).serviceName || deleteConfirmation.name}"?
+        <Modal title="Delete Deployment" onClose={() => setDeleteConfirmation(null)}>
+          <div className={modalStyles.modalContent}>
+            <p style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>
+              Are you sure you want to delete deployment <strong>"{(deleteConfirmation as any).serviceName || deleteConfirmation.name}"</strong>?
             </p>
-            <p style={{ marginBottom: 'var(--space-lg)', color: 'var(--text-secondary)' }}>
+            <p style={{ marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               This will stop all running workloads and clean up resources. This action cannot be undone.
             </p>
-            <div style={{ display: 'flex', gap: 'var(--space-sm)', justifyContent: 'flex-end' }}>
+            <div className={modalStyles.modalFooter}>
               <button
-                className={modalStyles.modalButton}
+                className={modalStyles.cancelButton}
                 onClick={() => setDeleteConfirmation(null)}
-                style={{ background: 'var(--bg-secondary)' }}
               >
                 Cancel
               </button>
               <button
-                className={modalStyles.modalButton}
+                className={modalStyles.submitButton}
                 onClick={confirmDelete}
                 disabled={deletingDeployment !== null}
-                style={{ background: 'var(--error)', color: 'white' }}
+                style={{ background: 'var(--error)' }}
               >
                 {deletingDeployment === deleteConfirmation.id ? 'Deleting...' : 'Delete'}
               </button>
