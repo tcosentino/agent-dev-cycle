@@ -146,7 +146,7 @@ export class DockerClient {
 
   async streamContainerLogs(
     id: string,
-    onLog: (log: string) => void,
+    onLog: (log: string) => void | Promise<void>,
     signal?: AbortSignal
   ): Promise<void> {
     try {
@@ -162,7 +162,7 @@ export class DockerClient {
       // Each frame has an 8-byte header: [stream_type, 0, 0, 0, size1, size2, size3, size4]
       let buffer = Buffer.alloc(0)
 
-      const processChunk = (chunk: Buffer) => {
+      const processChunk = async (chunk: Buffer) => {
         buffer = Buffer.concat([buffer, chunk])
 
         while (buffer.length >= 8) {
@@ -178,12 +178,16 @@ export class DockerClient {
 
           const logLine = payload.toString('utf-8').trim()
           if (logLine) {
-            onLog(logLine)
+            await onLog(logLine)
           }
         }
       }
 
-      logStream.on('data', processChunk)
+      logStream.on('data', (chunk) => {
+        processChunk(chunk).catch(err => {
+          console.error('[DockerClient] Error processing log chunk:', err)
+        })
+      })
 
       // Handle abort signal
       if (signal) {

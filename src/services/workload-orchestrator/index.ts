@@ -422,13 +422,13 @@ export class WorkloadOrchestrator {
 
       // Stage 4: Running
       await this.updateStage(workloadId, 'running', 'running')
-      console.log(`[Orchestrator] Workload ${workloadId} is now running on port ${port}`)
-      await this.addLog(workloadId, 'running', `Service running on port ${port} (Container: ${containerId.substring(0, 12)})`)
+      console.log(`[Orchestrator] Workload ${workloadId} is now running on port ${currentPort}`)
+      await this.addLog(workloadId, 'running', `Service running on port ${currentPort} (Container: ${containerId.substring(0, 12)})`)
 
       // Update running workload info with container details
       const running = this.runningWorkloads.get(workloadId)!
       running.containerId = containerId
-      running.port = port
+      running.port = currentPort
       console.log(`[Orchestrator] Updated running workload info for ${workloadId}`)
 
       // Track resources
@@ -437,7 +437,7 @@ export class WorkloadOrchestrator {
         type: 'container',
         containerId,
         imageId,
-        port,
+        port: currentPort,
         workDir,
         metadata: { workloadId, repoUrl },
       })
@@ -447,11 +447,11 @@ export class WorkloadOrchestrator {
         containerId,
       })
 
-      await this.addLog(workloadId, 'running', `Service started on port ${port}`)
+      await this.addLog(workloadId, 'running', `Service started on port ${currentPort}`)
 
       // Monitor container in background
       console.log(`[Orchestrator] Starting container monitoring for ${workloadId}`)
-      this.monitorContainer(workloadId, containerId, port, workDir)
+      this.monitorContainer(workloadId, containerId, currentPort, workDir)
 
       // Stream container logs in background
       console.log(`[Orchestrator] Starting log streaming for ${workloadId}`)
