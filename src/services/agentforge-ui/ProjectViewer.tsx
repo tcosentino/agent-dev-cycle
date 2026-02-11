@@ -464,9 +464,6 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
 
-    console.log('[ProjectViewer] Agent config paths found:', agentConfigPaths)
-    console.log('[ProjectViewer] Loaded configs:', agentConfigPaths.filter(p => files[p] && files[p] !== ''))
-
     const loadedConfigPaths = agentConfigPaths.filter(p => files[p] && files[p] !== '')
     const hasNewStructure = loadedConfigPaths.length > 0
 
@@ -476,9 +473,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
         agentFiles[path] = files[path]
       }
 
-      const parsed = parseAgentConfigs(agentFiles)
-      console.log('[ProjectViewer] Parsed agents from loaded configs:', parsed.map(a => a.id))
-      return parsed
+      return parseAgentConfigs(agentFiles)
     }
 
     // Fall back to legacy agents.yaml
@@ -487,7 +482,6 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       return parseAgentsYaml(agentsYaml)
     }
 
-    console.log('[ProjectViewer] No agents found')
     return []
   }, [
     // Only recalculate when agent config files change
