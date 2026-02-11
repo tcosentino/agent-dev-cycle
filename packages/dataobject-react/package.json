@@ -1,0 +1,23 @@
+{
+  "name": "@agentforge/dataobject-react",
+  "version": "0.1.0",
+  "description": "React hooks for @agentforge/dataobject resources",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.62.11"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0",
+    "@agentforge/dataobject": "workspace:*",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.18",
+    "typescript": "^5.3.3"
+  }
+}

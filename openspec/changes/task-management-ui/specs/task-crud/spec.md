@@ -156,3 +156,97 @@ The system SHALL validate task inputs and display helpful error messages.
 - **AND** highlights relevant field
 - **WHEN** API returns 409 error (unique constraint)
 - **THEN** form shows "Task key already exists" (unlikely due to auto-increment)
+
+### Requirement: Centralized state management and automatic UI updates
+
+The system SHALL maintain a central store for task data and automatically update all views when tasks change.
+
+#### Scenario: Task update propagates to all views
+
+- **GIVEN** task AF-5 is visible in:
+  - Task board (in "To Do" column)
+  - Task detail panel (open on right)
+  - Task list view
+- **WHEN** user drags AF-5 from "To Do" to "In Progress" on board
+- **THEN** task status updates in central store
+- **AND** task moves to "In Progress" column on board
+- **AND** detail panel updates to show status "In Progress"
+- **AND** task list updates status badge
+- **AND** all updates happen simultaneously
+
+#### Scenario: Edit in detail view updates board
+
+- **GIVEN** task AF-12 is visible in task board and detail panel
+- **WHEN** user edits priority from "medium" to "critical" in detail panel
+- **THEN** priority updates in central store
+- **AND** task card on board updates priority indicator color
+- **AND** detail panel reflects new priority
+
+#### Scenario: Delete removes task from all views
+
+- **GIVEN** task AF-8 appears in board, list, and search results
+- **WHEN** user deletes task from detail panel
+- **THEN** task is removed from central store
+- **AND** task disappears from board
+- **AND** task disappears from list view
+- **AND** task disappears from search results
+- **AND** detail panel closes
+
+#### Scenario: Create adds task to all relevant views
+
+- **WHEN** user creates task with status "in-progress"
+- **THEN** task is added to central store
+- **AND** task appears in "In Progress" board column
+- **AND** task appears in task list
+- **AND** task is searchable immediately
+
+#### Scenario: Real-time updates from other users (future)
+
+- **WHEN** another user updates task AF-5
+- **THEN** central store receives update via websocket
+- **AND** all views showing AF-5 update automatically
+- **AND** user sees visual indicator of external change
+
+#### Technical Implementation Notes
+
+The central store should be implemented using `@agentforge/dataobject-react`:
+
+- Use `createResourceHooks()` to generate React Query-based hooks from task dataobject
+- Hooks automatically maintain normalized cache indexed by task ID
+- React Query handles cache invalidation and component subscriptions
+- Optimistic updates built-in with automatic rollback on API failure
+- React Query debounces rapid updates and deduplicates requests
+- Components subscribe to individual tasks or filtered subsets via hook parameters
+- Mutations trigger automatic cache invalidation and refetch
+
+Example implementation:
+
+```typescript
+// src/services/task-dataobject/hooks.ts
+import { createResourceHooks } from '@agentforge/dataobject-react'
+import { taskResource } from './index'
+
+export const {
+  useList: useTasks,
+  useGet: useTask,
+  useUpdate: useUpdateTask,
+} = createResourceHooks(taskResource, {
+  baseUrl: '/api',
+  optimistic: true,
+})
+
+// In TaskBoard component
+const { data: tasks } = useTasks()
+const updateTask = useUpdateTask()
+
+const handleDragEnd = (taskId, newStatus) => {
+  updateTask.mutate({ id: taskId, status: newStatus })
+  // All views auto-update via React Query cache!
+}
+
+// In TaskDetail component (same task, different view)
+const { data: task } = useTask(taskId)
+// Automatically receives updates from board!
+```
+
+See [dataobject-react spec](../../dataobject-react-hooks/specs/dataobject-react/spec.md) for full details.
