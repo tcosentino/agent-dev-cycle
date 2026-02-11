@@ -2,12 +2,13 @@ import { z } from 'zod'
 
 export const workloadStageEnum = z.enum([
   'pending',
-  'validate',
-  'build',
-  'deploy',
+  'starting-container',
+  'cloning-repo',
+  'starting-service',
   'running',
-  'failed',
+  'graceful-shutdown',
   'stopped',
+  'failed',
 ])
 
 export const workloadLogEntry = z.object({

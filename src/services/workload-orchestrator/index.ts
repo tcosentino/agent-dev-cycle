@@ -142,18 +142,86 @@ export class WorkloadOrchestrator {
       const workload = await this.workloadStore!.findById(workloadId) as any
       if (!workload) return
 
+      // Transform flat logs array into grouped stages for the SSE event
+      const stages = this.transformLogsToStages(workload.logs || [])
+
       workloadEvents.emitWorkloadUpdate({
         workloadId: workload.id,
         deploymentId: workload.deploymentId,
         projectId: workload.projectId,
         currentStage: workload.currentStage || workload.stage,
         status: workload.status || 'running',
-        stages: workload.stages || [],
+        stages,
         updatedAt: new Date().toISOString(),
       })
     } catch (err) {
       console.error(`Failed to emit workload update: ${err}`)
     }
+  }
+
+  private transformLogsToStages(logs: Array<{ timestamp: Date; stage: WorkloadStage; message: string; level: string }>): Array<{
+    stage: string
+    status: string
+    startedAt?: string
+    completedAt?: string
+    duration?: number
+    logs: string[]
+    error?: string
+  }> {
+    const stageMap = new Map<string, {
+      stage: string
+      status: string
+      logs: string[]
+      startedAt?: string
+      completedAt?: string
+      error?: string
+    }>()
+
+    for (const log of logs) {
+      const stage = log.stage
+      if (!stageMap.has(stage)) {
+        stageMap.set(stage, {
+          stage,
+          status: 'pending',
+          logs: [],
+          startedAt: log.timestamp.toISOString(),
+        })
+      }
+
+      const stageResult = stageMap.get(stage)!
+      stageResult.logs.push(log.message)
+
+      // Update status based on log level
+      if (log.level === 'error') {
+        stageResult.status = 'failed'
+        if (!stageResult.error) {
+          stageResult.error = log.message
+        }
+      }
+
+      // Track latest timestamp
+      const logTime = log.timestamp.toISOString()
+      if (!stageResult.completedAt || logTime > stageResult.completedAt) {
+        stageResult.completedAt = logTime
+      }
+    }
+
+    // Calculate durations and finalize statuses
+    const stages = Array.from(stageMap.values())
+    for (const stage of stages) {
+      if (stage.startedAt && stage.completedAt) {
+        const start = new Date(stage.startedAt).getTime()
+        const end = new Date(stage.completedAt).getTime()
+        stage.duration = end - start
+      }
+
+      // If no error was set and stage has logs, mark as success
+      if (stage.status === 'pending' && stage.logs.length > 0) {
+        stage.status = 'success'
+      }
+    }
+
+    return stages
   }
 
   async start(workloadId: string, repoUrl: string): Promise<void> {

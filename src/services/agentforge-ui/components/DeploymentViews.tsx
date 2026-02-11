@@ -1,315 +1,20 @@
 import { useMemo, useState } from 'react'
-import {
-  CheckCircleIcon,
-  ClockIcon,
-  AlertTriangleIcon,
-  GitBranchIcon,
-  ServerIcon,
-  PlayIcon,
-  RocketIcon,
-  FileDocumentIcon,
-  ClipboardIcon,
-  XCircleIcon,
-  Modal,
-  useToast,
-} from '@agentforge/ui-components'
-import type { DbSnapshot, Deployment, Workload, WorkloadStage, StageStatus, StageResult } from '../types'
-import { HealthBadge } from './HealthBadge'
+import { Modal, useToast, ServerIcon, ClipboardIcon } from '@agentforge/ui-components'
+import type { DbSnapshot, Deployment, Workload, WorkloadStage } from '../types'
+import { DeploymentCard } from './DeploymentCard'
+import { StageDetailCard } from './StageDetailCard'
 import { LogViewer } from './LogViewer'
 import { getWorkloadLogs } from '../api'
 import type { LogEntry } from './LogViewer'
+import { formatStageName, formatUptime, formatDuration, transformLogsToStages } from '../utils/deploymentUtils'
 import styles from '../ProjectViewer.module.css'
 import modalStyles from '@agentforge/ui-components/components/Modal/Modal.module.css'
 
-// --- Stage Progress Indicator ---
-
-const STAGE_ORDER: WorkloadStage[] = ['starting-container', 'cloning-repo', 'starting-service', 'running', 'graceful-shutdown', 'stopped']
-
-const STAGE_LABELS: Record<WorkloadStage, string> = {
-  'pending': 'Pending',
-  'starting-container': 'Starting Container',
-  'cloning-repo': 'Cloning Repository',
-  'starting-service': 'Starting Service',
-  'running': 'Running',
-  'graceful-shutdown': 'Graceful Shutdown',
-  'stopped': 'Stopped',
-  'failed': 'Failed',
-}
-
-function formatStageName(stage: WorkloadStage): string {
-  return STAGE_LABELS[stage] || stage
-}
-
-function formatUptime(startTime: string): string {
-  const start = new Date(startTime).getTime()
-  const now = Date.now()
-  const seconds = Math.floor((now - start) / 1000)
-
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
-  return `${Math.floor(seconds / 86400)}d ${Math.floor((seconds % 86400) / 3600)}h`
-}
-
-function formatDuration(startTime: string, endTime: string): string {
-  const start = new Date(startTime).getTime()
-  const end = new Date(endTime).getTime()
-  const seconds = Math.floor((end - start) / 1000)
-
-  if (seconds < 60) return `${seconds}s`
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
-  return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`
-}
-
-function StageIndicator({ stage, status }: { stage: WorkloadStage; status: StageStatus }) {
-  const getIcon = () => {
-    if (status === 'success') return <CheckCircleIcon className={styles.stageIconSuccess} />
-    if (status === 'failed') return <AlertTriangleIcon className={styles.stageIconFailed} />
-    if (status === 'running') return <PlayIcon className={styles.stageIconRunning} />
-    return <div className={styles.stageIconPending} />
-  }
-
-  return (
-    <div className={`${styles.stageIndicator} ${styles[`stage-${status}`]}`} title={`${formatStageName(stage)}: ${status}`}>
-      {getIcon()}
-      <span className={styles.stageLabel}>{formatStageName(stage)}</span>
-    </div>
-  )
-}
-
-function WorkloadStages({ workload }: { workload: Workload }) {
-  const stageStatuses = useMemo(() => {
-    const statuses: Record<WorkloadStage, StageStatus> = {
-      pending: 'pending',
-      'starting-container': 'pending',
-      'cloning-repo': 'pending',
-      'starting-service': 'pending',
-      running: 'pending',
-      'graceful-shutdown': 'pending',
-      stopped: 'pending',
-      failed: 'skipped',
-    }
-
-    if (workload.stages) {
-      for (const result of workload.stages) {
-        statuses[result.stage] = result.status
-      }
-
-      // Mark current stage as running if workload is running
-      if (workload.status === 'running' && workload.currentStage) {
-        const currentStageResult = workload.stages.find(s => s.stage === workload.currentStage)
-        if (!currentStageResult || currentStageResult.status === 'pending') {
-          statuses[workload.currentStage] = 'running'
-        }
-      }
-    } else {
-      // Handle new workload schema with single stage field
-      const currentStage = (workload as any).stage as WorkloadStage
-      if (currentStage && statuses[currentStage] !== undefined) {
-        statuses[currentStage] = workload.status === 'running' ? 'running' : 'pending'
-      }
-    }
-
-    return statuses
-  }, [workload])
-
-  return (
-    <div className={styles.workloadStages}>
-      {STAGE_ORDER.map((stage, i) => {
-        const isCompleted = stageStatuses[stage] === 'success'
-        return (
-          <div key={stage} className={styles.stageStep}>
-            <StageIndicator stage={stage} status={stageStatuses[stage]} />
-            {i < STAGE_ORDER.length - 1 && (
-              <div className={`${styles.stageConnector} ${isCompleted ? styles.completed : ''}`} />
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// --- Workload Card ---
-
-function WorkloadCard({
-  workload,
-  onClick,
-  onViewLogs,
-}: {
-  workload: Workload
-  onClick: () => void
-  onViewLogs: (workload: Workload) => void
-}) {
-  const statusColors: Record<Workload['status'], string> = {
-    pending: 'var(--text-tertiary)',
-    running: 'var(--accent-primary)',
-    success: 'var(--success)',
-    failed: 'var(--error)',
-    rolledback: 'var(--warning)',
-    stopped: 'var(--text-tertiary)',
-  }
-
-  const duration = useMemo(() => {
-    if (!workload.completedAt) return null
-    const start = new Date(workload.createdAt).getTime()
-    const end = new Date(workload.completedAt).getTime()
-    const seconds = Math.round((end - start) / 1000)
-    if (seconds < 60) return `${seconds}s`
-    return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
-  }, [workload])
-
-  const hasLogs = workload.stages
-    ? workload.stages.some(stage => stage.logs && stage.logs.length > 0)
-    : (workload as any).logs?.length > 0
-
-  const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
-
-  return (
-    <button className={styles.workloadCard} onClick={onClick}>
-      <div className={styles.workloadHeader}>
-        <ServerIcon className={styles.workloadIcon} />
-        <span className={styles.workloadName}>{workloadName}</span>
-        <span
-          className={styles.workloadStatus}
-          style={{ color: statusColors[workload.status] }}
-        >
-          {workload.status}
-        </span>
-        {hasLogs && (
-          <div
-            className={styles.viewLogsButton}
-            onClick={(e) => {
-              e.stopPropagation()
-              onViewLogs(workload)
-            }}
-            title="View Logs"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                e.stopPropagation()
-                onViewLogs(workload)
-              }
-            }}
-          >
-            <FileDocumentIcon />
-            <span>Logs</span>
-          </div>
-        )}
-      </div>
-      <WorkloadStages workload={workload} />
-      <div className={styles.workloadMeta}>
-        <span className={styles.workloadType}>{workload.moduleType}</span>
-        {workload.artifacts?.url && (
-          <a
-            href={workload.artifacts.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.workloadUrl}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {workload.artifacts.url}
-          </a>
-        )}
-        {duration && <span className={styles.workloadDuration}>{duration}</span>}
-      </div>
-    </button>
-  )
-}
-
-// --- Deployment Card ---
-
-function DeploymentCard({
-  deployment,
-  workloads,
-  onWorkloadClick,
-  onViewLogs,
-  onDelete,
-}: {
-  deployment: Deployment
-  workloads: Workload[]
-  onWorkloadClick: (workload: Workload) => void
-  onViewLogs: (workload: Workload) => void
-  onDelete: (deployment: Deployment) => void
-}) {
-  const statusIcons: Record<Deployment['status'], React.ReactNode> = {
-    pending: <ClockIcon className={styles.deploymentStatusIcon} />,
-    running: <PlayIcon className={`${styles.deploymentStatusIcon} ${styles.spinning}`} />,
-    success: <CheckCircleIcon className={styles.deploymentStatusIcon} style={{ color: 'var(--success)' }} />,
-    failed: <AlertTriangleIcon className={styles.deploymentStatusIcon} style={{ color: 'var(--error)' }} />,
-    stopped: <ClockIcon className={styles.deploymentStatusIcon} />,
-  }
-
-  const triggerLabel = useMemo(() => {
-    if (!deployment.trigger) {
-      return 'manual'
-    }
-    switch (deployment.trigger.type) {
-      case 'agent':
-        return `by ${deployment.trigger.agentName || 'Agent'}`
-      case 'git-push':
-        return `push to ${deployment.trigger.branch}`
-      case 'manual':
-        return 'manual'
-      case 'schedule':
-        return 'scheduled'
-      default:
-        return ''
-    }
-  }, [deployment.trigger])
-
-  const deploymentName = (deployment as any).serviceName || deployment.name || 'Unnamed deployment'
-
-  return (
-    <div className={styles.deploymentCard}>
-      <div className={styles.deploymentHeader}>
-        <div className={styles.deploymentTitle}>
-          {statusIcons[deployment.status]}
-          <RocketIcon className={styles.deploymentIcon} />
-          <span className={styles.deploymentName}>{deploymentName}</span>
-          <HealthBadge
-            status={deployment.status}
-            lastCheckTime={deployment.updatedAt}
-            showTooltip={true}
-          />
-        </div>
-        <div className={styles.deploymentMeta}>
-          {deployment.trigger?.branch && (
-            <span className={styles.deploymentBranch}>
-              <GitBranchIcon className={styles.branchIcon} />
-              {deployment.trigger.branch}
-            </span>
-          )}
-          <span className={styles.deploymentTrigger}>{triggerLabel}</span>
-          <span className={styles.deploymentTime}>
-            {new Date(deployment.createdAt).toLocaleString()}
-          </span>
-          <button
-            className={styles.deleteDeploymentButton}
-            onClick={() => onDelete(deployment)}
-            title="Delete deployment"
-          >
-            <XCircleIcon />
-          </button>
-        </div>
-      </div>
-      {deployment.description && (
-        <p className={styles.deploymentDescription}>{deployment.description}</p>
-      )}
-      <div className={styles.deploymentWorkloads}>
-        {workloads.map(workload => (
-          <WorkloadCard
-            key={workload.id}
-            workload={workload}
-            onClick={() => onWorkloadClick(workload)}
-            onViewLogs={onViewLogs}
-          />
-        ))}
-      </div>
-    </div>
-  )
+interface WorkloadLogEntry {
+  timestamp: string
+  stage: WorkloadStage
+  message: string
+  level: 'info' | 'warn' | 'error'
 }
 
 // --- Main Deployment List View ---
@@ -508,52 +213,6 @@ export function DeploymentListView({
   )
 }
 
-// --- Stage Detail Card ---
-
-function StageDetailCard({ stage }: { stage: StageResult }) {
-  const formatTimestamp = (timestamp?: string) => {
-    if (!timestamp) return null
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString('en-US', {
-      hour12: false,
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      fractionalSecondDigits: 3
-    })
-  }
-
-  return (
-    <div className={`${styles.stageDetail} ${styles[`stage-${stage.status}`]}`}>
-      <div className={styles.stageDetailHeader}>
-        <span className={styles.stageDetailName}>{formatStageName(stage.stage)}</span>
-        <span className={styles.stageDetailStatus}>{stage.status}</span>
-        {stage.startedAt && (
-          <span className={styles.stageDetailTimestamp}>
-            Started: {formatTimestamp(stage.startedAt)}
-          </span>
-        )}
-        {stage.completedAt && (
-          <span className={styles.stageDetailTimestamp}>
-            Completed: {formatTimestamp(stage.completedAt)}
-          </span>
-        )}
-        {stage.duration && (
-          <span className={styles.stageDetailDuration}>{stage.duration}ms</span>
-        )}
-      </div>
-      {stage.logs && stage.logs.length > 0 && (
-        <pre className={styles.stageDetailLogs}>
-          {stage.logs.join('\n')}
-        </pre>
-      )}
-      {stage.error && (
-        <div className={styles.stageDetailError}>{stage.error}</div>
-      )}
-    </div>
-  )
-}
-
 // --- Workload Detail View ---
 
 export function WorkloadDetailView({ workload }: { workload: Workload }) {
@@ -564,32 +223,44 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
   const containerId = (workload as any).containerId
   const currentStage = workload.currentStage || (workload as any).stage || 'pending'
 
+  // Transform logs to stages if needed
+  const stages = useMemo(() => {
+    if (workload.stages && workload.stages.length > 0) {
+      return workload.stages
+    }
+    const logs = (workload as any).logs as WorkloadLogEntry[] | undefined | null
+    if (logs && Array.isArray(logs) && logs.length > 0) {
+      return transformLogsToStages(logs)
+    }
+    return []
+  }, [workload])
+
   // Determine current stage status for color coding
   const currentStageStatus = useMemo(() => {
     let status = 'pending'
 
-    if (workload.stages) {
-      const stageResult = workload.stages.find(s => s.stage === currentStage)
+    if (stages.length > 0) {
+      const stageResult = stages.find(s => s.stage === currentStage)
       if (stageResult) {
         status = stageResult.status
       } else if (workload.status === 'running') {
         status = 'running'
       }
     } else {
-      // For workloads without stages array, infer from overall status
+      // For workloads without stages, infer from overall status
       if (workload.status === 'running') status = 'running'
       else if (workload.status === 'success') status = 'success'
       else if (workload.status === 'failed') status = 'failed'
     }
 
     return status
-  }, [workload, currentStage])
+  }, [stages, workload.status, currentStage])
 
   const handleCopyLogs = async () => {
     let logText = ''
 
-    if (workload.stages) {
-      logText = workload.stages
+    if (stages.length > 0) {
+      logText = stages
         .map(stage => {
           const logs = stage.logs?.join('\n') || ''
           const error = stage.error || ''
@@ -597,8 +268,8 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
         })
         .join('\n\n')
     } else {
-      const logs = (workload as any).logs || []
-      logText = logs.map((log: any) => `[${log.stage || 'unknown'}] ${log.message}`).join('\n')
+      const rawLogs = (workload as any).logs || []
+      logText = rawLogs.map((log: any) => `[${log.stage || 'unknown'}] ${log.message}`).join('\n')
       if ((workload as any).error) {
         logText += `\nError: ${(workload as any).error}`
       }
@@ -691,18 +362,13 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
             <span>{copied ? 'Copied!' : 'Copy All Logs'}</span>
           </button>
         </div>
-        {workload.stages ? workload.stages.map((stage, i) => (
-          <StageDetailCard key={i} stage={stage} />
-        )) : (
-          <StageDetailCard
-            stage={{
-              stage: (workload as any).stage || 'pending',
-              status: workload.status === 'running' ? 'running' : 'pending',
-              logs: (workload as any).logs?.map((log: any) => log.message) || [],
-              error: (workload as any).error,
-            }}
-          />
-        )}
+        <div className={styles.stageDetailsContainer}>
+          {stages.length > 0 ? stages.map((stage, i) => (
+            <StageDetailCard key={i} stage={stage} />
+          )) : (
+            <div className={styles.emptyState}>No stage data available</div>
+          )}
+        </div>
       </div>
     </div>
   )

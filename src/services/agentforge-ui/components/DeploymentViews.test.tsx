@@ -133,6 +133,89 @@ describe('DeploymentViews', () => {
       expect(screen.getByText('Pipeline Stages')).toBeInTheDocument()
     })
 
+    it('transforms flat logs array into grouped stages', () => {
+      // Real workload data from production with flat logs array
+      const workload: any = {
+        id: '9c67a89e-a7f4-4368-899f-9fdd3e27894d',
+        deploymentId: '7a092248-e19a-4405-bbc9-8ad6fcc8fc29',
+        moduleName: 'project-dataobject',
+        moduleType: 'service',
+        servicePath: 'src/services/project-dataobject',
+        stage: 'failed',
+        logs: [
+          {
+            timestamp: '2026-02-11T17:29:59.538Z',
+            stage: 'starting-container',
+            message: 'Preparing container environment',
+            level: 'info',
+          },
+          {
+            timestamp: '2026-02-11T17:29:59.538Z',
+            stage: 'starting-container',
+            message: 'Preparing work directory: /var/folders/4q/xqnczd691xd8dz946lf4bv6w0000gn/T/workloads/9c67a89e-a7f4-4368-899f-9fdd3e27894d',
+            level: 'info',
+          },
+          {
+            timestamp: '2026-02-11T17:29:59.540Z',
+            stage: 'cloning-repo',
+            message: 'Cloning repository from https://github.com/tcosentino/agentforge-example-todo-app',
+            level: 'info',
+          },
+          {
+            timestamp: '2026-02-11T17:30:00.834Z',
+            stage: 'cloning-repo',
+            message: 'Repository cloned successfully',
+            level: 'info',
+          },
+          {
+            timestamp: '2026-02-11T17:30:00.835Z',
+            stage: 'cloning-repo',
+            message: 'Service configuration validated',
+            level: 'info',
+          },
+          {
+            timestamp: '2026-02-11T17:30:00.836Z',
+            stage: 'starting-service',
+            message: 'Preparing runtime environment',
+            level: 'info',
+          },
+          {
+            timestamp: '2026-02-11T17:30:01.771Z',
+            stage: 'failed',
+            message: 'Failed to start workload: Failed to start container',
+            level: 'error',
+          },
+          {
+            timestamp: '2026-02-11T17:30:01.772Z',
+            stage: 'stopped',
+            message: 'Cleaning up work directory',
+            level: 'info',
+          },
+        ],
+        error: 'Failed to start container',
+        containerId: null,
+        port: 3100,
+        status: 'failed',
+        createdAt: '2026-02-11T17:29:59.530Z',
+        updatedAt: '2026-02-11T17:30:01.787Z',
+      }
+
+      render(<WorkloadDetailView workload={workload} />)
+
+      // Should display all stage labels
+      expect(screen.getByText('Starting Container')).toBeInTheDocument()
+      expect(screen.getByText('Cloning Repository')).toBeInTheDocument()
+      expect(screen.getByText('Starting Service')).toBeInTheDocument()
+      expect(screen.getByText('Stopped')).toBeInTheDocument()
+
+      // Should show log messages grouped by stage
+      expect(screen.getByText(/Preparing container environment/)).toBeInTheDocument()
+      expect(screen.getByText(/Repository cloned successfully/)).toBeInTheDocument()
+      expect(screen.getByText(/Preparing runtime environment/)).toBeInTheDocument()
+      // Error message appears in both logs and error field, use getAllByText
+      expect(screen.getAllByText(/Failed to start workload/)[0]).toBeInTheDocument()
+    })
+
     it('renders copy logs button', () => {
       const workload: Workload = {
         id: '1',
@@ -146,9 +229,9 @@ describe('DeploymentViews', () => {
 
       render(<WorkloadDetailView workload={workload} />)
 
-      const copyButton = screen.getByTitle('Copy logs to clipboard')
+      const copyButton = screen.getByTitle('Copy all logs to clipboard')
       expect(copyButton).toBeInTheDocument()
-      expect(copyButton).toHaveTextContent('Copy Logs')
+      expect(copyButton).toHaveTextContent('Copy All Logs')
     })
 
     it('renders workload logs when available', () => {

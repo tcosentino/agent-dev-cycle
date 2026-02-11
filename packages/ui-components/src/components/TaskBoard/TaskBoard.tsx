@@ -12,6 +12,7 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { useState } from 'react'
 import type { Task, TaskStatus } from '../../types'
+import { TASK_BOARD_COLUMNS } from '../../domain/task/constants'
 import { TaskCard } from '../TaskCard/TaskCard'
 import { TaskColumn } from './TaskColumn'
 import styles from './TaskBoard.module.css'
@@ -22,14 +23,6 @@ export interface TaskBoardProps {
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void
   onTaskDelete?: (task: Task) => void
 }
-
-const columns: Array<{ status: TaskStatus; label: string }> = [
-  { status: 'todo', label: 'To Do' },
-  { status: 'in-progress', label: 'In Progress' },
-  { status: 'review', label: 'Review' },
-  { status: 'done', label: 'Done' },
-  { status: 'blocked', label: 'Blocked' },
-]
 
 export function TaskBoard({ tasks, onTaskClick, onTaskMove, onTaskDelete }: TaskBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null)
@@ -60,13 +53,13 @@ export function TaskBoard({ tasks, onTaskClick, onTaskMove, onTaskDelete }: Task
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find(t => t.id === event.active.id)
     setActiveTask(task || null)
-    setAnnouncement(`Picked up task ${task?.key}. Use arrow keys to move between columns, Space to drop.`)
+    setAnnouncement(`Picked up task ${task?.key}. Use arrow keys to move between TASK_BOARD_COLUMNS, Space to drop.`)
   }
 
   const handleDragOver = (event: DragOverEvent) => {
     const { over } = event
     if (over && activeTask) {
-      const columnLabel = columns.find(c => c.status === over.id)?.label
+      const columnLabel = TASK_BOARD_COLUMNS.find(c => c.status === over.id)?.label
       setAnnouncement(`Task ${activeTask.key} is over ${columnLabel} column.`)
     }
   }
@@ -86,7 +79,7 @@ export function TaskBoard({ tasks, onTaskClick, onTaskMove, onTaskDelete }: Task
 
     const movedTask = tasks.find(t => t.id === taskId)
     if (movedTask && movedTask.status !== newStatus) {
-      const columnLabel = columns.find(c => c.status === newStatus)?.label
+      const columnLabel = TASK_BOARD_COLUMNS.find(c => c.status === newStatus)?.label
       setAnnouncement(`Task ${movedTask.key} moved to ${columnLabel}.`)
       onTaskMove?.(taskId, newStatus)
     } else {
@@ -112,7 +105,7 @@ export function TaskBoard({ tasks, onTaskClick, onTaskMove, onTaskDelete }: Task
       </div>
 
       <div className={styles.board}>
-        {columns.map(({ status, label }) => {
+        {TASK_BOARD_COLUMNS.map(({ status, label }) => {
           const columnTasks = tasksByStatus[status] || []
           return (
             <TaskColumn

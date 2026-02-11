@@ -219,11 +219,23 @@ workloadEvents.emitDeploymentDeleted({ deploymentId, projectId })
 
 ## Development Guidelines
 
+### Real-Time Updates
+
 - Always use SSE events for real-time updates, never reload the page
 - Test that SSE events are emitted for all state-changing operations
 - Ensure event listeners are cleaned up on component unmount
 - Use TypeScript interfaces for event payloads
 - Keep event names consistent (e.g., 'deployment-deleted', 'workload-update')
+
+### Component Organization
+
+- Each React component should be in its own file
+- Only include multiple components in a single file for tiny sub-components that are tightly coupled
+- File name should match the primary component name (e.g., `DeploymentCard.tsx` exports `DeploymentCard`)
+- Keep components focused and single-purpose
+
+### Documentation
+
 - When completing work, suggest changes to CLAUDE.md based on new learnings
 
 ## Agent Memory

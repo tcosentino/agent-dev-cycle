@@ -150,9 +150,16 @@ export const workloadIntegration: IntegrationService = {
               const workloads = await workloadStore.findAll({
                 where: { deploymentId: deployment.id }
               }) as any[]
+
+              // Ensure logs field is never null (handle database null values)
+              const normalizedWorkloads = workloads.map(w => ({
+                ...w,
+                logs: Array.isArray(w.logs) ? w.logs : []
+              }))
+
               return {
                 ...deployment,
-                workloads
+                workloads: normalizedWorkloads
               }
             })
           )

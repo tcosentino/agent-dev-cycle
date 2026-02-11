@@ -1941,6 +1941,11 @@
   gap: var(--space-md);
 }
 
+.stageDetailsContainer {
+  flex: 1;
+  overflow-y: auto;
+}
+
 .workloadStageDetails h3 {
   font-family: var(--font-sans);
   font-size: 0.85rem;
