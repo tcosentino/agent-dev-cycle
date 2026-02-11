@@ -168,10 +168,10 @@ export function createResourceHooks<TSchema extends z.ZodObject<any>>(
         // Rollback on error
         queryClient.setQueryData(context.queryKey, context.previous)
       },
-      onSuccess: (_data, variables) => {
-        // Invalidate queries
-        queryClient.invalidateQueries({ queryKey: getQueryKey('get', variables.id) })
-        queryClient.invalidateQueries({ queryKey: getQueryKey('list') })
+      onSuccess: async (_data, variables) => {
+        // Refetch queries immediately to ensure UI updates
+        await queryClient.refetchQueries({ queryKey: getQueryKey('get', variables.id) })
+        await queryClient.refetchQueries({ queryKey: getQueryKey('list') })
       },
     })
 

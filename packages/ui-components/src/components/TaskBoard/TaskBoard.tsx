@@ -88,9 +88,11 @@ export function TaskBoard({ tasks, onTaskClick, onTaskMove, onTaskDelete }: Task
     if (movedTask && movedTask.status !== newStatus) {
       const columnLabel = columns.find(c => c.status === newStatus)?.label
       setAnnouncement(`Task ${movedTask.key} moved to ${columnLabel}.`)
+      console.log('[TaskBoard] Calling onTaskMove:', { taskId, oldStatus: movedTask.status, newStatus })
       onTaskMove?.(taskId, newStatus)
     } else {
       setAnnouncement(`Task ${movedTask?.key} dropped in same column.`)
+      console.log('[TaskBoard] Task dropped in same column, not calling onTaskMove')
     }
   }
 

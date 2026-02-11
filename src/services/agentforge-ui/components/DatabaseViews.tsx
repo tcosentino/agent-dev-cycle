@@ -14,9 +14,11 @@ import styles from '../ProjectViewer.module.css'
 export function TaskBoardView({
   projectId,
   onTaskClick,
+  onDataChange,
 }: {
   projectId: string
   onTaskClick: (taskKey: string) => void
+  onDataChange?: () => void
 }) {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
@@ -60,6 +62,10 @@ export function TaskBoardView({
 
     try {
       await api.tasks.update(taskId, { status: newStatus })
+      // Reload tasks after successful update to ensure consistency
+      await loadTasks()
+      // Trigger snapshot refresh so detail panels update
+      onDataChange?.()
     } catch (err) {
       console.error('Failed to update task status:', err)
       alert('Failed to update task status. Please try again.')
@@ -302,6 +308,7 @@ export function DatabaseTableView({
       <TaskBoardView
         projectId={projectId}
         onTaskClick={handleTaskClick}
+        onDataChange={onDataChange}
       />
     )
   }

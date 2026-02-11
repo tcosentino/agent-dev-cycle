@@ -322,10 +322,9 @@ export function RecordDetailView({
   }
 
   if (viewMode === 'view' && tableName === 'tasks') {
-    const taskId = String(record.id || '')
     return (
-      <TaskDetailViewWithHooks
-        taskId={taskId}
+      <TaskDetailView
+        record={record}
         currentUserId={currentUserId}
         onUpdate={onUpdate}
         onDelete={onDelete}

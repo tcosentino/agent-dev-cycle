@@ -962,7 +962,8 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       if (tab.tableName) {
         const [, key] = tab.path.split(':')
         const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
-        record = tableData?.find(r => String(r.id || r.key) === key)
+        // Match by either id or key field
+        record = tableData?.find(r => String(r.id) === key || String(r.key) === key)
       }
       // Fall back to cached record if not in snapshot (e.g., during initial load)
       if (!record) {
