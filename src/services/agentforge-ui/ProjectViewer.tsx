@@ -1052,6 +1052,16 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             servicePath={tab.path}
             onFileClick={openFile}
             projectId={activeProject}
+            onWorkloadCreated={async (workloadId: string) => {
+              // Refresh snapshot to get the latest workload data
+              await onRefreshSnapshot?.(activeProject)
+
+              // Find the workload in the snapshot
+              const workload = snapshot?.workloads?.find((w: any) => w.id === workloadId)
+              if (workload) {
+                openRecord('workloads', workload as unknown as Record<string, unknown>, workloadId)
+              }
+            }}
           />
         </div>
       )

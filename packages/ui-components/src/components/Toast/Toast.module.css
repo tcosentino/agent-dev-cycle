@@ -28,6 +28,16 @@
   animation: slideOut 0.3s ease-in;
 }
 
+.toast.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.toast.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.4);
+}
+
 @keyframes slideIn {
   from {
     transform: translateX(400px);

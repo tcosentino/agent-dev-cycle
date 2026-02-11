@@ -9,6 +9,7 @@ export interface ToastOptions {
   title: string
   message?: string
   duration?: number
+  onClick?: () => void
 }
 
 interface Toast extends ToastOptions {
@@ -85,7 +86,13 @@ export function ToastProvider({ children }: ToastProviderProps) {
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className={`${styles.toast} ${styles[toast.type!]} ${toast.exiting ? styles.exiting : ''}`}
+            className={`${styles.toast} ${styles[toast.type!]} ${toast.exiting ? styles.exiting : ''} ${toast.onClick ? styles.clickable : ''}`}
+            onClick={() => {
+              if (toast.onClick) {
+                toast.onClick()
+                startExiting(toast.id)
+              }
+            }}
           >
             <div className={styles.toastIcon}>
               {getIcon(toast.type!)}
@@ -96,7 +103,10 @@ export function ToastProvider({ children }: ToastProviderProps) {
             </div>
             <button
               className={styles.toastClose}
-              onClick={() => startExiting(toast.id)}
+              onClick={(e) => {
+                e.stopPropagation()
+                startExiting(toast.id)
+              }}
               aria-label="Close notification"
             >
               <XIcon width={16} height={16} />

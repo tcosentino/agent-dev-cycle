@@ -11,6 +11,7 @@ interface ServiceViewProps {
   onFileClick?: (path: string) => void
   servicePath: string
   projectId: string
+  onWorkloadCreated?: (workloadId: string) => void
 }
 
 const SERVICE_TYPE_ICONS: Record<ServiceMetadata['type'], typeof BoxIcon> = {
@@ -27,7 +28,7 @@ const SERVICE_TYPE_LABELS: Record<ServiceMetadata['type'], string> = {
   ui: 'UI Component',
 }
 
-export function ServiceView({ metadata, onFileClick, servicePath, projectId }: ServiceViewProps) {
+export function ServiceView({ metadata, onFileClick, servicePath, projectId, onWorkloadCreated }: ServiceViewProps) {
   const TypeIcon = SERVICE_TYPE_ICONS[metadata.type] || BoxIcon
   const typeLabel = SERVICE_TYPE_LABELS[metadata.type] || metadata.type
 
@@ -76,6 +77,11 @@ export function ServiceView({ metadata, onFileClick, servicePath, projectId }: S
         type: 'success',
         title: 'Workload started',
         message: `${metadata.name} is now running`,
+        onClick: () => {
+          if (onWorkloadCreated) {
+            onWorkloadCreated(workload.id)
+          }
+        },
       })
     } catch (error) {
       console.error('Failed to start workload:', error)
