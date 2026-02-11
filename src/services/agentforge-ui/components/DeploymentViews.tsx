@@ -11,6 +11,7 @@ import {
   ClipboardIcon,
   XCircleIcon,
   Modal,
+  useToast,
 } from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage, StageStatus } from '../types'
 import { HealthBadge } from './HealthBadge'
@@ -295,6 +296,7 @@ export function DeploymentListView({
   const [loadingLogs, setLoadingLogs] = useState(false)
   const [deletingDeployment, setDeletingDeployment] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<Deployment | null>(null)
+  const { showToast } = useToast()
 
   const deploymentsWithWorkloads = useMemo(() => {
     return deployments
@@ -333,8 +335,17 @@ export function DeploymentListView({
   const confirmDelete = async () => {
     if (!deleteConfirmation) return
 
+    const deploymentName = (deleteConfirmation as any).serviceName || deleteConfirmation.name
+
     setDeletingDeployment(deleteConfirmation.id)
     setDeleteConfirmation(null)
+
+    showToast({
+      type: 'info',
+      title: 'Deleting deployment',
+      message: `Stopping workloads and cleaning up ${deploymentName}...`,
+    })
+
     try {
       // Get all workloads for this deployment
       const deploymentWorkloads = workloads.filter(w => w.deploymentId === deleteConfirmation.id)
@@ -380,11 +391,21 @@ export function DeploymentListView({
         throw new Error('Failed to delete deployment')
       }
 
+      showToast({
+        type: 'success',
+        title: 'Deployment deleted',
+        message: `${deploymentName} has been successfully deleted`,
+      })
+
       // Refresh the page to show updated list
-      window.location.reload()
+      setTimeout(() => window.location.reload(), 1000)
     } catch (error) {
       console.error('Failed to delete deployment:', error)
-      alert('Failed to delete deployment. Please try again.')
+      showToast({
+        type: 'error',
+        title: 'Failed to delete deployment',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      })
     } finally {
       setDeletingDeployment(null)
     }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BoxIcon, CodeIcon, DatabaseIcon, LayersIcon, FileDocumentIcon, PlayIcon } from '@agentforge/ui-components'
+import { BoxIcon, CodeIcon, DatabaseIcon, LayersIcon, FileDocumentIcon, PlayIcon, useToast } from '@agentforge/ui-components'
 import type { ServiceMetadata } from '../types'
 import { useCreateDeployment } from '../../deployment-dataobject/hooks'
 import { useCreateWorkload } from '../../workload-dataobject/hooks'
@@ -34,6 +34,7 @@ export function ServiceView({ metadata, onFileClick, servicePath, projectId }: S
   const [isStarting, setIsStarting] = useState(false)
   const createDeployment = useCreateDeployment()
   const createWorkload = useCreateWorkload()
+  const { showToast } = useToast()
 
   const handleStartWorkload = async () => {
     if (isStarting) return
@@ -54,6 +55,12 @@ export function ServiceView({ metadata, onFileClick, servicePath, projectId }: S
         servicePath,
       })
 
+      showToast({
+        type: 'info',
+        title: 'Starting workload',
+        message: `Starting ${metadata.name} workload...`,
+      })
+
       // Start the workload
       const response = await fetch(`/api/workloads/${workload.id}/start`, {
         method: 'POST',
@@ -65,11 +72,18 @@ export function ServiceView({ metadata, onFileClick, servicePath, projectId }: S
         throw new Error(error.message || 'Failed to start workload')
       }
 
-      // TODO: Navigate to workloads page or show success message
-      console.log('Workload started successfully:', workload.id)
+      showToast({
+        type: 'success',
+        title: 'Workload started',
+        message: `${metadata.name} is now running`,
+      })
     } catch (error) {
       console.error('Failed to start workload:', error)
-      // TODO: Show error message to user
+      showToast({
+        type: 'error',
+        title: 'Failed to start workload',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      })
     } finally {
       setIsStarting(false)
     }
