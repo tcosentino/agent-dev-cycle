@@ -23,7 +23,8 @@
     "test:e2e": "playwright test src/services/testing/",
     "test:e2e:ui": "playwright test src/services/testing/ --ui",
     "test:structure": "playwright test src/services/testing/structure-validator/",
-    "test:ui": "playwright test src/services/testing/ui-tests/"
+    "test:ui": "playwright test src/services/testing/ui-tests/",
+    "coverage:spec": "tsx scripts/generate-spec-coverage.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.57.0",

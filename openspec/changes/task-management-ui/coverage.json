@@ -1,0 +1,526 @@
+{
+  "generatedAt": "2026-02-11T08:18:03.049Z",
+  "summary": {
+    "totalSpecs": 3,
+    "totalScenarios": 69,
+    "coveredScenarios": 0,
+    "partialScenarios": 0,
+    "uncoveredScenarios": 69,
+    "coveragePercent": 0
+  },
+  "specs": [
+    {
+      "specPath": "openspec/changes/task-management-ui/specs/auto-key-generation/spec.md",
+      "totalScenarios": 18,
+      "coveredScenarios": 0,
+      "partialScenarios": 0,
+      "uncoveredScenarios": 18,
+      "coveragePercent": 0,
+      "scenarios": [
+        {
+          "scenarioId": "auto-key-001",
+          "title": "First task gets key PROJECT-1",
+          "priority": "critical",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-002",
+          "title": "Subsequent tasks increment",
+          "priority": "critical",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-003",
+          "title": "Key is generated on server-side",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-004",
+          "title": "User cannot manually set task key",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-005",
+          "title": "Two users create tasks simultaneously",
+          "priority": "critical",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-006",
+          "title": "Unique constraint violation is handled",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-007",
+          "title": "Different projects have different prefixes",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-008",
+          "title": "Key prefix is validated",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-009",
+          "title": "Key shown in task card",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-010",
+          "title": "Key is copyable",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-011",
+          "title": "Key is searchable",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-012",
+          "title": "Database enforces unique constraint",
+          "priority": "critical",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-013",
+          "title": "UI handles unique constraint errors",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-014",
+          "title": "Key follows pattern PROJECT-NUMBER",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-015",
+          "title": "Project key is uppercase",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-016",
+          "title": "Maximum key number",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-017",
+          "title": "Legacy task without key",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "auto-key-018",
+          "title": "Bulk assign keys to legacy tasks",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        }
+      ]
+    },
+    {
+      "specPath": "openspec/changes/task-management-ui/specs/task-board/spec.md",
+      "totalScenarios": 25,
+      "coveredScenarios": 0,
+      "partialScenarios": 0,
+      "uncoveredScenarios": 25,
+      "coveragePercent": 0,
+      "scenarios": [
+        {
+          "scenarioId": "task-board-001",
+          "title": "Board displays status columns",
+          "priority": "critical",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-002",
+          "title": "Tasks are grouped by status",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-003",
+          "title": "Empty columns display placeholder",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-004",
+          "title": "User drags task to new column",
+          "priority": "critical",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-005",
+          "title": "Optimistic update on drag",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-006",
+          "title": "Drag handles for accessibility",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-007",
+          "title": "Task card shows key information",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-008",
+          "title": "Card color coding by priority",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-009",
+          "title": "Hover shows additional details",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-010",
+          "title": "Filter board by assignee",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-011",
+          "title": "Filter board by priority",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-012",
+          "title": "Sort tasks within columns",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-013",
+          "title": "Group by assignee (future)",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-014",
+          "title": "Click card to open detail view",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-015",
+          "title": "Quick actions on card",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-016",
+          "title": "Create task from column",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-017",
+          "title": "Virtual scrolling for tall columns",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-018",
+          "title": "Lazy load task details",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-019",
+          "title": "Board state persists",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-020",
+          "title": "Navigate between columns with arrow keys",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-021",
+          "title": "Navigate tasks within column",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-022",
+          "title": "Open task with Enter",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-023",
+          "title": "Move task with keyboard",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-024",
+          "title": "Board stacks on mobile",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-board-025",
+          "title": "Compact card view on mobile",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        }
+      ]
+    },
+    {
+      "specPath": "openspec/changes/task-management-ui/specs/task-crud/spec.md",
+      "totalScenarios": 26,
+      "coveredScenarios": 0,
+      "partialScenarios": 0,
+      "uncoveredScenarios": 26,
+      "coveragePercent": 0,
+      "scenarios": [
+        {
+          "scenarioId": "task-crud-001",
+          "title": "User creates task with minimal fields",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-002",
+          "title": "User creates task with all fields",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-003",
+          "title": "Validation prevents empty title",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-004",
+          "title": "Duplicate title is allowed",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-005",
+          "title": "User edits task title inline",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-006",
+          "title": "User edits task in detail view",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-007",
+          "title": "Cancel edit reverts changes",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-008",
+          "title": "User deletes task",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-009",
+          "title": "Cancel delete preserves task",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-010",
+          "title": "Tasks displayed with key information",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-011",
+          "title": "Empty state for no tasks",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-012",
+          "title": "Tasks sorted by default",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-013",
+          "title": "Filter by status",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-014",
+          "title": "Filter by assignee",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-015",
+          "title": "Search by key or title",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-016",
+          "title": "Combined filters",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-017",
+          "title": "Clear filters",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-018",
+          "title": "Title length validation",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-019",
+          "title": "Task type validation",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-020",
+          "title": "Assignee validation",
+          "priority": "medium",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-021",
+          "title": "API error handling",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-022",
+          "title": "Task update propagates to all views",
+          "priority": "critical",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-023",
+          "title": "Edit in detail view updates board",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-024",
+          "title": "Delete removes task from all views",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-025",
+          "title": "Create adds task to all relevant views",
+          "priority": "high",
+          "status": "uncovered",
+          "testFiles": []
+        },
+        {
+          "scenarioId": "task-crud-026",
+          "title": "Real-time updates from other users (future)",
+          "priority": "low",
+          "status": "uncovered",
+          "testFiles": []
+        }
+      ]
+    }
+  ]
+}

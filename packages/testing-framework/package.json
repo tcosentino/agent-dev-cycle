@@ -1,0 +1,41 @@
+{
+  "name": "@agentforge/testing-framework",
+  "version": "0.1.0",
+  "description": "Test-Spec Linkage System - Connect test code to OpenSpec scenarios",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "testing",
+    "specs",
+    "vitest",
+    "traceability",
+    "coverage",
+    "openspec"
+  ],
+  "author": "AgentForge",
+  "license": "MIT",
+  "peerDependencies": {
+    "vitest": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vitest": "^4.0.16"
+  }
+}

@@ -10,6 +10,7 @@ AgentForge is a monorepo project demonstrating autonomous agent-driven software 
 - Backend API server for agent orchestration
 - Runtime engine for agent execution
 - Shared component library and data object framework
+- **Test-Spec Linkage System** - Machine-readable connection between OpenSpec scenarios and test code
 
 ## Quick Start
 
@@ -47,6 +48,7 @@ yarn test             # Run server tests
 yarn test:e2e         # Run all E2E tests
 yarn test:structure   # Validate .agentforge structure
 yarn test:ui          # UI integration tests
+yarn coverage:spec    # Generate test-spec coverage reports
 ```
 
 ## Project Structure
@@ -62,6 +64,8 @@ yarn test:ui          # UI integration tests
 
 See [/docs/](docs/) for detailed documentation:
 
+- [Architecture Overview](docs/ARCHITECTURE.md) - System design and components
+- [Test-Spec Linkage Guide](docs/test-spec-linkage.md) - **NEW!** Connect specs to tests
 - [Application Architecture](docs/application-architecture.md)
 - [UI System](docs/ui-system.md)
 - [Agent Runtime](docs/runner.md)
