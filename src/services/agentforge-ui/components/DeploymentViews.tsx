@@ -177,17 +177,26 @@ function WorkloadCard({
           {workload.status}
         </span>
         {hasLogs && (
-          <button
+          <div
             className={styles.viewLogsButton}
             onClick={(e) => {
               e.stopPropagation()
               onViewLogs(workload)
             }}
             title="View Logs"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                onViewLogs(workload)
+              }
+            }}
           >
             <FileDocumentIcon />
             <span>Logs</span>
-          </button>
+          </div>
         )}
       </div>
       <WorkloadStages workload={workload} />

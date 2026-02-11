@@ -449,26 +449,44 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     }
   }, [files, activeProject, onLoadFileContent])
 
+  // Extract only agent-related files to prevent recalculating when unrelated files load
+  const agentFiles = useMemo(() => {
+    const relevant: Record<string, string> = {}
+    for (const [path, content] of Object.entries(files)) {
+      if (path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/) || path === '.agentforge/agents.yaml') {
+        relevant[path] = content
+      }
+    }
+    return relevant
+  }, [
+    // Only recalculate when agent config file paths or contents change
+    Object.keys(files)
+      .filter(p => p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/) || p === '.agentforge/agents.yaml')
+      .sort()
+      .map(p => `${p}:${files[p]?.substring(0, 50)}`) // Include content hash to detect changes
+      .join('|')
+  ])
+
   // Load agents from new folder structure (.agentforge/agents/{id}/config.json)
   // Fall back to legacy agents.yaml if new structure doesn't exist
   const agents = useMemo(() => {
     // Try new structure first
-    const hasNewStructure = Object.keys(files).some(path =>
+    const hasNewStructure = Object.keys(agentFiles).some(path =>
       path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
 
     if (hasNewStructure) {
-      return parseAgentConfigs(files)
+      return parseAgentConfigs(agentFiles)
     }
 
     // Fall back to legacy agents.yaml
-    const agentsFile = files['.agentforge/agents.yaml']
+    const agentsFile = agentFiles['.agentforge/agents.yaml']
     if (agentsFile && agentsFile !== '') {
       return parseAgentsYaml(agentsFile)
     }
 
     return []
-  }, [files])
+  }, [agentFiles])
 
   // Split tabs by pane
   const leftTabs = useMemo(() => openTabs.filter(t => t.pane === 'left'), [openTabs])

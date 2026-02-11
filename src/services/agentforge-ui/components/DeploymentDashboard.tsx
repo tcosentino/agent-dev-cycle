@@ -1,10 +1,7 @@
-import { useState, useEffect } from 'react'
 import { RocketIcon } from '@agentforge/ui-components'
-import type { Deployment, Workload } from '../types'
-import { getDeployments, getWorkloads, getWorkloadLogs } from '../api'
+import type { Workload } from '../types'
 import { DeploymentListView } from './DeploymentViews'
-import type { LogEntry } from './LogViewer'
-import { LogViewer } from './LogViewer'
+import { useDeploymentStream } from '../hooks/useDeploymentStream'
 import styles from './DeploymentDashboard.module.css'
 
 export interface DeploymentDashboardProps {
@@ -14,53 +11,14 @@ export interface DeploymentDashboardProps {
 
 /**
  * Deployment Dashboard - View all deployments and workloads for a project
- * - Fetches deployments and workloads on mount
+ * - Uses SSE stream for real-time deployment updates
  * - Displays deployment cards in grid
- * - Integrates LogViewer for viewing logs
  * - Shows empty state when no deployments
  */
 export function DeploymentDashboard({ projectId, onWorkloadClick }: DeploymentDashboardProps) {
-  const [deployments, setDeployments] = useState<Deployment[]>([])
-  const [workloads, setWorkloads] = useState<Workload[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const { deployments, isLoading, isConnected, error, reconnect } = useDeploymentStream(projectId)
 
-  // Fetch deployments and workloads
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true)
-      setError(null)
-      try {
-        const deps = await getDeployments(projectId)
-        setDeployments(deps)
-
-        // Fetch workloads for each deployment
-        const allWorkloads: Workload[] = []
-        for (const dep of deps) {
-          const workloadsForDep = await getWorkloads(dep.id)
-          allWorkloads.push(...workloadsForDep)
-        }
-        setWorkloads(allWorkloads)
-      } catch (err) {
-        console.error('Failed to fetch deployments:', err)
-        setError('Failed to load deployments. Please try again.')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchData()
-
-    // Refetch when window gains focus
-    const handleFocus = () => {
-      fetchData()
-    }
-
-    window.addEventListener('focus', handleFocus)
-    return () => window.removeEventListener('focus', handleFocus)
-  }, [projectId])
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className={styles.container}>
         <div className={styles.loadingState}>
@@ -76,11 +34,11 @@ export function DeploymentDashboard({ projectId, onWorkloadClick }: DeploymentDa
       <div className={styles.container}>
         <div className={styles.errorState}>
           <p className={styles.errorMessage}>{error}</p>
-          <button 
+          <button
             className={styles.retryButton}
-            onClick={() => window.location.reload()}
+            onClick={reconnect}
           >
-            Retry
+            Reconnect
           </button>
         </div>
       </div>
@@ -99,16 +57,35 @@ export function DeploymentDashboard({ projectId, onWorkloadClick }: DeploymentDa
     )
   }
 
+  // Flatten workloads from deployments for DeploymentListView
+  const allWorkloads = deployments.flatMap(d => d.workloads)
+
   // Create snapshot-like structure for DeploymentListView
   const snapshot = {
-    deployments,
-    workloads,
+    deployments: deployments.map(d => ({
+      id: d.id,
+      projectId: d.projectId,
+      name: d.name,
+      description: d.description,
+      trigger: d.trigger,
+      status: d.status,
+      workloadIds: d.workloadIds,
+      createdAt: d.createdAt,
+      updatedAt: d.updatedAt,
+      completedAt: d.completedAt,
+    })),
+    workloads: allWorkloads,
   }
 
   return (
     <div className={styles.container}>
-      <DeploymentListView 
-        snapshot={snapshot as any} 
+      {!isConnected && (
+        <div className={styles.connectionWarning}>
+          Connection lost - Updates may be delayed
+        </div>
+      )}
+      <DeploymentListView
+        snapshot={snapshot as any}
         onWorkloadClick={onWorkloadClick}
       />
     </div>

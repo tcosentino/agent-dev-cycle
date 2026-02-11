@@ -1735,19 +1735,23 @@
   width: 14px;
   height: 14px;
   color: var(--success);
+  transition: all 0.3s ease;
+  animation: scaleIn 0.3s ease;
 }
 
 .stageIconFailed {
   width: 14px;
   height: 14px;
   color: var(--error);
+  transition: all 0.3s ease;
+  animation: scaleIn 0.3s ease;
 }
 
 .stageIconRunning {
   width: 14px;
   height: 14px;
   color: var(--accent-primary);
-  animation: pulse 1s infinite;
+  animation: pulse 1.5s infinite, scaleIn 0.3s ease;
 }
 
 .stageIconPending {
@@ -1756,6 +1760,7 @@
   border-radius: 50%;
   background: var(--bg-tertiary);
   border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .stageConnector {
@@ -1764,11 +1769,33 @@
   background: var(--border-color);
   margin: 0 2px;
   margin-bottom: 14px;
+  transition: background 0.5s ease;
+}
+
+.stageConnector.completed {
+  background: var(--success);
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes spin {
@@ -1816,8 +1843,38 @@
   color: var(--text-muted);
 }
 
-.workloadDetailStatus {
+.workloadStatusBadge {
   margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+.workloadStatusStage {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.workloadStatusStage.stageStatus-running {
+  color: var(--accent-primary);
+}
+
+.workloadStatusStage.stageStatus-success {
+  color: var(--success);
+}
+
+.workloadStatusStage.stageStatus-failed {
+  color: var(--error);
+}
+
+.workloadStatusStage.stageStatus-pending {
+  color: var(--text-muted);
+}
+
+.workloadDetailStatus {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 600;
@@ -1961,6 +2018,12 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.stageDetailTimestamp {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
 }
 
 .stageDetailDuration {

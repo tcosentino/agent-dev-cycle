@@ -102,3 +102,16 @@
   margin: 0;
   max-width: 400px;
 }
+
+/* Connection warning */
+.connectionWarning {
+  background: var(--warning-bg, #fff3cd);
+  border: 1px solid var(--warning-border, #ffc107);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--warning-text, #856404);
+  text-align: center;
+}

@@ -305,6 +305,7 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
+    streamUrl: (id: string) => `${API_BASE}/projects/${id}/deployments/stream`,
   },
   tasks: {
     list: (projectId?: string) => {
