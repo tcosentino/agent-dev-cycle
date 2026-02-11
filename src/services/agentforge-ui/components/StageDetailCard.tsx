@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { StageResult } from '../types'
 import { formatStageName } from '../utils/deploymentUtils'
 import styles from '../ProjectViewer.module.css'
@@ -7,6 +8,8 @@ export interface StageDetailCardProps {
 }
 
 export function StageDetailCard({ stage }: StageDetailCardProps) {
+  const [isExpanded, setIsExpanded] = useState(true)
+
   const formatTimestamp = (timestamp?: string) => {
     if (!timestamp) return null
     const date = new Date(timestamp)

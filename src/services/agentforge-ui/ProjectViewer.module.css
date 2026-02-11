@@ -1988,6 +1988,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  margin-bottom: var(--space-sm);
 }
 
 .stageDetail.stage-success {
