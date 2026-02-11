@@ -8,6 +8,7 @@ import {
   PlayIcon,
   RocketIcon,
   FileDocumentIcon,
+  ClipboardIcon,
 } from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage, StageStatus } from '../types'
 import { HealthBadge } from './HealthBadge'
@@ -328,10 +329,39 @@ export function DeploymentListView({
 // --- Workload Detail View ---
 
 export function WorkloadDetailView({ workload }: { workload: Workload }) {
+  const [copied, setCopied] = useState(false)
   const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
   const workloadType = workload.moduleType || 'service'
   const port = (workload as any).port || workload.artifacts?.port
   const containerId = (workload as any).containerId
+
+  const handleCopyLogs = async () => {
+    let logText = ''
+
+    if (workload.stages) {
+      logText = workload.stages
+        .map(stage => {
+          const logs = stage.logs?.join('\n') || ''
+          const error = stage.error || ''
+          return `[${stage.stage}]\n${logs}${error ? '\nError: ' + error : ''}`
+        })
+        .join('\n\n')
+    } else {
+      const logs = (workload as any).logs || []
+      logText = logs.map((log: any) => `[${log.stage || 'unknown'}] ${log.message}`).join('\n')
+      if ((workload as any).error) {
+        logText += `\nError: ${(workload as any).error}`
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(logText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy logs:', err)
+    }
+  }
 
   return (
     <div className={styles.workloadDetailView}>
@@ -383,7 +413,17 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
       )}
 
       <div className={styles.workloadStageDetails}>
-        <h3>Pipeline Stages</h3>
+        <div className={styles.stageDetailsHeader}>
+          <h3>Pipeline Stages</h3>
+          <button
+            className={styles.copyLogsButton}
+            onClick={handleCopyLogs}
+            title="Copy logs to clipboard"
+          >
+            <ClipboardIcon />
+            <span>{copied ? 'Copied!' : 'Copy Logs'}</span>
+          </button>
+        </div>
         {workload.stages ? workload.stages.map((stage, i) => (
           <div key={i} className={`${styles.stageDetail} ${styles[`stage-${stage.status}`]}`}>
             <div className={styles.stageDetailHeader}>
