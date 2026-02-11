@@ -22,9 +22,15 @@ export function StageDetailCard({ stage }: StageDetailCardProps) {
     })
   }
 
+  const hasContent = (stage.logs && stage.logs.length > 0) || stage.error
+
   return (
     <div className={`${styles.stageDetail} ${styles[`stage-${stage.status}`]}`}>
-      <div className={styles.stageDetailHeader}>
+      <button
+        className={styles.stageDetailHeader}
+        onClick={() => setIsExpanded(!isExpanded)}
+        disabled={!hasContent}
+      >
         <span className={styles.stageDetailName}>{formatStageName(stage.stage)}</span>
         <span className={styles.stageDetailStatus}>{stage.status}</span>
         {stage.startedAt && (
@@ -40,7 +46,7 @@ export function StageDetailCard({ stage }: StageDetailCardProps) {
         {stage.duration && (
           <span className={styles.stageDetailDuration}>{stage.duration}ms</span>
         )}
-      </div>
+      </button>
       {stage.logs && stage.logs.length > 0 && (
         <pre className={styles.stageDetailLogs}>
           {stage.logs.join('\n')}
