@@ -328,36 +328,41 @@ export function DeploymentListView({
 // --- Workload Detail View ---
 
 export function WorkloadDetailView({ workload }: { workload: Workload }) {
+  const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
+  const workloadType = workload.moduleType || 'service'
+  const port = (workload as any).port || workload.artifacts?.port
+  const containerId = (workload as any).containerId
+
   return (
     <div className={styles.workloadDetailView}>
       <div className={styles.workloadDetailHeader}>
         <ServerIcon className={styles.workloadDetailIcon} />
         <div>
-          <h2 className={styles.workloadDetailName}>{workload.moduleName}</h2>
-          <span className={styles.workloadDetailType}>{workload.moduleType}</span>
+          <h2 className={styles.workloadDetailName}>{workloadName}</h2>
+          <span className={styles.workloadDetailType}>{workloadType}</span>
         </div>
         <span className={`${styles.workloadDetailStatus} ${styles[`status-${workload.status}`]}`}>
           {workload.status}
         </span>
       </div>
 
-      {workload.artifacts && (
+      {(workload.artifacts || port || containerId) && (
         <div className={styles.workloadArtifacts}>
           <h3>Artifacts</h3>
           <dl>
-            {workload.artifacts.imageName && (
+            {workload.artifacts?.imageName && (
               <>
                 <dt>Image</dt>
                 <dd>{workload.artifacts.imageName}</dd>
               </>
             )}
-            {workload.artifacts.containerName && (
+            {(containerId || workload.artifacts?.containerName) && (
               <>
                 <dt>Container</dt>
-                <dd>{workload.artifacts.containerName}</dd>
+                <dd>{containerId || workload.artifacts?.containerName}</dd>
               </>
             )}
-            {workload.artifacts.url && (
+            {workload.artifacts?.url && (
               <>
                 <dt>URL</dt>
                 <dd>
@@ -367,10 +372,10 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
                 </dd>
               </>
             )}
-            {workload.artifacts.port && (
+            {port && (
               <>
                 <dt>Port</dt>
-                <dd>{workload.artifacts.port}</dd>
+                <dd>{port}</dd>
               </>
             )}
           </dl>
@@ -379,7 +384,7 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
 
       <div className={styles.workloadStageDetails}>
         <h3>Pipeline Stages</h3>
-        {workload.stages.map((stage, i) => (
+        {workload.stages ? workload.stages.map((stage, i) => (
           <div key={i} className={`${styles.stageDetail} ${styles[`stage-${stage.status}`]}`}>
             <div className={styles.stageDetailHeader}>
               <span className={styles.stageDetailName}>{stage.stage}</span>
@@ -397,7 +402,22 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
               <div className={styles.stageDetailError}>{stage.error}</div>
             )}
           </div>
-        ))}
+        )) : (
+          <div className={styles.stageDetail}>
+            <div className={styles.stageDetailHeader}>
+              <span className={styles.stageDetailName}>{(workload as any).stage || 'pending'}</span>
+              <span className={styles.stageDetailStatus}>{workload.status}</span>
+            </div>
+            {(workload as any).logs && (workload as any).logs.length > 0 && (
+              <pre className={styles.stageDetailLogs}>
+                {(workload as any).logs.map((log: any) => log.message).join('\n')}
+              </pre>
+            )}
+            {(workload as any).error && (
+              <div className={styles.stageDetailError}>{(workload as any).error}</div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
