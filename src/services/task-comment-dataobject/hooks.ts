@@ -1,5 +1,5 @@
 import { createResourceHooks } from '@agentforge/dataobject-react'
-import { taskCommentResource } from './index'
+import { taskCommentResourceDefinition } from './schema'
 
 export const {
   useList: useTaskComments,
@@ -7,7 +7,7 @@ export const {
   useCreate: useCreateTaskComment,
   useUpdate: useUpdateTaskComment,
   useDelete: useDeleteTaskComment,
-} = createResourceHooks(taskCommentResource, {
+} = createResourceHooks(taskCommentResourceDefinition as any, {
   baseUrl: '/api',
   optimistic: true,
 })
