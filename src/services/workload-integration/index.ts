@@ -2,7 +2,6 @@ import type { OpenAPIHono } from '@hono/zod-openapi'
 import type { IntegrationService, IntegrationContext } from '../../../packages/server/src/types'
 import { orchestrator } from '../workload-orchestrator'
 import { z } from 'zod'
-import { resolve } from 'path'
 
 export const workloadIntegration: IntegrationService = {
   name: 'workload-operations',
@@ -54,15 +53,13 @@ export const workloadIntegration: IntegrationService = {
           return c.json({ error: 'Project not found' }, 404)
         }
 
-        // Determine project path
-        // For now, assume projects are in examples/ directory
-        // In production, this would be a cloned git repo
-        // Go up to project root from packages/server
-        const projectRoot = resolve(process.cwd(), '..', '..')
-        const projectPath = resolve(projectRoot, 'examples', project.name.toLowerCase().replace(/\s+/g, '-'))
+        // Verify project has a repoUrl
+        if (!project.repoUrl) {
+          return c.json({ error: 'Project must have a repoUrl configured' }, 400)
+        }
 
-        // Start the workload
-        await orchestrator.start(workloadId, projectPath)
+        // Start the workload (will clone the repo)
+        await orchestrator.start(workloadId, project.repoUrl)
 
         return c.json({
           success: true,

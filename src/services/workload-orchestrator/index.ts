@@ -1,7 +1,13 @@
 import { spawn, ChildProcess } from 'child_process'
 import { existsSync } from 'fs'
+import { rm } from 'fs/promises'
 import { join } from 'path'
+import { tmpdir } from 'os'
+import { promisify } from 'util'
+import { exec as execCallback } from 'child_process'
 import type { ResourceStore } from '@agentforge/dataobject'
+
+const exec = promisify(execCallback)
 
 type WorkloadStage = 'pending' | 'validate' | 'build' | 'deploy' | 'running' | 'failed' | 'stopped'
 
@@ -17,6 +23,7 @@ interface RunningWorkload {
   process: ChildProcess
   port: number
   logs: LogEntry[]
+  workDir: string
 }
 
 export class WorkloadOrchestrator {
@@ -91,7 +98,9 @@ export class WorkloadOrchestrator {
     }
   }
 
-  async start(workloadId: string, projectPath: string): Promise<void> {
+  async start(workloadId: string, repoUrl: string): Promise<void> {
+    let workDir: string | null = null
+
     try {
       // Get workload from database
       const workload = await this.workloadStore!.findById(workloadId)
@@ -101,9 +110,22 @@ export class WorkloadOrchestrator {
 
       // Stage 1: Validate
       await this.updateStage(workloadId, 'validate')
-      await this.addLog(workloadId, 'validate', 'Validating service configuration')
+      await this.addLog(workloadId, 'validate', 'Cloning repository')
 
-      const servicePath = join(projectPath, workload.servicePath)
+      // Clone the repository to a temporary directory
+      workDir = join(tmpdir(), 'workloads', workloadId)
+      await this.addLog(workloadId, 'validate', `Cloning ${repoUrl} to ${workDir}`)
+
+      try {
+        await exec(`git clone ${repoUrl} ${workDir}`)
+        await this.addLog(workloadId, 'validate', 'Repository cloned successfully')
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        throw new Error(`Failed to clone repository: ${message}`)
+      }
+
+      // Validate service exists
+      const servicePath = join(workDir, workload.servicePath)
       if (!existsSync(servicePath)) {
         throw new Error(`Service path does not exist: ${servicePath}`)
       }
@@ -146,6 +168,7 @@ export class WorkloadOrchestrator {
         process: serverProcess,
         port,
         logs: [],
+        workDir,
       })
 
       // Update workload with container ID (process ID)
@@ -161,6 +184,7 @@ export class WorkloadOrchestrator {
         await this.updateStage(workloadId, code === 0 ? 'stopped' : 'failed', code !== 0 ? `Process exited with code ${code}` : undefined)
         this.releasePort(port)
         this.runningWorkloads.delete(workloadId)
+        await this.cleanupWorkDir(workloadId, workDir)
       })
 
       serverProcess.on('error', async (err) => {
@@ -168,13 +192,28 @@ export class WorkloadOrchestrator {
         await this.updateStage(workloadId, 'failed', err.message)
         this.releasePort(port)
         this.runningWorkloads.delete(workloadId)
+        await this.cleanupWorkDir(workloadId, workDir)
       })
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
       await this.addLog(workloadId, 'failed', `Failed to start workload: ${errorMessage}`, 'error')
       await this.updateStage(workloadId, 'failed', errorMessage)
+      if (workDir) {
+        await this.cleanupWorkDir(workloadId, workDir)
+      }
       throw error
+    }
+  }
+
+  private async cleanupWorkDir(workloadId: string, workDir: string): Promise<void> {
+    try {
+      await this.addLog(workloadId, 'stopped', `Cleaning up work directory: ${workDir}`)
+      await rm(workDir, { recursive: true, force: true })
+      await this.addLog(workloadId, 'stopped', 'Work directory cleaned up')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      await this.addLog(workloadId, 'stopped', `Failed to cleanup work directory: ${message}`, 'warn')
     }
   }
 
@@ -290,10 +329,11 @@ app.listen(${port}, () => {
     running.process.kill('SIGTERM')
 
     // Give it time to shut down gracefully, then force kill if needed
-    setTimeout(() => {
+    setTimeout(async () => {
       if (!running.process.killed) {
         running.process.kill('SIGKILL')
       }
+      await this.cleanupWorkDir(workloadId, running.workDir)
     }, 5000)
 
     await this.updateStage(workloadId, 'stopped')
