@@ -1972,6 +1972,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
+  position: relative;
 }
 
 .serviceIcon {
@@ -1994,6 +1995,43 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+  flex: 1;
+}
+
+.startWorkloadButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.startWorkloadButton:hover:not(:disabled) {
+  background: var(--accent-primary-hover);
+  transform: translateY(-1px);
+}
+
+.startWorkloadButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.startWorkloadButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.startWorkloadButton svg {
+  width: 16px;
+  height: 16px;
 }
 
 .serviceName {

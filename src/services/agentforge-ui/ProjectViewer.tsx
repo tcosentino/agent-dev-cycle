@@ -1035,6 +1035,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             readme={readme}
             servicePath={tab.path}
             onFileClick={openFile}
+            projectId={activeProject}
           />
         </div>
       )

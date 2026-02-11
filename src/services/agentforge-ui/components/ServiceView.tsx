@@ -1,5 +1,8 @@
-import { BoxIcon, CodeIcon, DatabaseIcon, LayersIcon, FileDocumentIcon } from '@agentforge/ui-components'
+import { useState } from 'react'
+import { BoxIcon, CodeIcon, DatabaseIcon, LayersIcon, FileDocumentIcon, PlayIcon } from '@agentforge/ui-components'
 import type { ServiceMetadata } from '../types'
+import { useCreateDeployment } from '../../deployment-dataobject/hooks'
+import { useCreateWorkload } from '../../workload-dataobject/hooks'
 import styles from '../ProjectViewer.module.css'
 
 interface ServiceViewProps {
@@ -7,6 +10,7 @@ interface ServiceViewProps {
   readme?: string
   onFileClick?: (path: string) => void
   servicePath: string
+  projectId: string
 }
 
 const SERVICE_TYPE_ICONS: Record<ServiceMetadata['type'], typeof BoxIcon> = {
@@ -23,9 +27,41 @@ const SERVICE_TYPE_LABELS: Record<ServiceMetadata['type'], string> = {
   ui: 'UI Component',
 }
 
-export function ServiceView({ metadata, onFileClick, servicePath }: ServiceViewProps) {
+export function ServiceView({ metadata, onFileClick, servicePath, projectId }: ServiceViewProps) {
   const TypeIcon = SERVICE_TYPE_ICONS[metadata.type] || BoxIcon
   const typeLabel = SERVICE_TYPE_LABELS[metadata.type] || metadata.type
+
+  const [isStarting, setIsStarting] = useState(false)
+  const createDeployment = useCreateDeployment()
+  const createWorkload = useCreateWorkload()
+
+  const handleStartWorkload = async () => {
+    if (isStarting) return
+
+    setIsStarting(true)
+    try {
+      // Create deployment for this service
+      const deployment = await createDeployment.mutateAsync({
+        projectId,
+        serviceName: metadata.name,
+        servicePath,
+        status: 'active',
+      })
+
+      // Create workload for the deployment
+      await createWorkload.mutateAsync({
+        deploymentId: deployment.id,
+        servicePath,
+      })
+
+      // TODO: Navigate to workloads page or show success message
+    } catch (error) {
+      console.error('Failed to start workload:', error)
+      // TODO: Show error message to user
+    } finally {
+      setIsStarting(false)
+    }
+  }
 
   return (
     <div className={styles.serviceViewContainer}>
@@ -39,6 +75,14 @@ export function ServiceView({ metadata, onFileClick, servicePath }: ServiceViewP
             <div className={styles.serviceTypeBadge}>{typeLabel}</div>
             <span className={styles.serviceVersion}>v{metadata.version}</span>
           </div>
+          <button
+            className={styles.startWorkloadButton}
+            onClick={handleStartWorkload}
+            disabled={isStarting}
+          >
+            <PlayIcon />
+            {isStarting ? 'Starting...' : 'Start workload'}
+          </button>
         </div>
 
         <p className={styles.serviceDescription}>{metadata.description}</p>
