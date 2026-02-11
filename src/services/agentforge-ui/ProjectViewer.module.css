@@ -1924,6 +1924,8 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .stageDetail.stage-success {
@@ -1977,8 +1979,9 @@
   background: var(--bg-primary);
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 120px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .stageDetailError {
