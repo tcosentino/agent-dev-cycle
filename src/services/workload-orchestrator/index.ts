@@ -38,6 +38,7 @@ export class WorkloadOrchestrator {
   private workloadStore?: ResourceStore<any>
   private deploymentStore?: ResourceStore<any>
   private runningWorkloads: Map<string, RunningWorkload> = new Map()
+  private operationLocks: Map<string, boolean> = new Map()
   private dockerClient: DockerClient
   private containerLifecycle: ContainerLifecycle
   private imageBuilder: ImageBuilder
@@ -60,6 +61,53 @@ export class WorkloadOrchestrator {
 
   setDeploymentStore(store: ResourceStore<any>) {
     this.deploymentStore = store
+  }
+
+  private acquireLock(workloadId: string): boolean {
+    if (this.operationLocks.get(workloadId)) {
+      return false
+    }
+    this.operationLocks.set(workloadId, true)
+    return true
+  }
+
+  private releaseLock(workloadId: string): void {
+    this.operationLocks.delete(workloadId)
+  }
+
+  isOperationInProgress(workloadId: string): boolean {
+    return this.operationLocks.get(workloadId) === true
+  }
+
+  private isTransitioning(stage: WorkloadStage): boolean {
+    return ['starting-container', 'cloning-repo', 'starting-service', 'graceful-shutdown'].includes(stage)
+  }
+
+  async validateWorkloadState(workloadId: string, operation: 'stop' | 'restart'): Promise<{ valid: boolean; error?: string; currentStage?: WorkloadStage }> {
+    const workload = await this.workloadStore!.findById(workloadId) as any
+
+    if (!workload) {
+      return { valid: false, error: 'Workload not found' }
+    }
+
+    const currentStage = workload.stage as WorkloadStage
+
+    if (operation === 'stop') {
+      if (currentStage === 'stopped') {
+        return { valid: false, error: 'Cannot stop workload: already stopped', currentStage }
+      }
+      if (this.isTransitioning(currentStage)) {
+        return { valid: false, error: `Cannot stop workload: operation in progress (${currentStage})`, currentStage }
+      }
+    }
+
+    if (operation === 'restart') {
+      if (this.isTransitioning(currentStage)) {
+        return { valid: false, error: `Cannot restart workload: operation in progress (${currentStage})`, currentStage }
+      }
+    }
+
+    return { valid: true, currentStage }
   }
 
   private async addLog(workloadId: string, stage: WorkloadStage, message: string, level: 'info' | 'warn' | 'error' = 'info'): Promise<void> {
@@ -333,7 +381,7 @@ export class WorkloadOrchestrator {
 
       // Create and start container with port retry logic
       await this.addLog(workloadId, 'starting-service', 'Starting Docker container')
-      const containerName = `workload-${workloadId}`
+      const baseContainerName = `workload-${workloadId}`
       const imageName = `workload-${workloadId}`
 
       let containerId: string | null = null
@@ -342,8 +390,11 @@ export class WorkloadOrchestrator {
       const maxRetries = 5
 
       while (retryCount < maxRetries) {
+        // Use unique container name for each retry to avoid Docker name conflicts
+        const containerName = retryCount === 0 ? baseContainerName : `${baseContainerName}-retry${retryCount}`
+
         try {
-          console.log(`[Orchestrator] Creating container ${containerName} from image ${imageName} on port ${currentPort}`)
+          console.log(`[Orchestrator] Attempt ${retryCount + 1}/${maxRetries}: Creating container ${containerName} on port ${currentPort}`)
           containerId = await this.containerLifecycle.create({
             name: containerName,
             image: imageName,
@@ -354,7 +405,7 @@ export class WorkloadOrchestrator {
 
           console.log(`[Orchestrator] Starting container ${containerId}`)
           await this.containerLifecycle.start(containerId)
-          console.log(`[Orchestrator] Container started successfully`)
+          console.log(`[Orchestrator] Container started successfully on port ${currentPort}`)
           await this.addLog(workloadId, 'starting-service', `Container started on port ${currentPort}`)
 
           // Success - update port if it changed
@@ -368,13 +419,15 @@ export class WorkloadOrchestrator {
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Unknown error'
           const isPortConflict = message.includes('port is already allocated') ||
-                                message.includes('address already in use')
+                                message.includes('address already in use') ||
+                                message.includes('Bind for')
 
-          console.error(`[Orchestrator] Failed to start container: ${message}`)
+          console.error(`[Orchestrator] Attempt ${retryCount + 1} failed: ${message}`)
 
           // Clean up container if it was created
           if (containerId) {
             try {
+              console.log(`[Orchestrator] Cleaning up failed container ${containerId.substring(0, 12)}`)
               await this.containerLifecycle.cleanup(containerId)
               containerId = null
             } catch (cleanupError) {
@@ -384,8 +437,8 @@ export class WorkloadOrchestrator {
 
           // If port conflict, retry with new port
           if (isPortConflict && retryCount < maxRetries - 1) {
-            console.log(`[Orchestrator] Port ${currentPort} already allocated, retrying with new port...`)
-            await this.addLog(workloadId, 'starting-service', `Port ${currentPort} unavailable, retrying...`)
+            console.log(`[Orchestrator] Port ${currentPort} conflict detected, retrying with new port...`)
+            await this.addLog(workloadId, 'starting-service', `Port ${currentPort} unavailable, retrying with new port (attempt ${retryCount + 2}/${maxRetries})`)
 
             // Release current port and get a new one
             this.portPool.release(currentPort)
@@ -590,35 +643,103 @@ export class WorkloadOrchestrator {
 
   async stop(workloadId: string): Promise<void> {
     console.log(`[Orchestrator] Stopping workload ${workloadId}`)
-    const running = this.runningWorkloads.get(workloadId)
-    if (!running) {
-      const error = `Workload ${workloadId} is not running`
+
+    // Acquire lock to prevent concurrent operations
+    if (!this.acquireLock(workloadId)) {
+      const error = 'Operation already in progress'
       console.error(`[Orchestrator] ${error}`)
       throw new Error(error)
     }
 
-    // Stage: Graceful Shutdown
-    await this.updateStage(workloadId, 'graceful-shutdown', 'running')
-    await this.addLog(workloadId, 'graceful-shutdown', 'Initiating graceful shutdown')
+    try {
+      // Check workload exists and get current stage
+      const workload = await this.workloadStore!.findById(workloadId) as any
+      if (!workload) {
+        throw new Error(`Workload ${workloadId} not found`)
+      }
 
-    // Stop Docker container gracefully
-    console.log(`[Orchestrator] Stopping container ${running.containerId}`)
-    await this.containerLifecycle.stop(running.containerId, true)
-    console.log(`[Orchestrator] Container stopped`)
-    await this.addLog(workloadId, 'graceful-shutdown', 'Container stopped')
-    await this.updateStage(workloadId, 'graceful-shutdown', 'success')
+      // Check if already stopped
+      if (workload.stage === 'stopped') {
+        throw new Error('Cannot stop workload: already stopped')
+      }
 
-    // Cleanup
-    await this.cleanupContainer(workloadId, running.containerId, running.workDir)
-    this.portPool.release(running.port)
-    console.log(`[Orchestrator] Released port ${running.port}`)
-    this.runningWorkloads.delete(workloadId)
-    this.resources.untrack(workloadId)
+      const running = this.runningWorkloads.get(workloadId)
+      if (!running) {
+        throw new Error(`Workload ${workloadId} is not running`)
+      }
 
-    // Stage: Stopped
-    await this.updateStage(workloadId, 'stopped', 'success')
-    await this.addLog(workloadId, 'stopped', 'Service stopped')
-    console.log(`[Orchestrator] Workload ${workloadId} stopped successfully`)
+      // Stage: Graceful Shutdown
+      await this.updateStage(workloadId, 'graceful-shutdown', 'running')
+      await this.addLog(workloadId, 'graceful-shutdown', 'Initiating graceful shutdown')
+
+      // Stop Docker container gracefully
+      console.log(`[Orchestrator] Stopping container ${running.containerId}`)
+      await this.containerLifecycle.stop(running.containerId, true)
+      console.log(`[Orchestrator] Container stopped`)
+      await this.addLog(workloadId, 'graceful-shutdown', 'Container stopped')
+      await this.updateStage(workloadId, 'graceful-shutdown', 'success')
+
+      // Cleanup
+      await this.cleanupContainer(workloadId, running.containerId, running.workDir)
+      this.portPool.release(running.port)
+      console.log(`[Orchestrator] Released port ${running.port}`)
+      this.runningWorkloads.delete(workloadId)
+      this.resources.untrack(workloadId)
+
+      // Stage: Stopped
+      await this.updateStage(workloadId, 'stopped', 'success')
+      await this.addLog(workloadId, 'stopped', 'Service stopped')
+      console.log(`[Orchestrator] Workload ${workloadId} stopped successfully`)
+    } finally {
+      // Always release lock, even if operation fails
+      this.releaseLock(workloadId)
+    }
+  }
+
+  async restart(workloadId: string): Promise<void> {
+    console.log(`[Orchestrator] Restarting workload ${workloadId}`)
+
+    // Acquire lock to prevent concurrent operations
+    if (!this.acquireLock(workloadId)) {
+      const error = 'Operation already in progress'
+      console.error(`[Orchestrator] ${error}`)
+      throw new Error(error)
+    }
+
+    try {
+      // Get workload details before stopping
+      const workload = await this.workloadStore!.findById(workloadId) as any
+      if (!workload) {
+        const error = `Workload ${workloadId} not found`
+        console.error(`[Orchestrator] ${error}`)
+        throw new Error(error)
+      }
+
+      const { deploymentId, repoUrl } = workload
+
+      // Stop if currently running (release lock temporarily for stop operation)
+      const running = this.runningWorkloads.get(workloadId)
+      if (running) {
+        console.log(`[Orchestrator] Stopping running workload before restart`)
+        this.releaseLock(workloadId)
+        await this.stop(workloadId)
+        // Re-acquire lock after stop
+        if (!this.acquireLock(workloadId)) {
+          throw new Error('Failed to re-acquire lock after stop')
+        }
+      } else {
+        console.log(`[Orchestrator] Workload not running, proceeding to start`)
+      }
+
+      // Start with same configuration
+      console.log(`[Orchestrator] Starting workload after restart`)
+      await this.start(workloadId, repoUrl)
+
+      console.log(`[Orchestrator] Workload ${workloadId} restarted successfully`)
+    } finally {
+      // Always release lock, even if operation fails
+      this.releaseLock(workloadId)
+    }
   }
 
   async forceCleanup(workloadId: string): Promise<void> {

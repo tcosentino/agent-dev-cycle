@@ -301,6 +301,136 @@ export const workloadIntegration: IntegrationService = {
       }
     })
 
+    // POST /api/deployments/:deploymentId/workloads/:workloadId/stop - Stop a workload
+    app.post('/api/deployments/:deploymentId/workloads/:workloadId/stop', async (c) => {
+      const { deploymentId, workloadId } = c.req.param()
+
+      try {
+        // Verify workload exists and belongs to deployment
+        const workload = await workloadStore.findById(workloadId) as any
+        if (!workload) {
+          return c.json({
+            error: 'NotFound',
+            message: 'Workload not found'
+          }, 404)
+        }
+
+        if (workload.deploymentId !== deploymentId) {
+          return c.json({
+            error: 'NotFound',
+            message: 'Workload not found'
+          }, 404)
+        }
+
+        // Validate workload state
+        const validation = await orchestrator.validateWorkloadState(workloadId, 'stop')
+        if (!validation.valid) {
+          const statusCode = validation.error === 'Workload not found' ? 404 : 400
+          return c.json({
+            error: validation.error === 'Workload not found' ? 'NotFound' : 'InvalidState',
+            message: validation.error,
+            workloadId,
+            currentStage: validation.currentStage
+          }, statusCode)
+        }
+
+        // Stop the workload
+        await orchestrator.stop(workloadId)
+
+        // Get updated workload state
+        const updatedWorkload = await workloadStore.findById(workloadId) as any
+
+        return c.json({
+          success: true,
+          workloadId,
+          stage: updatedWorkload.stage
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+
+        // Handle operation in progress error
+        if (message === 'Operation already in progress') {
+          const workload = await workloadStore.findById(workloadId) as any
+          return c.json({
+            error: 'Conflict',
+            message: 'Operation already in progress',
+            workloadId,
+            currentStage: workload?.stage
+          }, 409)
+        }
+
+        return c.json({
+          error: 'Failed to stop workload',
+          message
+        }, 500)
+      }
+    })
+
+    // POST /api/deployments/:deploymentId/workloads/:workloadId/restart - Restart a workload
+    app.post('/api/deployments/:deploymentId/workloads/:workloadId/restart', async (c) => {
+      const { deploymentId, workloadId } = c.req.param()
+
+      try {
+        // Verify workload exists and belongs to deployment
+        const workload = await workloadStore.findById(workloadId) as any
+        if (!workload) {
+          return c.json({
+            error: 'NotFound',
+            message: 'Workload not found'
+          }, 404)
+        }
+
+        if (workload.deploymentId !== deploymentId) {
+          return c.json({
+            error: 'NotFound',
+            message: 'Workload not found'
+          }, 404)
+        }
+
+        // Validate workload state
+        const validation = await orchestrator.validateWorkloadState(workloadId, 'restart')
+        if (!validation.valid) {
+          const statusCode = validation.error === 'Workload not found' ? 404 : 409
+          return c.json({
+            error: validation.error === 'Workload not found' ? 'NotFound' : 'Conflict',
+            message: validation.error,
+            workloadId,
+            currentStage: validation.currentStage
+          }, statusCode)
+        }
+
+        // Restart the workload
+        await orchestrator.restart(workloadId)
+
+        // Get updated workload state
+        const updatedWorkload = await workloadStore.findById(workloadId) as any
+
+        return c.json({
+          success: true,
+          workloadId,
+          stage: updatedWorkload.stage
+        })
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+
+        // Handle operation in progress error
+        if (message === 'Operation already in progress') {
+          const workload = await workloadStore.findById(workloadId) as any
+          return c.json({
+            error: 'Conflict',
+            message: 'Operation already in progress',
+            workloadId,
+            currentStage: workload?.stage
+          }, 409)
+        }
+
+        return c.json({
+          error: 'Failed to restart workload',
+          message
+        }, 500)
+      }
+    })
+
     console.log('Registered workload operations endpoints')
   }
 }
