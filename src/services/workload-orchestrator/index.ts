@@ -32,6 +32,7 @@ interface RunningWorkload {
   port: number
   logs: LogEntry[]
   workDir: string
+  logFlushInterval?: NodeJS.Timeout
 }
 
 export class WorkloadOrchestrator {
@@ -122,7 +123,41 @@ export class WorkloadOrchestrator {
     }
 
     // Note: Logs are stored in memory only and will be written to DB
-    // when updateStage is called to avoid excessive DB writes
+    // when updateStage is called or when periodic flush happens
+  }
+
+  private async flushLogs(workloadId: string): Promise<void> {
+    const running = this.runningWorkloads.get(workloadId)
+    if (!running || running.logs.length === 0) {
+      return
+    }
+
+    try {
+      const workload = await this.workloadStore!.findById(workloadId)
+      if (!workload) {
+        console.error(`[Orchestrator] Workload ${workloadId} not found when flushing logs`)
+        return
+      }
+
+      // Combine existing logs from DB with new in-memory logs
+      const existingLogs = Array.isArray(workload.logs) ? workload.logs : []
+      const allLogs = [...existingLogs, ...running.logs]
+
+      // Clear in-memory logs after writing to DB
+      running.logs = []
+
+      // Update workload with all logs (keep current stage)
+      await this.workloadStore!.update(workloadId, {
+        logs: allLogs,
+      })
+
+      console.log(`[Orchestrator] Flushed ${allLogs.length - existingLogs.length} logs for workload ${workloadId}`)
+
+      // Emit workload update event for real-time UI updates
+      await this.emitWorkloadUpdate(workloadId)
+    } catch (err) {
+      console.error(`[Orchestrator] Failed to flush logs: ${err}`)
+    }
   }
 
   private async updateStage(workloadId: string, stage: WorkloadStage, stageStatus: 'running' | 'success' | 'failed' = 'running', error?: string): Promise<void> {
@@ -573,6 +608,13 @@ export class WorkloadOrchestrator {
         )
         this.portPool.release(port)
         console.log(`[Orchestrator] Released port ${port} after container exit`)
+
+        // Clear log flush interval before cleanup
+        const running = this.runningWorkloads.get(workloadId)
+        if (running?.logFlushInterval) {
+          clearInterval(running.logFlushInterval)
+        }
+
         this.runningWorkloads.delete(workloadId)
         this.resources.untrack(workloadId)
         await this.cleanupContainer(workloadId, containerId, workDir)
@@ -594,8 +636,25 @@ export class WorkloadOrchestrator {
       return
     }
 
-    // Store abort controller so we can stop streaming when workload stops
-    const stopStreaming = () => abortController.abort()
+    // Start periodic log flush (every 2 seconds)
+    const flushInterval = setInterval(() => {
+      this.flushLogs(workloadId).catch(err => {
+        console.error(`[Orchestrator] Failed to flush logs for ${workloadId}:`, err)
+      })
+    }, 2000)
+
+    // Store interval so we can clean it up later
+    running.logFlushInterval = flushInterval
+
+    // Cleanup function
+    const cleanup = () => {
+      abortController.abort()
+      clearInterval(flushInterval)
+      // Flush any remaining logs
+      this.flushLogs(workloadId).catch(err => {
+        console.error(`[Orchestrator] Failed to flush remaining logs for ${workloadId}:`, err)
+      })
+    }
 
     try {
       await this.dockerClient.streamContainerLogs(
@@ -611,6 +670,8 @@ export class WorkloadOrchestrator {
       if (error instanceof Error && !error.message.includes('aborted')) {
         console.error(`[Orchestrator] Log streaming failed for ${workloadId}:`, error)
       }
+    } finally {
+      cleanup()
     }
   }
 
@@ -678,6 +739,11 @@ export class WorkloadOrchestrator {
       console.log(`[Orchestrator] Container stopped`)
       await this.addLog(workloadId, 'graceful-shutdown', 'Container stopped')
       await this.updateStage(workloadId, 'graceful-shutdown', 'success')
+
+      // Clear log flush interval
+      if (running.logFlushInterval) {
+        clearInterval(running.logFlushInterval)
+      }
 
       // Cleanup
       await this.cleanupContainer(workloadId, running.containerId, running.workDir)

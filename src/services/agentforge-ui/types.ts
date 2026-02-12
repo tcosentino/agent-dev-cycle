@@ -139,3 +139,24 @@ export interface ServiceMetadata {
   tags?: string[]
 }
 
+// Workload control types
+export interface WorkloadControlResponse {
+  success: true
+  workloadId: string
+  stage: WorkloadStage
+}
+
+export interface WorkloadControlError {
+  error: 'NotFound' | 'InvalidState' | 'Conflict'
+  message: string
+  workloadId?: string
+  currentStage?: WorkloadStage
+}
+
+export interface WorkloadLogEntry {
+  timestamp: string
+  stage: WorkloadStage
+  message: string
+  level: 'info' | 'warn' | 'error'
+}
+

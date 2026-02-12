@@ -4,7 +4,8 @@ import type { DbSnapshot, Deployment, Workload, WorkloadStage } from '../types'
 import { DeploymentCard } from './DeploymentCard'
 import { StageDetailCard } from './StageDetailCard'
 import { LogViewer } from './LogViewer'
-import { getWorkloadLogs } from '../api'
+import { WorkloadControls } from './WorkloadControls'
+import { getWorkloadLogs, api } from '../api'
 import type { LogEntry } from './LogViewer'
 import { formatStageName, formatUptime, formatDuration, transformLogsToStages } from '../utils/deploymentUtils'
 import { useDeployments } from '../contexts/DeploymentContext'
@@ -232,6 +233,7 @@ export function DeploymentListView({
 
 export function WorkloadDetailView({ workload: initialWorkload }: { workload: Workload }) {
   const { getWorkloadById, getDeploymentById } = useDeployments()
+  const { showToast } = useToast()
 
   // Always use the fresh workload from context if available
   const workload = getWorkloadById(initialWorkload.id) || initialWorkload
@@ -241,6 +243,11 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
   const isDeleted = !getWorkloadById(initialWorkload.id)
   const [copied, setCopied] = useState(false)
   const [allExpanded, setAllExpanded] = useState(true)
+  const [logViewerState, setLogViewerState] = useState<{
+    workload: Workload
+    logs: LogEntry[]
+  } | null>(null)
+  const [loadingLogs, setLoadingLogs] = useState(false)
   const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
   const workloadType = workload.moduleType || 'service'
   const port = (workload as any).port || workload.artifacts?.port
@@ -308,6 +315,60 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
     }
   }
 
+  const handleStop = async (workloadId: string) => {
+    try {
+      await api.workloads.stop(workload.deploymentId, workloadId)
+      showToast({
+        type: 'success',
+        title: 'Workload stopped',
+        message: 'The workload has been stopped successfully'
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      showToast({
+        type: 'error',
+        title: 'Failed to stop workload',
+        message
+      })
+      throw error
+    }
+  }
+
+  const handleRestart = async (workloadId: string) => {
+    try {
+      await api.workloads.restart(workload.deploymentId, workloadId)
+      showToast({
+        type: 'success',
+        title: 'Workload restarting',
+        message: 'The workload is being restarted'
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      showToast({
+        type: 'error',
+        title: 'Failed to restart workload',
+        message
+      })
+      throw error
+    }
+  }
+
+  const handleViewLogs = async (workload: Workload) => {
+    setLoadingLogs(true)
+    try {
+      const logs = await getWorkloadLogs(workload.id)
+      setLogViewerState({ workload, logs })
+    } catch (error) {
+      console.error('Failed to load logs:', error)
+      setLogViewerState({
+        workload,
+        logs: [{ stage: 'error', log: 'Failed to load logs', error: String(error) }]
+      })
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
   if (isDeleted) {
     return (
       <div className={styles.workloadDetailView}>
@@ -336,6 +397,14 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
           </span>
         </div>
       </div>
+
+      <WorkloadControls
+        workload={workload}
+        deploymentId={workload.deploymentId}
+        onStop={handleStop}
+        onRestart={handleRestart}
+        onViewLogs={handleViewLogs}
+      />
 
       {(workload.artifacts || port || containerId) && (
         <div className={styles.workloadArtifacts}>
@@ -413,6 +482,15 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
           )}
         </div>
       </div>
+
+      {logViewerState && (
+        <LogViewer
+          workloadId={workload.id}
+          workloadName={workloadName}
+          logs={logViewerState.logs}
+          onClose={() => setLogViewerState(null)}
+        />
+      )}
     </div>
   )
 }

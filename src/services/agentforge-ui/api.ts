@@ -388,6 +388,24 @@ export const api = {
       return fetchJson<ApiWorkload[]>(`/workloads?deploymentId=${deploymentId}`)
     },
     get: (id: string) => fetchJson<ApiWorkload>(`/workloads/${id}`),
+    stop: (deploymentId: string, workloadId: string) =>
+      fetchJson<{ success: true; workloadId: string; stage: string }>(
+        `/deployments/${deploymentId}/workloads/${workloadId}/stop`,
+        {
+          method: 'POST',
+        }
+      ),
+    restart: (deploymentId: string, workloadId: string) =>
+      fetchJson<{ success: true; workloadId: string; stage: string }>(
+        `/deployments/${deploymentId}/workloads/${workloadId}/restart`,
+        {
+          method: 'POST',
+        }
+      ),
+    getLogs: (deploymentId: string, workloadId: string) =>
+      fetchJson<Array<{ timestamp: string; stage: string; message: string; level: string }>>(
+        `/deployments/${deploymentId}/workloads/${workloadId}/logs`
+      ),
   },
 
   agentSessions: {

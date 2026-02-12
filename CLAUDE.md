@@ -71,6 +71,7 @@ yarn preview        # Preview production build
   - `components/` - React components
     - `DeploymentDashboard.tsx` - Main deployment view
     - `DeploymentViews.tsx` - Deployment list and detail views
+    - `WorkloadControls.tsx` - Workload control buttons (Stop, Restart, View Logs)
     - `LogViewer.tsx` - Log viewing modal
     - `HealthBadge.tsx` - Status indicators
   - `hooks/` - Custom React hooks
@@ -125,7 +126,8 @@ The application uses SSE for real-time updates:
 2. **Starting** - `orchestrator.start()` clones repo, builds container
 3. **Running** - Container executes, stages emit progress updates
 4. **Stopping** - `orchestrator.stop()` gracefully shuts down container
-5. **Deletion** - Records deleted, `deployment-deleted` event emitted
+5. **Restarting** - `orchestrator.restart()` performs stop + start sequence
+6. **Deletion** - Records deleted, `deployment-deleted` event emitted
 
 **Stages:**
 
@@ -135,6 +137,12 @@ The application uses SSE for real-time updates:
 - `running` - Active execution
 - `graceful-shutdown` - Clean shutdown
 - `stopped` - Container terminated
+
+**Control Operations:**
+
+- `stop` - Stops a running workload, validates state before stopping
+- `restart` - Restarts a workload (stop + start), works on running/stopped/failed workloads
+- Operation locking prevents concurrent operations on the same workload
 
 ## DataObject Framework
 
@@ -158,6 +166,21 @@ Auto-generated endpoints:
 - `POST /api/myResources` - Create
 - `PATCH /api/myResources/:id` - Update
 - `DELETE /api/myResources/:id` - Delete
+
+### Workload Control Endpoints
+
+Custom endpoints for workload lifecycle management:
+
+- `POST /api/deployments/:deploymentId/workloads/:workloadId/stop` - Stop a running workload
+- `POST /api/deployments/:deploymentId/workloads/:workloadId/restart` - Restart a workload
+- `GET /api/deployments/:deploymentId/workloads/:workloadId/logs` - Get workload logs
+
+These endpoints:
+
+- Validate workload state before operations (prevents stopping already-stopped workloads, etc.)
+- Use operation locking to prevent concurrent operations on the same workload
+- Return structured error responses (InvalidState, Conflict, NotFound)
+- Emit SSE events for real-time UI updates
 
 ## Integration Services
 

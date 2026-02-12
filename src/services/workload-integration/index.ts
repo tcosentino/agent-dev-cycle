@@ -431,6 +431,40 @@ export const workloadIntegration: IntegrationService = {
       }
     })
 
+    // GET /api/deployments/:deploymentId/workloads/:workloadId/logs - Get workload logs
+    app.get('/api/deployments/:deploymentId/workloads/:workloadId/logs', async (c) => {
+      const { deploymentId, workloadId } = c.req.param()
+
+      try {
+        // Verify workload exists and belongs to deployment
+        const workload = await workloadStore.findById(workloadId) as any
+        if (!workload) {
+          return c.json({
+            error: 'NotFound',
+            message: 'Workload not found'
+          }, 404)
+        }
+
+        if (workload.deploymentId !== deploymentId) {
+          return c.json({
+            error: 'NotFound',
+            message: 'Workload not found'
+          }, 404)
+        }
+
+        // Get logs from workload record
+        const logs = Array.isArray(workload.logs) ? workload.logs : []
+
+        return c.json(logs)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unknown error'
+        return c.json({
+          error: 'Failed to get workload logs',
+          message
+        }, 500)
+      }
+    })
+
     console.log('Registered workload operations endpoints')
   }
 }
