@@ -1541,6 +1541,30 @@
   color: var(--text-muted);
 }
 
+.deleteDeploymentButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.deleteDeploymentButton:hover {
+  background: var(--bg-secondary);
+  color: var(--error);
+}
+
+.deleteDeploymentButton svg {
+  width: 18px;
+  height: 18px;
+}
+
 .deploymentBranch {
   display: flex;
   align-items: center;
@@ -1624,6 +1648,34 @@
   text-transform: uppercase;
 }
 
+.viewLogsButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: auto;
+}
+
+.viewLogsButton:hover {
+  background: var(--accent-tertiary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.viewLogsButton svg {
+  width: 14px;
+  height: 14px;
+}
+
 .workloadMeta {
   display: flex;
   align-items: center;
@@ -1683,19 +1735,23 @@
   width: 14px;
   height: 14px;
   color: var(--success);
+  transition: all 0.3s ease;
+  animation: scaleIn 0.3s ease;
 }
 
 .stageIconFailed {
   width: 14px;
   height: 14px;
   color: var(--error);
+  transition: all 0.3s ease;
+  animation: scaleIn 0.3s ease;
 }
 
 .stageIconRunning {
   width: 14px;
   height: 14px;
   color: var(--accent-primary);
-  animation: pulse 1s infinite;
+  animation: pulse 1.5s infinite, scaleIn 0.3s ease;
 }
 
 .stageIconPending {
@@ -1704,6 +1760,7 @@
   border-radius: 50%;
   background: var(--bg-tertiary);
   border: 2px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .stageConnector {
@@ -1712,11 +1769,33 @@
   background: var(--border-color);
   margin: 0 2px;
   margin-bottom: 14px;
+  transition: background 0.5s ease;
+}
+
+.stageConnector.completed {
+  background: var(--success);
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes scaleIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes spin {
@@ -1734,7 +1813,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-lg);
-  overflow-y: auto;
+  height: 100%;
+  overflow: hidden;
 }
 
 .workloadDetailHeader {
@@ -1763,8 +1843,38 @@
   color: var(--text-muted);
 }
 
-.workloadDetailStatus {
+.workloadStatusBadge {
   margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-xs);
+}
+
+.workloadStatusStage {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.workloadStatusStage.stageStatus-running {
+  color: var(--accent-primary);
+}
+
+.workloadStatusStage.stageStatus-success {
+  color: var(--success);
+}
+
+.workloadStatusStage.stageStatus-failed {
+  color: var(--error);
+}
+
+.workloadStatusStage.stageStatus-pending {
+  color: var(--text-muted);
+}
+
+.workloadDetailStatus {
   font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 600;
@@ -1819,6 +1929,21 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.stageDetailsHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
+.stageDetailsContainer {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .workloadStageDetails h3 {
@@ -1829,11 +1954,41 @@
   margin: 0;
 }
 
+.copyLogsButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.copyLogsButton:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.copyLogsButton svg {
+  width: 14px;
+  height: 14px;
+}
+
 .stageDetail {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--space-sm);
 }
 
 .stageDetail.stage-success {
@@ -1854,6 +2009,33 @@
   gap: var(--space-md);
   padding: var(--space-sm) var(--space-md);
   background: var(--bg-tertiary);
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+
+.stageDetailHeader:disabled {
+  cursor: default;
+}
+
+.stageToggleIcon {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease;
+}
+
+.stageToggleIcon.expanded {
+  transform: rotate(180deg);
+}
+
+.stageDetailContent {
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--bg-primary);
 }
 
 .stageDetailName {
@@ -1869,6 +2051,12 @@
   font-size: 0.65rem;
   text-transform: uppercase;
   color: var(--text-muted);
+}
+
+.stageDetailTimestamp {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-tertiary);
 }
 
 .stageDetailDuration {
@@ -1887,8 +2075,9 @@
   background: var(--bg-primary);
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 120px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .stageDetailError {
@@ -1944,6 +2133,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--space-md);
+  position: relative;
 }
 
 .serviceIcon {
@@ -1966,6 +2156,43 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+  flex: 1;
+}
+
+.startWorkloadButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.startWorkloadButton:hover:not(:disabled) {
+  background: var(--accent-primary-hover);
+  transform: translateY(-1px);
+}
+
+.startWorkloadButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.startWorkloadButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.startWorkloadButton svg {
+  width: 16px;
+  height: 16px;
 }
 
 .serviceName {
@@ -2337,4 +2564,28 @@
 .deleteConfirmButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Loading overlay for async operations */
+.loadingOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.loadingSpinner {
+  background: var(--bg-primary);
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }

@@ -1,5 +1,6 @@
 import { SearchIcon, XIcon } from '../../icons/icons'
 import type { TaskPriority, TaskType } from '../../types'
+import { TASK_FILTER_ASSIGNEES, TASK_FILTER_PRIORITIES, TASK_FILTER_TYPES } from '../../domain/task/constants'
 import styles from './TaskFilters.module.css'
 
 export interface TaskFilters {
@@ -13,10 +14,6 @@ export interface TaskFiltersProps {
   filters: TaskFilters
   onChange: (filters: TaskFilters) => void
 }
-
-const assigneeOptions = ['pm', 'engineer', 'qa', 'lead']
-const priorityOptions: TaskPriority[] = ['critical', 'high', 'medium', 'low']
-const typeOptions: TaskType[] = ['epic', 'api', 'backend', 'frontend', 'testing', 'documentation', 'devops']
 
 export function TaskFiltersComponent({ filters, onChange }: TaskFiltersProps) {
   const activeFilterCount = 
@@ -85,7 +82,7 @@ export function TaskFiltersComponent({ filters, onChange }: TaskFiltersProps) {
         <div className={styles.filterGroup}>
           <label className={styles.filterLabel}>Assignee</label>
           <div className={styles.filterOptions}>
-            {assigneeOptions.map(assignee => (
+            {TASK_FILTER_ASSIGNEES.map(assignee => (
               <label key={assignee} className={styles.checkbox}>
                 <input
                   type="checkbox"
@@ -101,7 +98,7 @@ export function TaskFiltersComponent({ filters, onChange }: TaskFiltersProps) {
         <div className={styles.filterGroup}>
           <label className={styles.filterLabel}>Priority</label>
           <div className={styles.filterOptions}>
-            {priorityOptions.map(priority => (
+            {TASK_FILTER_PRIORITIES.map(priority => (
               <label key={priority} className={styles.checkbox}>
                 <input
                   type="checkbox"
@@ -117,7 +114,7 @@ export function TaskFiltersComponent({ filters, onChange }: TaskFiltersProps) {
         <div className={styles.filterGroup}>
           <label className={styles.filterLabel}>Type</label>
           <div className={styles.filterOptions}>
-            {typeOptions.map(type => (
+            {TASK_FILTER_TYPES.map(type => (
               <label key={type} className={styles.checkbox}>
                 <input
                   type="checkbox"

@@ -1,28 +1,31 @@
-# Project Data Object
+# Project Dataobject
 
-Represents a software project being built by agents in AgentForge.
+Represents external projects that can be deployed and managed by AgentForge.
 
-## Fields
+## Concept
 
-| Field | Type | Description |
-|-------|------|-------------|
-| id | uuid | Unique identifier (auto-generated) |
-| name | string | Full project name |
-| key | string | Short uppercase key (2-10 chars, unique) |
-| repoUrl | string | Optional Git repository URL |
-| createdAt | date | Creation timestamp (auto-generated) |
+A "project" in AgentForge is an **external codebase** (typically a git repository) that contains services to be deployed. For example:
+- The `todo-app` example in `examples/todo-app/` is a project
+- Any git repository with services can be added as a project
 
-## Usage
+## Schema
 
-Projects are the top-level organizational unit. All tasks, channels, messages, and agent activity are scoped to a project.
+- `id` (uuid) - Unique identifier
+- `userId` (uuid) - Owner of the project
+- `name` (string) - Project name (e.g., "Todo App")
+- `key` (string) - Project key/code (e.g., "TODO")
+- `repoUrl` (string, optional) - Git repository URL to clone
+- `createdAt` (date) - When project was added to AgentForge
+- `updatedAt` (date) - Last update timestamp
 
-```typescript
-import { projectResource } from './project-dataobject'
+## Workflow
 
-// Create a new project
-const project = await projectResource.create({
-  name: 'AgentForge - AI Development Platform',
-  key: 'AF',
-  repoUrl: 'https://github.com/example/agentforge'
-})
-```
+1. User adds a project by providing a git repo URL
+2. AgentForge clones the repo (or uses a local path for development)
+3. User can discover services within the project
+4. User can deploy services as workloads
+5. Workloads run in isolated containers/processes
+
+## For Development
+
+For local development (like the examples/ folder), projects can be added without a repoUrl and AgentForge will use the local filesystem path.

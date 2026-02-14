@@ -1,5 +1,8 @@
-import { BoxIcon, CodeIcon, DatabaseIcon, LayersIcon, FileDocumentIcon } from '@agentforge/ui-components'
+import { useState } from 'react'
+import { BoxIcon, CodeIcon, DatabaseIcon, LayersIcon, FileDocumentIcon, PlayIcon, useToast } from '@agentforge/ui-components'
 import type { ServiceMetadata } from '../types'
+import { useCreateDeployment } from '../../deployment-dataobject/hooks'
+import { useCreateWorkload } from '../../workload-dataobject/hooks'
 import styles from '../ProjectViewer.module.css'
 
 interface ServiceViewProps {
@@ -7,6 +10,8 @@ interface ServiceViewProps {
   readme?: string
   onFileClick?: (path: string) => void
   servicePath: string
+  projectId: string
+  onWorkloadCreated?: (workloadId: string) => void
 }
 
 const SERVICE_TYPE_ICONS: Record<ServiceMetadata['type'], typeof BoxIcon> = {
@@ -23,9 +28,72 @@ const SERVICE_TYPE_LABELS: Record<ServiceMetadata['type'], string> = {
   ui: 'UI Component',
 }
 
-export function ServiceView({ metadata, onFileClick, servicePath }: ServiceViewProps) {
+export function ServiceView({ metadata, onFileClick, servicePath, projectId, onWorkloadCreated }: ServiceViewProps) {
   const TypeIcon = SERVICE_TYPE_ICONS[metadata.type] || BoxIcon
   const typeLabel = SERVICE_TYPE_LABELS[metadata.type] || metadata.type
+
+  const [isStarting, setIsStarting] = useState(false)
+  const createDeployment = useCreateDeployment()
+  const createWorkload = useCreateWorkload()
+  const { showToast } = useToast()
+
+  const handleStartWorkload = async () => {
+    if (isStarting) return
+
+    setIsStarting(true)
+    try {
+      // Create deployment for this service
+      const deployment = await createDeployment.mutateAsync({
+        projectId,
+        serviceName: metadata.name,
+        servicePath,
+        status: 'active',
+      })
+
+      // Create workload for the deployment
+      const workload = await createWorkload.mutateAsync({
+        deploymentId: deployment.id,
+        servicePath,
+      })
+
+      showToast({
+        type: 'info',
+        title: 'Starting workload',
+        message: `Starting ${metadata.name} workload...`,
+      })
+
+      // Start the workload
+      const response = await fetch(`/api/workloads/${workload.id}/start`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to start workload')
+      }
+
+      showToast({
+        type: 'success',
+        title: 'Workload started',
+        message: `${metadata.name} is now running`,
+        onClick: () => {
+          if (onWorkloadCreated) {
+            onWorkloadCreated(workload.id)
+          }
+        },
+      })
+    } catch (error) {
+      console.error('Failed to start workload:', error)
+      showToast({
+        type: 'error',
+        title: 'Failed to start workload',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      })
+    } finally {
+      setIsStarting(false)
+    }
+  }
 
   return (
     <div className={styles.serviceViewContainer}>
@@ -39,6 +107,14 @@ export function ServiceView({ metadata, onFileClick, servicePath }: ServiceViewP
             <div className={styles.serviceTypeBadge}>{typeLabel}</div>
             <span className={styles.serviceVersion}>v{metadata.version}</span>
           </div>
+          <button
+            className={styles.startWorkloadButton}
+            onClick={handleStartWorkload}
+            disabled={isStarting}
+          >
+            <PlayIcon />
+            {isStarting ? 'Starting...' : 'Start workload'}
+          </button>
         </div>
 
         <p className={styles.serviceDescription}>{metadata.description}</p>

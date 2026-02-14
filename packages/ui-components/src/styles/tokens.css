@@ -9,6 +9,7 @@
   /* Text colors */
   --text-primary: #f0f0f5;
   --text-secondary: #8888a0;
+  --text-tertiary: #666677;
   --text-muted: #555566;
 
   /* Accent colors */
@@ -19,6 +20,11 @@
   --accent-orange: #f59e0b;
   --accent-pink: #ec4899;
   --accent-red: #ef4444;
+
+  /* Status colors */
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
 
   /* Agent/Role colors */
   --pm-color: #ef4444;

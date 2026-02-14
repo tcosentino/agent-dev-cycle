@@ -6,9 +6,11 @@ export const projectResource = defineResource({
   schema: z.object({
     id: z.string().uuid(),
     userId: z.string().uuid(),
-    name: z.string().min(1).max(200),
-    key: z.string().min(2).max(10).toUpperCase(), // e.g., 'AF' for AgentForge
+    name: z.string().min(1).max(100),
+    key: z.string().min(2).max(10).toUpperCase(),
     repoUrl: z.string().url().optional(),
+    createdAt: z.date().default(() => new Date()),
+    updatedAt: z.date().default(() => new Date()),
   }),
 
   createFields: ['userId', 'name', 'key', 'repoUrl'],

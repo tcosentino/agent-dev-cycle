@@ -1,205 +1,22 @@
-import { useMemo } from 'react'
-import {
-  CheckCircleIcon,
-  ClockIcon,
-  AlertTriangleIcon,
-  GitBranchIcon,
-  ServerIcon,
-  PlayIcon,
-  RocketIcon,
-} from '@agentforge/ui-components'
-import type { DbSnapshot, Deployment, Workload, WorkloadStage, StageStatus } from '../types'
+import { useMemo, useState, useEffect } from 'react'
+import { Modal, useToast, ServerIcon, ClipboardIcon, ChevronDownIcon } from '@agentforge/ui-components'
+import type { DbSnapshot, Deployment, Workload, WorkloadStage } from '../types'
+import { DeploymentCard } from './DeploymentCard'
+import { StageDetailCard } from './StageDetailCard'
+import { LogViewer } from './LogViewer'
+import { WorkloadControls } from './WorkloadControls'
+import { getWorkloadLogs, api } from '../api'
+import type { LogEntry } from './LogViewer'
+import { formatStageName, formatUptime, formatDuration, transformLogsToStages } from '../utils/deploymentUtils'
+import { useDeployments } from '../contexts/DeploymentContext'
 import styles from '../ProjectViewer.module.css'
+import modalStyles from '@agentforge/ui-components/components/Modal/Modal.module.css'
 
-// --- Stage Progress Indicator ---
-
-const STAGE_ORDER: WorkloadStage[] = ['validate', 'build', 'deploy', 'healthcheck', 'test', 'complete']
-
-function StageIndicator({ stage, status }: { stage: WorkloadStage; status: StageStatus }) {
-  const getIcon = () => {
-    if (status === 'success') return <CheckCircleIcon className={styles.stageIconSuccess} />
-    if (status === 'failed') return <AlertTriangleIcon className={styles.stageIconFailed} />
-    if (status === 'running') return <PlayIcon className={styles.stageIconRunning} />
-    return <div className={styles.stageIconPending} />
-  }
-
-  return (
-    <div className={`${styles.stageIndicator} ${styles[`stage-${status}`]}`} title={`${stage}: ${status}`}>
-      {getIcon()}
-      <span className={styles.stageLabel}>{stage}</span>
-    </div>
-  )
-}
-
-function WorkloadStages({ workload }: { workload: Workload }) {
-  const stageStatuses = useMemo(() => {
-    const statuses: Record<WorkloadStage, StageStatus> = {
-      pending: 'pending',
-      validate: 'pending',
-      build: 'pending',
-      deploy: 'pending',
-      healthcheck: 'pending',
-      test: 'pending',
-      complete: 'pending',
-      failed: 'skipped',
-      rolledback: 'skipped',
-    }
-
-    for (const result of workload.stages) {
-      statuses[result.stage] = result.status
-    }
-
-    // Mark current stage as running if workload is running
-    if (workload.status === 'running' && workload.currentStage) {
-      const currentStageResult = workload.stages.find(s => s.stage === workload.currentStage)
-      if (!currentStageResult || currentStageResult.status === 'pending') {
-        statuses[workload.currentStage] = 'running'
-      }
-    }
-
-    return statuses
-  }, [workload])
-
-  return (
-    <div className={styles.workloadStages}>
-      {STAGE_ORDER.map((stage, i) => (
-        <div key={stage} className={styles.stageStep}>
-          <StageIndicator stage={stage} status={stageStatuses[stage]} />
-          {i < STAGE_ORDER.length - 1 && <div className={styles.stageConnector} />}
-        </div>
-      ))}
-    </div>
-  )
-}
-
-// --- Workload Card ---
-
-function WorkloadCard({
-  workload,
-  onClick,
-}: {
-  workload: Workload
-  onClick: () => void
-}) {
-  const statusColors: Record<Workload['status'], string> = {
-    pending: 'var(--text-tertiary)',
-    running: 'var(--accent-primary)',
-    success: 'var(--success)',
-    failed: 'var(--error)',
-    rolledback: 'var(--warning)',
-    stopped: 'var(--text-tertiary)',
-  }
-
-  const duration = useMemo(() => {
-    if (!workload.completedAt) return null
-    const start = new Date(workload.createdAt).getTime()
-    const end = new Date(workload.completedAt).getTime()
-    const seconds = Math.round((end - start) / 1000)
-    if (seconds < 60) return `${seconds}s`
-    return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
-  }, [workload])
-
-  return (
-    <button className={styles.workloadCard} onClick={onClick}>
-      <div className={styles.workloadHeader}>
-        <ServerIcon className={styles.workloadIcon} />
-        <span className={styles.workloadName}>{workload.moduleName}</span>
-        <span
-          className={styles.workloadStatus}
-          style={{ color: statusColors[workload.status] }}
-        >
-          {workload.status}
-        </span>
-      </div>
-      <WorkloadStages workload={workload} />
-      <div className={styles.workloadMeta}>
-        <span className={styles.workloadType}>{workload.moduleType}</span>
-        {workload.artifacts?.url && (
-          <a
-            href={workload.artifacts.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.workloadUrl}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {workload.artifacts.url}
-          </a>
-        )}
-        {duration && <span className={styles.workloadDuration}>{duration}</span>}
-      </div>
-    </button>
-  )
-}
-
-// --- Deployment Card ---
-
-function DeploymentCard({
-  deployment,
-  workloads,
-  onWorkloadClick,
-}: {
-  deployment: Deployment
-  workloads: Workload[]
-  onWorkloadClick: (workload: Workload) => void
-}) {
-  const statusIcons: Record<Deployment['status'], React.ReactNode> = {
-    pending: <ClockIcon className={styles.deploymentStatusIcon} />,
-    running: <PlayIcon className={`${styles.deploymentStatusIcon} ${styles.spinning}`} />,
-    success: <CheckCircleIcon className={styles.deploymentStatusIcon} style={{ color: 'var(--success)' }} />,
-    failed: <AlertTriangleIcon className={styles.deploymentStatusIcon} style={{ color: 'var(--error)' }} />,
-    stopped: <ClockIcon className={styles.deploymentStatusIcon} />,
-  }
-
-  const triggerLabel = useMemo(() => {
-    switch (deployment.trigger.type) {
-      case 'agent':
-        return `by ${deployment.trigger.agentName || 'Agent'}`
-      case 'git-push':
-        return `push to ${deployment.trigger.branch}`
-      case 'manual':
-        return 'manual'
-      case 'schedule':
-        return 'scheduled'
-      default:
-        return ''
-    }
-  }, [deployment.trigger])
-
-  return (
-    <div className={styles.deploymentCard}>
-      <div className={styles.deploymentHeader}>
-        <div className={styles.deploymentTitle}>
-          {statusIcons[deployment.status]}
-          <RocketIcon className={styles.deploymentIcon} />
-          <span className={styles.deploymentName}>{deployment.name}</span>
-        </div>
-        <div className={styles.deploymentMeta}>
-          {deployment.trigger.branch && (
-            <span className={styles.deploymentBranch}>
-              <GitBranchIcon className={styles.branchIcon} />
-              {deployment.trigger.branch}
-            </span>
-          )}
-          <span className={styles.deploymentTrigger}>{triggerLabel}</span>
-          <span className={styles.deploymentTime}>
-            {new Date(deployment.createdAt).toLocaleString()}
-          </span>
-        </div>
-      </div>
-      {deployment.description && (
-        <p className={styles.deploymentDescription}>{deployment.description}</p>
-      )}
-      <div className={styles.deploymentWorkloads}>
-        {workloads.map(workload => (
-          <WorkloadCard
-            key={workload.id}
-            workload={workload}
-            onClick={() => onWorkloadClick(workload)}
-          />
-        ))}
-      </div>
-    </div>
-  )
+interface WorkloadLogEntry {
+  timestamp: string
+  stage: WorkloadStage
+  message: string
+  level: 'info' | 'warn' | 'error'
 }
 
 // --- Main Deployment List View ---
@@ -208,70 +25,404 @@ export function DeploymentListView({
   snapshot,
   onWorkloadClick,
 }: {
-  snapshot: DbSnapshot
+  snapshot?: DbSnapshot
   onWorkloadClick: (workload: Workload) => void
 }) {
-  const deployments = snapshot.deployments || []
-  const workloads = snapshot.workloads || []
+  const { deployments: deploymentsFromContext, isLoading, error } = useDeployments()
+
+  // Flatten deployments and workloads from context (SSE data)
+  const deployments = deploymentsFromContext.map(d => ({
+    id: d.id,
+    projectId: d.projectId,
+    name: d.name,
+    description: d.description,
+    trigger: d.trigger,
+    status: d.status,
+    workloadIds: d.workloadIds,
+    createdAt: d.createdAt,
+    updatedAt: d.updatedAt,
+    completedAt: d.completedAt,
+  }))
+  const workloads = deploymentsFromContext.flatMap(d => d.workloads)
+
+  const [logViewerState, setLogViewerState] = useState<{
+    workload: Workload
+    logs: LogEntry[]
+  } | null>(null)
+  const [loadingLogs, setLoadingLogs] = useState(false)
+  const [deletingDeployment, setDeletingDeployment] = useState<string | null>(null)
+  const [deleteConfirmation, setDeleteConfirmation] = useState<Deployment | null>(null)
+  const { showToast } = useToast()
 
   const deploymentsWithWorkloads = useMemo(() => {
-    return deployments.map(dep => ({
-      deployment: dep,
-      workloads: workloads.filter(w => dep.workloadIds.includes(w.id)),
-    }))
+    return deployments
+      .map(dep => ({
+        deployment: dep,
+        workloads: workloads.filter(w => w.deploymentId === dep.id),
+      }))
+      .sort((a, b) => {
+        const dateA = new Date(a.deployment.createdAt || 0).getTime()
+        const dateB = new Date(b.deployment.createdAt || 0).getTime()
+        return dateB - dateA // Most recent first
+      })
   }, [deployments, workloads])
+
+  const handleViewLogs = async (workload: Workload) => {
+    setLoadingLogs(true)
+    try {
+      const logs = await getWorkloadLogs(workload.id)
+      setLogViewerState({ workload, logs })
+    } catch (error) {
+      console.error('Failed to load logs:', error)
+      // Show empty logs with error
+      setLogViewerState({
+        workload,
+        logs: [{ stage: 'error', log: 'Failed to load logs', error: String(error) }]
+      })
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
+  const handleDeleteDeployment = async (deployment: Deployment) => {
+    setDeleteConfirmation(deployment)
+  }
+
+  const confirmDelete = async () => {
+    if (!deleteConfirmation) return
+
+    const deploymentName = (deleteConfirmation as any).serviceName || deleteConfirmation.name
+
+    setDeletingDeployment(deleteConfirmation.id)
+    setDeleteConfirmation(null)
+
+    showToast({
+      type: 'info',
+      title: 'Deleting deployment',
+      message: `Stopping workloads and cleaning up ${deploymentName}...`,
+    })
+
+    try {
+      // Get all workloads for this deployment
+      const deploymentWorkloads = workloads.filter(w => w.deploymentId === deleteConfirmation.id)
+
+      // Stop all running workloads
+      for (const workload of deploymentWorkloads) {
+        if (workload.status === 'running') {
+          try {
+            await fetch(`/api/workloads/${workload.id}/stop`, {
+              method: 'POST',
+              credentials: 'include',
+            })
+          } catch (error) {
+            console.error(`Failed to stop workload ${workload.id}:`, error)
+          }
+        }
+      }
+
+      // TODO: Clean up Docker containers/processes
+      // TODO: Clean up any persistent volumes
+      // TODO: Clean up network resources
+      // TODO: Clean up any environment-specific resources
+
+      // Delete all workloads
+      for (const workload of deploymentWorkloads) {
+        try {
+          await fetch(`/api/workloads/${workload.id}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          })
+        } catch (error) {
+          console.error(`Failed to delete workload ${workload.id}:`, error)
+        }
+      }
+
+      // Delete the deployment
+      const response = await fetch(`/api/deployments/${deleteConfirmation.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete deployment')
+      }
+
+      showToast({
+        type: 'success',
+        title: 'Deployment deleted',
+        message: `${deploymentName} has been successfully deleted`,
+      })
+
+      // The SSE stream will automatically update the UI when the deployment is deleted
+    } catch (error) {
+      console.error('Failed to delete deployment:', error)
+      showToast({
+        type: 'error',
+        title: 'Failed to delete deployment',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+      })
+    } finally {
+      setDeletingDeployment(null)
+    }
+  }
 
   if (deployments.length === 0) {
     return <div className={styles.emptyState}>No deployments yet</div>
   }
 
   return (
-    <div className={styles.deploymentListView}>
-      {deploymentsWithWorkloads.map(({ deployment, workloads }) => (
-        <DeploymentCard
-          key={deployment.id}
-          deployment={deployment}
-          workloads={workloads}
-          onWorkloadClick={onWorkloadClick}
+    <>
+      <div className={styles.deploymentListView}>
+        {deploymentsWithWorkloads.map(({ deployment, workloads }) => (
+          <DeploymentCard
+            key={deployment.id}
+            deployment={deployment}
+            workloads={workloads}
+            onWorkloadClick={onWorkloadClick}
+            onViewLogs={handleViewLogs}
+            onDelete={handleDeleteDeployment}
+          />
+        ))}
+      </div>
+      {logViewerState && (
+        <LogViewer
+          workloadId={logViewerState.workload.id}
+          workloadName={logViewerState.workload.moduleName}
+          logs={logViewerState.logs}
+          onClose={() => setLogViewerState(null)}
         />
-      ))}
-    </div>
+      )}
+      {loadingLogs && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingSpinner}>Loading logs...</div>
+        </div>
+      )}
+      {deleteConfirmation && (
+        <Modal title="Delete Deployment" onClose={() => setDeleteConfirmation(null)}>
+          <div className={modalStyles.modalContent}>
+            <p style={{ marginBottom: '16px', color: 'var(--text-primary)' }}>
+              Are you sure you want to delete deployment <strong>"{(deleteConfirmation as any).serviceName || deleteConfirmation.name}"</strong>?
+            </p>
+            <p style={{ marginBottom: '24px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+              This will stop all running workloads and clean up resources. This action cannot be undone.
+            </p>
+            <div className={modalStyles.modalFooter}>
+              <button
+                className={modalStyles.cancelButton}
+                onClick={() => setDeleteConfirmation(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className={modalStyles.submitButton}
+                onClick={confirmDelete}
+                disabled={deletingDeployment !== null}
+                style={{ background: 'var(--error)' }}
+              >
+                {deletingDeployment === deleteConfirmation.id ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </>
   )
 }
 
 // --- Workload Detail View ---
 
-export function WorkloadDetailView({ workload }: { workload: Workload }) {
+export function WorkloadDetailView({ workload: initialWorkload }: { workload: Workload }) {
+  const { getWorkloadById, getDeploymentById } = useDeployments()
+  const { showToast } = useToast()
+
+  // Always use the fresh workload from context if available
+  const workload = getWorkloadById(initialWorkload.id) || initialWorkload
+
+  // Check if the workload's deployment has been deleted
+  const deployment = workload.deploymentId ? getDeploymentById(workload.deploymentId) : undefined
+  const isDeleted = !getWorkloadById(initialWorkload.id)
+  const [copied, setCopied] = useState(false)
+  const [allExpanded, setAllExpanded] = useState(true)
+  const [logViewerState, setLogViewerState] = useState<{
+    workload: Workload
+    logs: LogEntry[]
+  } | null>(null)
+  const [loadingLogs, setLoadingLogs] = useState(false)
+  const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
+  const workloadType = workload.moduleType || 'service'
+  const port = (workload as any).port || workload.artifacts?.port
+  const containerId = (workload as any).containerId
+  const currentStage = workload.currentStage || (workload as any).stage || 'pending'
+
+  // Transform logs to stages if needed
+  const stages = useMemo(() => {
+    if (workload.stages && workload.stages.length > 0) {
+      return workload.stages
+    }
+    const logs = (workload as any).logs as WorkloadLogEntry[] | undefined | null
+    if (logs && Array.isArray(logs) && logs.length > 0) {
+      return transformLogsToStages(logs)
+    }
+    return []
+  }, [workload])
+
+  // Determine current stage status for color coding
+  const currentStageStatus = useMemo(() => {
+    let status = 'pending'
+
+    if (stages.length > 0) {
+      const stageResult = stages.find(s => s.stage === currentStage)
+      if (stageResult) {
+        status = stageResult.status
+      } else if (workload.status === 'running') {
+        status = 'running'
+      }
+    } else {
+      // For workloads without stages, infer from overall status
+      if (workload.status === 'running') status = 'running'
+      else if (workload.status === 'success') status = 'success'
+      else if (workload.status === 'failed') status = 'failed'
+    }
+
+    return status
+  }, [stages, workload.status, currentStage])
+
+  const handleCopyLogs = async () => {
+    let logText = ''
+
+    if (stages.length > 0) {
+      logText = stages
+        .map(stage => {
+          const logs = stage.logs?.join('\n') || ''
+          const error = stage.error || ''
+          return `[${stage.stage}]\n${logs}${error ? '\nError: ' + error : ''}`
+        })
+        .join('\n\n')
+    } else {
+      const rawLogs = (workload as any).logs || []
+      logText = rawLogs.map((log: any) => `[${log.stage || 'unknown'}] ${log.message}`).join('\n')
+      if ((workload as any).error) {
+        logText += `\nError: ${(workload as any).error}`
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(logText)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy logs:', err)
+    }
+  }
+
+  const handleStop = async (workloadId: string) => {
+    try {
+      await api.workloads.stop(workload.deploymentId, workloadId)
+      showToast({
+        type: 'success',
+        title: 'Workload stopped',
+        message: 'The workload has been stopped successfully'
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      showToast({
+        type: 'error',
+        title: 'Failed to stop workload',
+        message
+      })
+      throw error
+    }
+  }
+
+  const handleRestart = async (workloadId: string) => {
+    try {
+      await api.workloads.restart(workload.deploymentId, workloadId)
+      showToast({
+        type: 'success',
+        title: 'Workload restarting',
+        message: 'The workload is being restarted'
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      showToast({
+        type: 'error',
+        title: 'Failed to restart workload',
+        message
+      })
+      throw error
+    }
+  }
+
+  const handleViewLogs = async (workload: Workload) => {
+    setLoadingLogs(true)
+    try {
+      const logs = await getWorkloadLogs(workload.id)
+      setLogViewerState({ workload, logs })
+    } catch (error) {
+      console.error('Failed to load logs:', error)
+      setLogViewerState({
+        workload,
+        logs: [{ stage: 'error', log: 'Failed to load logs', error: String(error) }]
+      })
+    } finally {
+      setLoadingLogs(false)
+    }
+  }
+
+  if (isDeleted) {
+    return (
+      <div className={styles.workloadDetailView}>
+        <div className={styles.emptyState}>
+          <h2>Workload Deleted</h2>
+          <p>This workload has been deleted.</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.workloadDetailView}>
       <div className={styles.workloadDetailHeader}>
         <ServerIcon className={styles.workloadDetailIcon} />
         <div>
-          <h2 className={styles.workloadDetailName}>{workload.moduleName}</h2>
-          <span className={styles.workloadDetailType}>{workload.moduleType}</span>
+          <h2 className={styles.workloadDetailName}>{workloadName}</h2>
+          <span className={styles.workloadDetailType}>{workloadType}</span>
         </div>
-        <span className={`${styles.workloadDetailStatus} ${styles[`status-${workload.status}`]}`}>
-          {workload.status}
-        </span>
+        <div className={styles.workloadStatusBadge}>
+          <span className={`${styles.workloadStatusStage} ${styles[`stageStatus-${currentStageStatus}`]}`}>
+            {formatStageName(currentStage)}
+          </span>
+          <span className={`${styles.workloadDetailStatus} ${styles[`status-${workload.status}`]}`}>
+            {workload.status}
+          </span>
+        </div>
       </div>
 
-      {workload.artifacts && (
+      <WorkloadControls
+        workload={workload}
+        deploymentId={workload.deploymentId}
+        onStop={handleStop}
+        onRestart={handleRestart}
+        onViewLogs={handleViewLogs}
+      />
+
+      {(workload.artifacts || port || containerId) && (
         <div className={styles.workloadArtifacts}>
           <h3>Artifacts</h3>
           <dl>
-            {workload.artifacts.imageName && (
+            {workload.artifacts?.imageName && (
               <>
                 <dt>Image</dt>
                 <dd>{workload.artifacts.imageName}</dd>
               </>
             )}
-            {workload.artifacts.containerName && (
+            {(containerId || workload.artifacts?.containerName) && (
               <>
                 <dt>Container</dt>
-                <dd>{workload.artifacts.containerName}</dd>
+                <dd>{containerId || workload.artifacts?.containerName}</dd>
               </>
             )}
-            {workload.artifacts.url && (
+            {workload.artifacts?.url && (
               <>
                 <dt>URL</dt>
                 <dd>
@@ -281,10 +432,22 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
                 </dd>
               </>
             )}
-            {workload.artifacts.port && (
+            {port && (
               <>
                 <dt>Port</dt>
-                <dd>{workload.artifacts.port}</dd>
+                <dd>{port}</dd>
+              </>
+            )}
+            {workload.status === 'running' && workload.createdAt && (
+              <>
+                <dt>Uptime</dt>
+                <dd>{formatUptime(workload.createdAt)}</dd>
+              </>
+            )}
+            {workload.completedAt && workload.createdAt && (
+              <>
+                <dt>Duration</dt>
+                <dd>{formatDuration(workload.createdAt, workload.completedAt)}</dd>
               </>
             )}
           </dl>
@@ -292,27 +455,42 @@ export function WorkloadDetailView({ workload }: { workload: Workload }) {
       )}
 
       <div className={styles.workloadStageDetails}>
-        <h3>Pipeline Stages</h3>
-        {workload.stages.map((stage, i) => (
-          <div key={i} className={`${styles.stageDetail} ${styles[`stage-${stage.status}`]}`}>
-            <div className={styles.stageDetailHeader}>
-              <span className={styles.stageDetailName}>{stage.stage}</span>
-              <span className={styles.stageDetailStatus}>{stage.status}</span>
-              {stage.duration && (
-                <span className={styles.stageDetailDuration}>{stage.duration}ms</span>
-              )}
-            </div>
-            {stage.logs && stage.logs.length > 0 && (
-              <pre className={styles.stageDetailLogs}>
-                {stage.logs.join('\n')}
-              </pre>
-            )}
-            {stage.error && (
-              <div className={styles.stageDetailError}>{stage.error}</div>
-            )}
-          </div>
-        ))}
+        <div className={styles.stageDetailsHeader}>
+          <h3>Pipeline Stages</h3>
+          <button
+            className={styles.copyLogsButton}
+            onClick={() => setAllExpanded(!allExpanded)}
+            title={allExpanded ? 'Collapse all stages' : 'Expand all stages'}
+          >
+            <ChevronDownIcon />
+            <span>{allExpanded ? 'Collapse All' : 'Expand All'}</span>
+          </button>
+          <button
+            className={styles.copyLogsButton}
+            onClick={handleCopyLogs}
+            title="Copy all logs to clipboard"
+          >
+            <ClipboardIcon />
+            <span>{copied ? 'Copied!' : 'Copy All Logs'}</span>
+          </button>
+        </div>
+        <div className={styles.stageDetailsContainer}>
+          {stages.length > 0 ? stages.map((stage, i) => (
+            <StageDetailCard key={i} stage={stage} expanded={allExpanded} />
+          )) : (
+            <div className={styles.emptyState}>No stage data available</div>
+          )}
+        </div>
       </div>
+
+      {logViewerState && (
+        <LogViewer
+          workloadId={workload.id}
+          workloadName={workloadName}
+          logs={logViewerState.logs}
+          onClose={() => setLogViewerState(null)}
+        />
+      )}
     </div>
   )
 }

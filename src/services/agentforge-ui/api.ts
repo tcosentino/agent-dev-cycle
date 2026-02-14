@@ -305,6 +305,7 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
+    streamUrl: (id: string) => `${API_BASE}/projects/${id}/deployments/stream`,
   },
   tasks: {
     list: (projectId?: string) => {
@@ -387,6 +388,24 @@ export const api = {
       return fetchJson<ApiWorkload[]>(`/workloads?deploymentId=${deploymentId}`)
     },
     get: (id: string) => fetchJson<ApiWorkload>(`/workloads/${id}`),
+    stop: (deploymentId: string, workloadId: string) =>
+      fetchJson<{ success: true; workloadId: string; stage: string }>(
+        `/deployments/${deploymentId}/workloads/${workloadId}/stop`,
+        {
+          method: 'POST',
+        }
+      ),
+    restart: (deploymentId: string, workloadId: string) =>
+      fetchJson<{ success: true; workloadId: string; stage: string }>(
+        `/deployments/${deploymentId}/workloads/${workloadId}/restart`,
+        {
+          method: 'POST',
+        }
+      ),
+    getLogs: (deploymentId: string, workloadId: string) =>
+      fetchJson<Array<{ timestamp: string; stage: string; message: string; level: string }>>(
+        `/deployments/${deploymentId}/workloads/${workloadId}/logs`
+      ),
   },
 
   agentSessions: {
@@ -414,6 +433,55 @@ export const api = {
       }),
     streamUrl: (id: string) => `${API_BASE}/agentSessions/${id}/stream`,
   },
+}
+
+// --- Deployment Dashboard Helpers ---
+
+/**
+ * Get deployments for a project (convenience wrapper)
+ */
+export async function getDeployments(projectId: string): Promise<ApiDeployment[]> {
+  return api.deployments.list(projectId)
+}
+
+/**
+ * Get workloads for a deployment (convenience wrapper)
+ */
+export async function getWorkloads(deploymentId: string): Promise<ApiWorkload[]> {
+  return api.workloads.list(deploymentId)
+}
+
+/**
+ * Get workload logs by fetching the workload and extracting logs from stages
+ */
+export async function getWorkloadLogs(workloadId: string): Promise<Array<{ stage: string; log: string; error?: string }>> {
+  const workload = await api.workloads.get(workloadId) as unknown as {
+    stages?: Array<{
+      stage: string
+      logs?: string[]
+      error?: string
+    }>
+  }
+
+  if (!workload.stages) {
+    return []
+  }
+
+  // Flatten logs from all stages with stage context
+  const logs: Array<{ stage: string; log: string; error?: string }> = []
+  
+  for (const stage of workload.stages) {
+    if (stage.logs && stage.logs.length > 0) {
+      for (const log of stage.logs) {
+        logs.push({ stage: stage.stage, log })
+      }
+    }
+    if (stage.error) {
+      logs.push({ stage: stage.stage, log: stage.error, error: stage.error })
+    }
+  }
+
+  return logs
 }
 
 // Parse GitHub repo URL to extract owner and repo

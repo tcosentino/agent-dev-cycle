@@ -290,8 +290,8 @@ export function registerGitHubRoutes(
       const content = await getFileContent(user.githubAccessToken, owner, repo, path, branch)
       return c.json({ content })
     } catch (err) {
-      console.error('Error fetching file content:', err)
-      return c.json({ error: 'Failed to fetch file content' }, 500)
+      console.error(`Error fetching file content for path="${path}":`, err)
+      return c.json({ error: 'Failed to fetch file content', details: err instanceof Error ? err.message : String(err) }, 500)
     }
   })
 }

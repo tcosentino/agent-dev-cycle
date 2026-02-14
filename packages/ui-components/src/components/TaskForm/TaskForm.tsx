@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react'
 import type { TaskType, TaskPriority, TaskStatus } from '../../types'
+import { TASK_TYPES, TASK_PRIORITIES, TASK_STATUSES, TASK_ASSIGNEES } from '../../domain/task/constants'
 import styles from './TaskForm.module.css'
 
 export interface TaskFormData {
@@ -18,11 +19,6 @@ export interface TaskFormProps {
   submitLabel?: string
   isLoading?: boolean
 }
-
-const taskTypes: TaskType[] = ['epic', 'api', 'backend', 'frontend', 'testing', 'documentation', 'devops']
-const priorities: TaskPriority[] = ['low', 'medium', 'high', 'critical']
-const statuses: TaskStatus[] = ['todo', 'in-progress', 'review', 'done', 'blocked']
-const assignees = ['pm', 'engineer', 'qa', 'lead']
 
 export function TaskForm({ 
   initialData = {}, 
@@ -128,7 +124,7 @@ export function TaskForm({
             disabled={isLoading}
           >
             <option value="">None</option>
-            {taskTypes.map(type => (
+            {TASK_TYPES.map(type => (
               <option key={type} value={type}>
                 {type.charAt(0).toUpperCase() + type.slice(1)}
               </option>
@@ -147,7 +143,7 @@ export function TaskForm({
             onChange={(e) => handleChange('priority', e.target.value)}
             disabled={isLoading}
           >
-            {priorities.map(priority => (
+            {TASK_PRIORITIES.map(priority => (
               <option key={priority} value={priority}>
                 {priority.charAt(0).toUpperCase() + priority.slice(1)}
               </option>
@@ -168,7 +164,7 @@ export function TaskForm({
             onChange={(e) => handleChange('status', e.target.value)}
             disabled={isLoading}
           >
-            {statuses.map(status => (
+            {TASK_STATUSES.map(status => (
               <option key={status} value={status}>
                 {status === 'in-progress' ? 'In Progress' : status.charAt(0).toUpperCase() + status.slice(1)}
               </option>
@@ -188,7 +184,7 @@ export function TaskForm({
             disabled={isLoading}
           >
             <option value="">Unassigned</option>
-            {assignees.map(assignee => (
+            {TASK_ASSIGNEES.map(assignee => (
               <option key={assignee} value={assignee}>
                 {assignee.toUpperCase()}
               </option>

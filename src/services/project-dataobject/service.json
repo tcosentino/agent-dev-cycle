@@ -1,25 +1,14 @@
 {
-  "name": "project-dataobject",
+  "name": "project",
   "type": "dataobject",
-  "version": "0.1.0",
-  "description": "Project data object. Represents a software project being built by agents.",
+  "version": "1.0.0",
+  "description": "Project management - represents external projects with services to deploy",
   "entry": "index.ts",
-  "schema": {
-    "fields": [
-      { "name": "id", "type": "uuid", "auto": true },
-      { "name": "name", "type": "string", "required": true, "max": 200 },
-      { "name": "key", "type": "string", "required": true, "min": 2, "max": 10, "unique": true },
-      { "name": "repoUrl", "type": "string" },
-      { "name": "createdAt", "type": "date", "auto": true }
-    ]
-  },
   "endpoints": [
-    { "method": "GET", "path": "/projects", "description": "List all projects" },
-    { "method": "GET", "path": "/projects/:id", "description": "Get project by ID" },
-    { "method": "POST", "path": "/projects", "description": "Create a new project" },
-    { "method": "PUT", "path": "/projects/:id", "description": "Update a project" },
-    { "method": "DELETE", "path": "/projects/:id", "description": "Delete a project" }
-  ],
-  "dependencies": [],
-  "tags": ["core", "organization"]
+    { "method": "GET", "path": "/api/projects", "description": "List all projects" },
+    { "method": "GET", "path": "/api/projects/:id", "description": "Get project by ID" },
+    { "method": "POST", "path": "/api/projects", "description": "Create a new project" },
+    { "method": "PUT", "path": "/api/projects/:id", "description": "Update a project" },
+    { "method": "DELETE", "path": "/api/projects/:id", "description": "Delete a project" }
+  ]
 }

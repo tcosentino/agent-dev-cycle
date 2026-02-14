@@ -23,14 +23,13 @@ export type ProjectData = Record<string, Record<string, string>>
 // Workload stage types (matches @agentforge/runtime)
 export type WorkloadStage =
   | 'pending'
-  | 'validate'
-  | 'build'
-  | 'deploy'
-  | 'healthcheck'
-  | 'test'
-  | 'complete'
+  | 'starting-container'
+  | 'cloning-repo'
+  | 'starting-service'
+  | 'running'
+  | 'graceful-shutdown'
+  | 'stopped'
   | 'failed'
-  | 'rolledback'
 
 export type StageStatus = 'pending' | 'running' | 'success' | 'failed' | 'skipped'
 
@@ -90,6 +89,10 @@ export interface Deployment {
   completedAt?: string
 }
 
+export interface DeploymentWithWorkloads extends Deployment {
+  workloads: Workload[]
+}
+
 export interface DbSnapshot {
   projects: Record<string, unknown>[]
   tasks: Record<string, unknown>[]
@@ -134,5 +137,26 @@ export interface ServiceMetadata {
   endpoints?: ServiceEndpoint[]
   dependencies?: string[]
   tags?: string[]
+}
+
+// Workload control types
+export interface WorkloadControlResponse {
+  success: true
+  workloadId: string
+  stage: WorkloadStage
+}
+
+export interface WorkloadControlError {
+  error: 'NotFound' | 'InvalidState' | 'Conflict'
+  message: string
+  workloadId?: string
+  currentStage?: WorkloadStage
+}
+
+export interface WorkloadLogEntry {
+  timestamp: string
+  stage: WorkloadStage
+  message: string
+  level: 'info' | 'warn' | 'error'
 }
 

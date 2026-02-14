@@ -181,7 +181,7 @@ export async function getFileContent(
   const data: GitHubContent = await res.json()
 
   if (data.type !== 'file' || !data.content) {
-    throw new Error('Not a file or no content available')
+    throw new Error(`Not a file or no content available: path="${path}", type="${data.type}"`)
   }
 
   // Decode base64 content

@@ -16,6 +16,7 @@ import {
   TabbedPane,
   type Tab,
 } from '@agentforge/ui-components'
+import { DeploymentProvider } from './contexts/DeploymentContext'
 import {
   AgentSessionProgressPanel,
   StartAgentSessionModal,
@@ -393,25 +394,39 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   useEffect(() => {
     if (!snapshot) return
 
-    setOpenTabs(prev => prev.map(tab => {
-      if (tab.type !== 'record' || !tab.tableName) return tab
+    console.log('[ProjectViewer] Snapshot changed, syncing tab records')
+    setOpenTabs(prev => {
+      let hasChanges = false
+      const updated = prev.map(tab => {
+        if (tab.type !== 'record' || !tab.tableName) return tab
 
-      // Get fresh record from snapshot
-      const [, key] = tab.path.split(':')
-      const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
-      const freshRecord = tableData?.find(r => String(r.id || r.key) === key)
+        // Get fresh record from snapshot
+        const [, key] = tab.path.split(':')
+        const tableData = snapshot[tab.tableName] as Record<string, unknown>[] | undefined
+        const freshRecord = tableData?.find(r => String(r.id || r.key) === key)
 
-      // Update tab with fresh record if found
-      if (freshRecord) {
-        return { ...tab, record: freshRecord }
-      }
+        // Only update if record content actually changed
+        if (freshRecord && JSON.stringify(tab.record) !== JSON.stringify(freshRecord)) {
+          console.log('[ProjectViewer] Updated record for tab:', tab.tableName, key)
+          hasChanges = true
+          return { ...tab, record: freshRecord }
+        }
 
-      return tab
-    }))
+        return tab
+      })
+
+      // Only update state if something actually changed
+      return hasChanges ? updated : prev
+    })
   }, [snapshot])
+
+  // Track which files have been requested to avoid duplicate loads
+  const loadingFilesRef = useRef<Set<string>>(new Set())
 
   // Eagerly load agent config, prompt, and service files when they're detected
   useEffect(() => {
+    if (!onLoadFileContent) return
+
     const configPaths = Object.keys(files).filter(path =>
       path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
@@ -427,12 +442,16 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     for (const filePath of pathsToLoad) {
       const fileExists = filePath in files
       const fileContent = files[filePath]
+      const loadKey = `${activeProject}:${filePath}`
 
-      // If file exists but content is empty, load it
-      if (fileExists && fileContent === '' && onLoadFileContent) {
+      // If file exists but content is empty, and we haven't already requested it, load it
+      if (fileExists && fileContent === '' && !loadingFilesRef.current.has(loadKey)) {
         console.log('[ProjectViewer] Eagerly loading', filePath)
+        loadingFilesRef.current.add(loadKey)
         onLoadFileContent(activeProject, filePath).catch((err: Error) => {
           console.error(`[ProjectViewer] Failed to load ${filePath}:`, err)
+          // Remove from loading set on error so it can be retried
+          loadingFilesRef.current.delete(loadKey)
         })
       }
     }
@@ -441,23 +460,38 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   // Load agents from new folder structure (.agentforge/agents/{id}/config.json)
   // Fall back to legacy agents.yaml if new structure doesn't exist
   const agents = useMemo(() => {
-    // Try new structure first
-    const hasNewStructure = Object.keys(files).some(path =>
-      path.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
+    // Extract only agent config files that have loaded content
+    const agentConfigPaths = Object.keys(files).filter(p =>
+      p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/)
     )
 
+    const loadedConfigPaths = agentConfigPaths.filter(p => files[p] && files[p] !== '')
+    const hasNewStructure = loadedConfigPaths.length > 0
+
     if (hasNewStructure) {
-      return parseAgentConfigs(files)
+      const agentFiles: Record<string, string> = {}
+      for (const path of loadedConfigPaths) {
+        agentFiles[path] = files[path]
+      }
+
+      return parseAgentConfigs(agentFiles)
     }
 
     // Fall back to legacy agents.yaml
-    const agentsFile = files['.agentforge/agents.yaml']
-    if (agentsFile && agentsFile !== '') {
-      return parseAgentsYaml(agentsFile)
+    const agentsYaml = files['.agentforge/agents.yaml']
+    if (agentsYaml && agentsYaml !== '') {
+      return parseAgentsYaml(agentsYaml)
     }
 
     return []
-  }, [files])
+  }, [
+    // Only recalculate when agent config files change
+    Object.keys(files)
+      .filter(p => p.match(/^\.agentforge\/agents\/[^/]+\/config\.json$/) || p === '.agentforge/agents.yaml')
+      .sort()
+      .map(p => files[p]) // Use actual content as dependency
+      .join('|')
+  ])
 
   // Split tabs by pane
   const leftTabs = useMemo(() => openTabs.filter(t => t.pane === 'left'), [openTabs])
@@ -831,6 +865,33 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   const focusedTab = activePane === 'left' ? activeLeftTab : activeRightTab
   const selectedFilePath = focusedTab?.type === 'file' ? focusedTab.path : null
 
+  // Refresh snapshot when switching to deployments or workloads tables or records
+  // NOTE: Workloads and deployments use SSE for real-time updates, but we still
+  // refresh on tab switch to catch any missed updates or initial load
+  useEffect(() => {
+    // Use tab IDs instead of tab objects to avoid re-triggering when tab contents change
+    const activeTabId = activePane === 'left' ? activeTabIds.left : activeTabIds.right
+    const activeTab = openTabs.find(t => t.id === activeTabId)
+
+    console.log('[ProjectViewer] Refresh effect triggered', {
+      tabType: activeTab?.type,
+      tabPath: activeTab?.path,
+      tableName: activeTab?.tableName,
+      activePane,
+      activeProject
+    })
+    if (activeTab?.type === 'table') {
+      const tableName = activeTab.path as DbTableName
+      if (tableName === 'deployments' || tableName === 'workloads') {
+        console.log('[ProjectViewer] Refreshing snapshot for table:', tableName)
+        onRefreshSnapshot?.(activeProject)
+      }
+    }
+    // Don't refresh for workload/deployment records - SSE provides real-time updates
+    // and polling causes unnecessary load
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTabIds.left, activeTabIds.right, activePane, activeProject])
+
   // Convert to Tab[] for TabbedPane
   const toTabs = (tabs: OpenTab[]): Tab[] => tabs.map(t => {
     // Add menu content for tabs with view options
@@ -839,7 +900,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     // Table tabs with rich view support
     if (t.type === 'table' && TABLES_WITH_VIEW.includes(t.path as DbTableName)) {
       const tableName = t.path as DbTableName
-      const defaultMode = tableName === 'tasks' ? 'view' : 'table'
+      const defaultMode = (tableName === 'tasks' || tableName === 'deployments') ? 'view' : 'table'
       const currentMode = viewModes[tableName] || defaultMode
 
       // Customize view labels based on table type
@@ -927,7 +988,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
 
     if (tab.type === 'table' && snapshot) {
       const tableName = tab.path as DbTableName
-      const defaultMode = tableName === 'tasks' ? 'view' : 'table'
+      const defaultMode = (tableName === 'tasks' || tableName === 'deployments') ? 'view' : 'table'
       const viewMode = viewModes[tableName] || defaultMode
       return (
         <DatabaseTableView
@@ -1035,6 +1096,17 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             readme={readme}
             servicePath={tab.path}
             onFileClick={openFile}
+            projectId={activeProject}
+            onWorkloadCreated={async (workloadId: string) => {
+              // Refresh snapshot to get the latest workload data
+              await onRefreshSnapshot?.(activeProject)
+
+              // Find the workload in the snapshot
+              const workload = snapshot?.workloads?.find((w: any) => w.id === workloadId)
+              if (workload) {
+                openRecord('workloads', workload as unknown as Record<string, unknown>, workloadId)
+              }
+            }}
           />
         </div>
       )
@@ -1087,7 +1159,8 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   }
 
   return (
-    <div className={styles.container} ref={containerRef}>
+    <DeploymentProvider projectId={activeProject}>
+      <div className={styles.container} ref={containerRef}>
       <div className={styles.splitPane}>
         <div className={styles.sidebar} style={{ width: sidebarWidth }}>
           <div className={styles.sidebarSection}>
@@ -1240,5 +1313,6 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
         />
       )}
     </div>
+    </DeploymentProvider>
   )
 }
