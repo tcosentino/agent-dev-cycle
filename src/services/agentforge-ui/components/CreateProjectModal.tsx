@@ -133,7 +133,7 @@ export function CreateProjectModal({
   }
 
   return (
-    <Modal title="Create Project" onClose={onClose}>
+    <Modal isOpen={true} title="Create Project" onClose={onClose}>
       <form onSubmit={handleSubmit} className={styles.modalContent}>
         <div className={styles.formGroup}>
           <label className={styles.label}>
