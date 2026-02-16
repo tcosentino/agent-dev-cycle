@@ -31,11 +31,22 @@ export type { ListPanelProps, SidebarItem } from './components/ListPanel/types'
 export { Modal } from './components/Modal/Modal'
 export type { ModalProps } from './components/Modal/Modal'
 
+export { ConfirmDialog } from './components/ConfirmDialog/ConfirmDialog'
+export type { ConfirmDialogProps } from './components/ConfirmDialog/ConfirmDialog'
+
 export { Card } from './components/Card/Card'
 export type { CardProps } from './components/Card/Card'
 
+export { CodeBlock } from './components/CodeBlock/CodeBlock'
+export type { CodeBlockProps } from './components/CodeBlock/CodeBlock'
+
 export { ToastProvider, useToast } from './components/Toast/Toast'
 export type { ToastOptions, ToastType } from './components/Toast/Toast'
+
+export { ErrorBoundary } from './components/ErrorBoundary/ErrorBoundary'
+
+export { useNotificationPreferences } from './hooks/useNotificationPreferences'
+export type { NotificationPreferences } from './hooks/useNotificationPreferences'
 
 // ============================================================================
 // TIER 2: Domain-Specific Components (Business Logic)

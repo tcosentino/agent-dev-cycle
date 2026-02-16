@@ -128,10 +128,10 @@ The system SHALL display modal alerts for critical failures requiring immediate 
   - Actions: "Retry Connection", "Reload Page"
 - **AND** polling/requests are paused
 
-#### Scenario: Authentication expired alert
-- **WHEN** API returns 401 (session expired)
-- **THEN** modal alert shows "Session expired. Please log in again."
-- **AND** user is redirected to login after dismiss
+#### Scenario: Authentication token invalid alert
+- **WHEN** API returns 401 (invalid or missing token)
+- **THEN** modal alert shows "Authentication failed. Please check your Claude token in settings."
+- **AND** user can navigate to settings to update token
 
 #### Scenario: Critical error in runner
 - **WHEN** agent session fails with critical error (out of memory, crash)

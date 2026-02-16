@@ -55,6 +55,7 @@ export function createAuthMiddleware(userStore: ResourceStore<Record<string, unk
       const sessionCookie = getCookie(c, 'session')
 
       if (!sessionCookie) {
+        console.log('[auth] No session cookie found for request:', c.req.path)
         c.set('user', null)
         c.set('userId', null)
         return next()
@@ -62,6 +63,7 @@ export function createAuthMiddleware(userStore: ResourceStore<Record<string, unk
 
       const userId = verifyUserId(sessionCookie)
       if (!userId) {
+        console.error('[auth] Failed to verify session cookie for request:', c.req.path)
         c.set('user', null)
         c.set('userId', null)
         return next()
@@ -69,9 +71,17 @@ export function createAuthMiddleware(userStore: ResourceStore<Record<string, unk
 
       try {
         const user = await userStore.findById(userId)
-        c.set('user', user as User | null)
-        c.set('userId', userId)
-      } catch {
+        if (user) {
+          console.log('[auth] Authenticated user:', userId, 'for request:', c.req.path)
+          c.set('user', user as User | null)
+          c.set('userId', userId)
+        } else {
+          console.error('[auth] User not found in store:', userId)
+          c.set('user', null)
+          c.set('userId', null)
+        }
+      } catch (error) {
+        console.error('[auth] Error loading user from store:', error)
         c.set('user', null)
         c.set('userId', null)
       }
@@ -102,8 +112,8 @@ export function registerGitHubRoutes(
     return
   }
 
-  // Apply auth middleware to all routes
-  app.use('*', createAuthMiddleware(userStore))
+  // Note: Auth middleware is now applied globally by auth-integration
+  // which loads before this integration (alphabetically)
 
   // OAuth: Start login flow
   app.get('/auth/github', (c) => {

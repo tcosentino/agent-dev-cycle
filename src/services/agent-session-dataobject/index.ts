@@ -13,6 +13,10 @@ export const agentSessionStageEnum = z.enum([
   'committing',
   'completed',
   'failed',
+  'cancelling',
+  'cancelled',
+  'paused',
+  'resuming',
 ])
 
 export const agentSessionLogEntry = z.object({
@@ -61,6 +65,7 @@ export const agentSessionResource = defineResource({
 
     // Retry lineage
     retriedFromId: z.string().uuid().optional(),
+    retryCount: z.number().int().min(0).default(0),
 
     // Timing
     startedAt: z.coerce.date().optional(),
@@ -68,7 +73,7 @@ export const agentSessionResource = defineResource({
   }),
 
   createFields: ['projectId', 'agent', 'phase', 'taskPrompt'],
-  updateFields: ['stage', 'progress', 'currentStep', 'logs', 'stageOutputs', 'summary', 'commitSha', 'error', 'startedAt', 'completedAt'],
+  updateFields: ['stage', 'progress', 'currentStep', 'logs', 'stageOutputs', 'summary', 'commitSha', 'error', 'retriedFromId', 'retryCount', 'startedAt', 'completedAt'],
   unique: ['sessionId'],
   searchable: ['sessionId', 'agent', 'stage'],
   relations: {

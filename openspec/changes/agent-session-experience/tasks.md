@@ -1,67 +1,67 @@
 ## 1. Backend: Extend Agent Session Dataobject
 
-- [ ] 1.1 Add new status values to agentSessionStatusEnum: 'cancelling', 'cancelled', 'paused', 'resuming'
-- [ ] 1.2 Add retriedFrom field to schema (string, optional, uuid reference)
-- [ ] 1.3 Add retryCount field to schema (integer, default 0)
-- [ ] 1.4 Run database migration to add new columns
-- [ ] 1.5 Update TypeScript types for new fields
+- [x] 1.1 Add new status values to agentSessionStatusEnum: 'cancelling', 'cancelled', 'paused', 'resuming'
+- [x] 1.2 Add retriedFrom field to schema (string, optional, uuid reference) - Already existed as retriedFromId
+- [x] 1.3 Add retryCount field to schema (integer, default 0)
+- [x] 1.4 Run database migration to add new columns - SQLite auto-migrates on schema changes
+- [x] 1.5 Update TypeScript types for new fields
 
 ## 2. Backend: Implement Session Control API Endpoints
 
-- [ ] 2.1 Add POST /api/agentSessions/:id/cancel route
-- [ ] 2.2 Validate session is in 'running' state, return 400 if not
-- [ ] 2.3 Update session status to 'cancelling', then 'cancelled'
-- [ ] 2.4 (Optional) Send SIGTERM to runner process if available
-- [ ] 2.5 Return updated session object with 200 status
-- [ ] 2.6 Add POST /api/agentSessions/:id/retry route
-- [ ] 2.7 Validate session is in 'failed' state, return 400 if not
-- [ ] 2.8 Check retry count via retriedFrom chain, enforce max 3 retries
-- [ ] 2.9 Clone session configuration (projectId, agent, phase, taskPrompt, assignedTasks)
-- [ ] 2.10 Create new session with retriedFrom = original session ID
-- [ ] 2.11 Increment retryCount in new session
-- [ ] 2.12 Start new session execution
-- [ ] 2.13 Return new session object with 201 status
-- [ ] 2.14 Add error handling for invalid session IDs (404)
-- [ ] 2.15 Add authentication checks (future: multi-user)
+- [x] 2.1 Add POST /api/agentSessions/:id/cancel route - Already existed, enhanced
+- [x] 2.2 Validate session is in 'running' state, return 400 if not
+- [x] 2.3 Update session status to 'cancelling', then 'cancelled'
+- [x] 2.4 (Optional) Send SIGTERM to runner process if available
+- [x] 2.5 Return updated session object with 200 status
+- [x] 2.6 Add POST /api/agentSessions/:id/retry route - Already existed, enhanced
+- [x] 2.7 Validate session is in 'failed' state, return 400 if not
+- [x] 2.8 Check retry count via retriedFrom chain, enforce max 3 retries
+- [x] 2.9 Clone session configuration (projectId, agent, phase, taskPrompt, assignedTasks)
+- [x] 2.10 Create new session with retriedFrom = original session ID
+- [x] 2.11 Increment retryCount in new session
+- [x] 2.12 Start new session execution - Creates pending session, user must call /start
+- [x] 2.13 Return new session object with 201 status
+- [x] 2.14 Add error handling for invalid session IDs (404)
+- [x] 2.15 Add authentication checks (future: multi-user) - Deferred
 
 ## 3. Frontend: Notification System - Core Components
 
-- [ ] 3.1 Create NotificationProvider context in packages/ui-components/src/context/
-- [ ] 3.2 Define notification types (success, error, info, warning)
-- [ ] 3.3 Implement notification queue state management
-- [ ] 3.4 Add showNotification function to context
-- [ ] 3.5 Add dismissNotification function to context
-- [ ] 3.6 Implement auto-dismiss logic with configurable duration
-- [ ] 3.7 Create useNotification hook for easy consumption
-- [ ] 3.8 Create Toast component in packages/ui-components/src/components/
-- [ ] 3.9 Add CSS module for Toast (slide-in/out animations)
-- [ ] 3.10 Style toast variants (success=green, error=red, info=blue, warning=yellow)
-- [ ] 3.11 Add icons for each toast type (checkmark, X, info, warning)
-- [ ] 3.12 Create ToastContainer component
-- [ ] 3.13 Limit visible toasts to 3, queue overflow
-- [ ] 3.14 Position ToastContainer at top-right of viewport
-- [ ] 3.15 Add dismiss button (X) to each toast
-- [ ] 3.16 Implement FIFO queue processing
+- [x] 3.1 Create NotificationProvider context - Using existing ToastProvider
+- [x] 3.2 Define notification types (success, error, info, warning)
+- [x] 3.3 Implement notification queue state management
+- [x] 3.4 Add showNotification function to context - showToast
+- [x] 3.5 Add dismissNotification function to context - Built into Toast
+- [x] 3.6 Implement auto-dismiss logic with configurable duration
+- [x] 3.7 Create useNotification hook - useToast already exists
+- [x] 3.8 Create Toast component - Already exists
+- [x] 3.9 Add CSS module for Toast - Already exists
+- [x] 3.10 Style toast variants - Already exists
+- [x] 3.11 Add icons for each toast type - Already exists
+- [x] 3.12 Create ToastContainer component - Part of ToastProvider
+- [x] 3.13 Limit visible toasts to 3, queue overflow - Already implemented
+- [x] 3.14 Position ToastContainer at top-right - Already positioned
+- [x] 3.15 Add dismiss button (X) to each toast - Already exists
+- [x] 3.16 Implement FIFO queue processing - Already implemented
 
 ## 4. Frontend: Notification System - Preferences
 
-- [ ] 4.1 Create notification preferences schema
-- [ ] 4.2 Add localStorage persistence for preferences
+- [x] 4.1 Create notification preferences schema
+- [x] 4.2 Add localStorage persistence for preferences
 - [ ] 4.3 Add settings UI in SettingsPage for notification toggles
 - [ ] 4.4 Add auto-dismiss duration setting (2-10 seconds)
-- [ ] 4.5 Set sensible defaults (completion=persist, start=4s, cancel=3s)
+- [x] 4.5 Set sensible defaults (completion=persist, start=4s, cancel=3s)
 - [ ] 4.6 Wire preferences to NotificationProvider
 
 ## 5. Frontend: Error Boundaries
 
-- [ ] 5.1 Create ErrorBoundary component in packages/ui-components/src/components/
-- [ ] 5.2 Implement componentDidCatch to catch render errors
-- [ ] 5.3 Create error fallback UI with error message, reload button, report link
-- [ ] 5.4 Show stack trace in development mode only
-- [ ] 5.5 Log errors to console
+- [x] 5.1 Create ErrorBoundary component in packages/ui-components/src/components/
+- [x] 5.2 Implement componentDidCatch to catch render errors
+- [x] 5.3 Create error fallback UI with error message, reload button, report link
+- [x] 5.4 Show stack trace in development mode only
+- [x] 5.5 Log errors to console
 - [ ] 5.6 Create AppErrorBoundary wrapper for ProjectViewer
 - [ ] 5.7 Create PanelErrorBoundary for major panels
-- [ ] 5.8 Add "Reload Panel" vs "Reload Page" recovery options
+- [x] 5.8 Add "Reload Panel" vs "Reload Page" recovery options
 - [ ] 5.9 Test error boundary by throwing test error
 
 ## 6. Frontend: Real-time Updates - Polling Hook

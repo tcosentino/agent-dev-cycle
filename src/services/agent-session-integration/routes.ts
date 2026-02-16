@@ -26,7 +26,7 @@ interface AgentSession {
   agent: string
   phase: string
   taskPrompt: string
-  stage: string
+  stage: 'pending' | 'cloning' | 'loading' | 'executing' | 'capturing' | 'committing' | 'completed' | 'failed' | 'cancelling' | 'cancelled' | 'paused' | 'resuming'
   progress: number
   currentStep?: string
   logs: LogEntry[]
@@ -41,6 +41,7 @@ interface AgentSession {
   commitSha?: string
   error?: string
   retriedFromId?: string
+  retryCount: number
   startedAt?: Date
   completedAt?: Date
   createdAt: Date
@@ -56,6 +57,37 @@ interface Project {
 
 // Track running containers for cancellation
 const runningContainers = new Map<string, { containerId?: string; process?: ReturnType<typeof spawn> }>()
+
+// Track active SSE streams for cleanup
+const activeStreams = new Set<AbortController>()
+
+// Cleanup function for graceful shutdown
+function cleanup() {
+  console.log('Cleaning up agent session resources...')
+
+  // Kill all running processes
+  for (const [id, running] of runningContainers.entries()) {
+    if (running.process) {
+      console.log(`Killing runner process for session ${id}`)
+      running.process.kill('SIGTERM')
+    }
+    if (running.containerId) {
+      spawn('docker', ['stop', running.containerId], { stdio: 'ignore' })
+    }
+  }
+  runningContainers.clear()
+
+  // Abort all active SSE streams
+  for (const controller of activeStreams) {
+    controller.abort()
+  }
+  activeStreams.clear()
+}
+
+// Register cleanup on process signals
+process.on('SIGTERM', cleanup)
+process.on('SIGINT', cleanup)
+process.on('beforeExit', cleanup)
 
 // Generate sessionId like 'pm-001', 'eng-002'
 async function generateSessionId(
@@ -118,6 +150,7 @@ export function registerAgentSessionRoutes(
       stage: 'pending',
       progress: 0,
       logs: [],
+      stageOutputs: {},
     })
 
     return c.json(session, 201)
@@ -127,13 +160,17 @@ export function registerAgentSessionRoutes(
   app.post('/api/agentSessions/:id/start', async (c) => {
     const { id } = c.req.param()
 
+    console.log('[agent-session] Starting session:', id)
+
     const session = await agentSessionStore.findById(id) as AgentSession | null
     if (!session) {
+      console.error('[agent-session] Session not found:', id)
       return c.json({ error: 'Agent session not found' }, 404)
     }
 
     if (session.stage !== 'pending') {
-      return c.json({ error: 'Session already started' }, 400)
+      console.error('[agent-session] Session already started:', id, 'current stage:', session.stage)
+      return c.json({ error: 'Session already started', currentStage: session.stage }, 400)
     }
 
     // Get project for repo URL and userId
@@ -143,30 +180,38 @@ export function registerAgentSessionRoutes(
     }
 
     if (!project?.repoUrl) {
+      console.error('[agent-session] Project has no repo URL:', session.projectId)
       return c.json({ error: 'Project has no repository URL configured' }, 400)
     }
 
     // Get user store for Claude auth
     const userStore = ctx.stores.get('user')
     if (!userStore) {
+      console.error('[agent-session] User store not available')
       return c.json({ error: 'User store not available' }, 500)
     }
 
     // Get userId from project
     const projectWithUser = project as Project & { userId?: string }
     if (!projectWithUser.userId) {
+      console.error('[agent-session] Project has no user associated:', session.projectId)
       return c.json({ error: 'Project has no user associated' }, 400)
     }
+
+    console.log('[agent-session] Getting Claude credentials for user:', projectWithUser.userId)
 
     // Get Claude credentials (refreshes OAuth token if needed)
     const credentialsResult = await getClaudeCredentialsForSession(userStore, projectWithUser.userId)
     if (!credentialsResult.success) {
+      console.error('[agent-session] Failed to get Claude credentials:', credentialsResult.error)
       return c.json({
         error: 'CLAUDE_AUTH_ERROR',
         message: credentialsResult.error,
         action: { type: 'link', href: '/settings', label: 'Go to Settings' }
       }, 400)
     }
+
+    console.log('[agent-session] Successfully obtained Claude credentials')
 
     // Update session to cloning stage
     await agentSessionStore.update(id, {
@@ -226,7 +271,6 @@ export function registerAgentSessionRoutes(
 
         proc = spawn('docker', dockerArgs, {
           stdio: ['ignore', 'pipe', 'pipe'],
-          detached: true,
         })
       } else {
         // Local execution (for development)
@@ -254,7 +298,6 @@ export function registerAgentSessionRoutes(
               WORKSPACE_PATH: localWorkspace,
             },
             stdio: ['ignore', 'pipe', 'pipe'],
-            detached: true,
           })
         } else {
           throw new Error(`tsx not found at ${tsxBinPath}. Run 'yarn install' in the runner directory.`)
@@ -341,9 +384,11 @@ export function registerAgentSessionRoutes(
         }
       })
 
+      console.log('[agent-session] Session started successfully:', id)
       return c.json({ ok: true, message: 'Session started' })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
+      console.error('[agent-session] Failed to start session:', id, errorMessage, err)
       await agentSessionStore.update(id, {
         stage: 'failed',
         completedAt: new Date(),
@@ -367,106 +412,115 @@ export function registerAgentSessionRoutes(
     }
 
     return streamSSE(c, async (stream) => {
+      // Create abort controller for this stream
+      const abortController = new AbortController()
+      activeStreams.add(abortController)
+
       let lastLogIndex = 0
       let lastStage = ''
       let lastProgress = -1
       const lastStageLogCounts: Record<string, number> = {}
 
-      // Send initial state
-      await stream.writeSSE({
-        event: 'init',
-        data: JSON.stringify({
-          id: session.id,
-          sessionId: session.sessionId,
-          agent: session.agent,
-          phase: session.phase,
-          stage: session.stage,
-          progress: session.progress,
-          currentStep: session.currentStep,
-          logsCount: session.logs.length,
-          stageOutputs: session.stageOutputs,
-        }),
-      })
+      try {
+        // Send initial state
+        await stream.writeSSE({
+          event: 'init',
+          data: JSON.stringify({
+            id: session.id,
+            sessionId: session.sessionId,
+            agent: session.agent,
+            phase: session.phase,
+            stage: session.stage,
+            progress: session.progress,
+            currentStep: session.currentStep,
+            logsCount: session.logs.length,
+            stageOutputs: session.stageOutputs,
+          }),
+        })
 
-      // Poll for updates
-      while (true) {
-        const current = await agentSessionStore.findById(id) as AgentSession | null
-        if (!current) break
+        // Poll for updates
+        while (!abortController.signal.aborted) {
+          const current = await agentSessionStore.findById(id) as AgentSession | null
+          if (!current) break
 
-        // Send new log entries
-        if (current.logs.length > lastLogIndex) {
-          const newLogs = current.logs.slice(lastLogIndex)
-          for (const log of newLogs) {
-            await stream.writeSSE({
-              event: 'log',
-              data: JSON.stringify(log),
-            })
-          }
-          lastLogIndex = current.logs.length
-        }
-
-        // Send stage/progress updates
-        if (current.stage !== lastStage || current.progress !== lastProgress) {
-          await stream.writeSSE({
-            event: 'progress',
-            data: JSON.stringify({
-              stage: current.stage,
-              progress: current.progress,
-              currentStep: current.currentStep,
-            }),
-          })
-          lastStage = current.stage
-          lastProgress = current.progress
-        }
-
-        // Send stage-specific updates
-        for (const stageKey of ['cloning', 'loading', 'executing', 'capturing', 'committing'] as const) {
-          const stageOutput = current.stageOutputs[stageKey]
-          if (stageOutput) {
-            const lastCount = lastStageLogCounts[stageKey] || 0
-            if (stageOutput.logs.length > lastCount) {
-              const newLogs = stageOutput.logs.slice(lastCount)
-              for (const log of newLogs) {
-                await stream.writeSSE({
-                  event: 'stage-log',
-                  data: JSON.stringify({ stage: stageKey, log }),
-                })
-              }
-              lastStageLogCounts[stageKey] = stageOutput.logs.length
-            }
-
-            // Send stage completion event
-            if (stageOutput.completedAt && !lastStageLogCounts[`${stageKey}-completed`]) {
+          // Send new log entries
+          if (current.logs.length > lastLogIndex) {
+            const newLogs = current.logs.slice(lastLogIndex)
+            for (const log of newLogs) {
               await stream.writeSSE({
-                event: 'stage-complete',
-                data: JSON.stringify({
-                  stage: stageKey,
-                  duration: stageOutput.duration,
-                  completedAt: stageOutput.completedAt,
-                }),
+                event: 'log',
+                data: JSON.stringify(log),
               })
-              lastStageLogCounts[`${stageKey}-completed`] = 1
+            }
+            lastLogIndex = current.logs.length
+          }
+
+          // Send stage/progress updates
+          if (current.stage !== lastStage || current.progress !== lastProgress) {
+            await stream.writeSSE({
+              event: 'progress',
+              data: JSON.stringify({
+                stage: current.stage,
+                progress: current.progress,
+                currentStep: current.currentStep,
+              }),
+            })
+            lastStage = current.stage
+            lastProgress = current.progress
+          }
+
+          // Send stage-specific updates
+          for (const stageKey of ['cloning', 'loading', 'executing', 'capturing', 'committing'] as const) {
+            const stageOutput = current.stageOutputs?.[stageKey]
+            if (stageOutput) {
+              const lastCount = lastStageLogCounts[stageKey] || 0
+              if (stageOutput.logs.length > lastCount) {
+                const newLogs = stageOutput.logs.slice(lastCount)
+                for (const log of newLogs) {
+                  await stream.writeSSE({
+                    event: 'stage-log',
+                    data: JSON.stringify({ stage: stageKey, log }),
+                  })
+                }
+                lastStageLogCounts[stageKey] = stageOutput.logs.length
+              }
+
+              // Send stage completion event
+              if (stageOutput.completedAt && !lastStageLogCounts[`${stageKey}-completed`]) {
+                await stream.writeSSE({
+                  event: 'stage-complete',
+                  data: JSON.stringify({
+                    stage: stageKey,
+                    duration: stageOutput.duration,
+                    completedAt: stageOutput.completedAt,
+                  }),
+                })
+                lastStageLogCounts[`${stageKey}-completed`] = 1
+              }
             }
           }
-        }
 
-        // Send result if completed/failed
-        if (current.stage === 'completed' || current.stage === 'failed') {
-          await stream.writeSSE({
-            event: 'result',
-            data: JSON.stringify({
-              stage: current.stage,
-              summary: current.summary,
-              commitSha: current.commitSha,
-              error: current.error,
-              completedAt: current.completedAt,
-            }),
-          })
-          break
-        }
+          // Send result if completed/failed
+          if (current.stage === 'completed' || current.stage === 'failed') {
+            await stream.writeSSE({
+              event: 'result',
+              data: JSON.stringify({
+                stage: current.stage,
+                summary: current.summary,
+                commitSha: current.commitSha,
+                error: current.error,
+                completedAt: current.completedAt,
+              }),
+            })
+            break
+          }
 
-        // Wait before next poll
-        await stream.sleep(500)
+          // Wait before next poll
+          await stream.sleep(500)
+        }
+      } finally {
+        // Clean up this stream
+        activeStreams.delete(abortController)
       }
     })
   })
@@ -480,9 +534,22 @@ export function registerAgentSessionRoutes(
       return c.json({ error: 'Agent session not found' }, 404)
     }
 
-    if (session.stage === 'completed' || session.stage === 'failed') {
+    if (session.stage === 'completed' || session.stage === 'failed' || session.stage === 'cancelled') {
       return c.json({ error: 'Session already finished' }, 400)
     }
+
+    if (session.stage === 'cancelling') {
+      return c.json({ error: 'Session is already being cancelled' }, 400)
+    }
+
+    // Update to cancelling state
+    await agentSessionStore.update(id, {
+      stage: 'cancelling',
+      logs: [
+        ...session.logs,
+        { timestamp: new Date(), level: 'warn', message: 'Cancelling session...' },
+      ],
+    })
 
     const running = runningContainers.get(id)
     if (running) {
@@ -497,17 +564,18 @@ export function registerAgentSessionRoutes(
       runningContainers.delete(id)
     }
 
-    await agentSessionStore.update(id, {
-      stage: 'failed',
+    // Update to cancelled state
+    const updatedSession = await agentSessionStore.update(id, {
+      stage: 'cancelled',
       completedAt: new Date(),
       error: 'Cancelled by user',
       logs: [
-        ...session.logs,
+        ...(await agentSessionStore.findById(id) as AgentSession).logs,
         { timestamp: new Date(), level: 'warn', message: 'Session cancelled by user' },
       ],
     })
 
-    return c.json({ ok: true, message: 'Session cancelled' })
+    return c.json(updatedSession, 200)
   })
 
   // Retry a failed session by creating a new session
@@ -519,8 +587,32 @@ export function registerAgentSessionRoutes(
       return c.json({ error: 'Agent session not found' }, 404)
     }
 
-    if (session.stage !== 'failed') {
-      return c.json({ error: 'Can only retry failed sessions' }, 400)
+    if (session.stage !== 'failed' && session.stage !== 'cancelled') {
+      return c.json({ error: 'Can only retry failed or cancelled sessions' }, 400)
+    }
+
+    // Calculate retry count by following retriedFrom chain
+    let retryCount = 0
+    let currentSession = session
+    const visited = new Set<string>([session.id])
+
+    // Follow the chain backwards to count retries and detect cycles
+    while (currentSession.retriedFromId) {
+      if (visited.has(currentSession.retriedFromId)) {
+        // Circular reference detected
+        return c.json({ error: 'Circular retry reference detected' }, 400)
+      }
+      visited.add(currentSession.retriedFromId)
+      retryCount++
+
+      const parentSession = await agentSessionStore.findById(currentSession.retriedFromId) as AgentSession | null
+      if (!parentSession) break
+      currentSession = parentSession
+    }
+
+    // Enforce max 3 retries (4 total attempts)
+    if (retryCount >= 3) {
+      return c.json({ error: 'Maximum retry limit reached (3 retries)' }, 400)
     }
 
     // Generate a new sessionId for the retry
@@ -536,9 +628,11 @@ export function registerAgentSessionRoutes(
       stage: 'pending',
       progress: 0,
       logs: [
-        { timestamp: new Date(), level: 'info', message: `Retry of failed session ${session.sessionId}` },
+        { timestamp: new Date(), level: 'info', message: `Retry ${retryCount + 1} of session ${session.sessionId}` },
       ],
+      stageOutputs: {},
       retriedFromId: session.id,
+      retryCount: retryCount + 1,
     })
 
     return c.json(newSession, 201)
@@ -567,10 +661,10 @@ export function registerAgentSessionRoutes(
     // If stage is specified, also add to stage-specific logs
     if (stage && ['cloning', 'loading', 'executing', 'capturing', 'committing'].includes(stage)) {
       const stageKey = stage as keyof AgentSession['stageOutputs']
-      const currentStageOutput = session.stageOutputs[stageKey] || { logs: [] }
+      const currentStageOutput = session.stageOutputs?.[stageKey] || { logs: [] }
 
       updates.stageOutputs = {
-        ...session.stageOutputs,
+        ...(session.stageOutputs || {}),
         [stageKey]: {
           ...currentStageOutput,
           logs: [...currentStageOutput.logs, logEntry],
@@ -600,11 +694,11 @@ export function registerAgentSessionRoutes(
     }
 
     const stageKey = stage as keyof AgentSession['stageOutputs']
-    const currentStageOutput = session.stageOutputs[stageKey] || { logs: [] }
+    const currentStageOutput = session.stageOutputs?.[stageKey] || { logs: [] }
 
     await agentSessionStore.update(id, {
       stageOutputs: {
-        ...session.stageOutputs,
+        ...(session.stageOutputs || {}),
         [stageKey]: {
           ...currentStageOutput,
           completedAt: new Date(),

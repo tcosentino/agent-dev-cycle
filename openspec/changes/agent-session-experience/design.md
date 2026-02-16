@@ -176,11 +176,15 @@ paused → resuming → running
 ### Component Changes
 
 **New Components:**
+
 - `NotificationProvider` (context provider)
-- `ToastContainer` (renders toast stack)
-- `Toast` (individual notification)
 - `ErrorBoundary` (reusable error boundary)
 - `ConfirmDialog` (confirmation modal for cancel)
+
+**Leveraging Existing Components:**
+
+- `Toast` component already exists in `packages/ui-components/src/components/Toast` from deployment dashboard work
+- Will extend/enhance existing Toast for notification system needs
 
 **Modified Components:**
 - `AgentSessionProgressPanel`

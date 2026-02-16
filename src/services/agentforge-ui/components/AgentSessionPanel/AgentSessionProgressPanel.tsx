@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAgentSessionProgress, useAgentSession } from '../../hooks'
-import { api, type ApiAgentSessionLogEntry } from '../../api'
-import { Badge, Spinner, GitBranchIcon, ClipboardIcon } from '@agentforge/ui-components'
+import { api, type ApiAgentSessionLogEntry, cancelAgentSession } from '../../api'
+import { Badge, Spinner, GitBranchIcon, ClipboardIcon, ConfirmDialog, useToast } from '@agentforge/ui-components'
 import styles from './AgentSessionPanel.module.css'
 
 export interface AgentSessionProgressPanelProps {
@@ -56,9 +56,10 @@ function VerticalStageList({
           status = 'active'
         }
 
-        const hasLogs = stageOutputs[stage.key]?.logs?.length > 0
+        const stageOutput = stageOutputs[stage.key]
+        const hasLogs = stageOutput?.logs?.length > 0
         const isSelected = selectedStage === stage.key
-        const duration = stageOutputs[stage.key]?.duration
+        const duration = stageOutput?.duration
 
         return (
           <button
@@ -96,9 +97,12 @@ export function AgentSessionProgressPanel({
 }: AgentSessionProgressPanelProps) {
   const { progress, isLoading, error } = useAgentSessionProgress(sessionId)
   const { session: initialSession } = useAgentSession(sessionId)
+  const { showToast } = useToast()
   const logsEndRef = useRef<HTMLDivElement>(null)
   const [autoScroll, setAutoScroll] = useState(true)
   const [isRetrying, setIsRetrying] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [showCancelDialog, setShowCancelDialog] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
   const [selectedStage, setSelectedStage] = useState<string | null>(null)
 
@@ -120,15 +124,36 @@ export function AgentSessionProgressPanel({
     setIsRetrying(true)
     try {
       const newSession = await api.agentSessions.retry(sessionId)
+      showToast({ type: 'info', title: 'Session retried', message: `Started retry as ${newSession.sessionId}`, duration: 3000 })
       // Navigate to new session immediately, then start it
       onRetry(newSession.id)
       // Start the session after navigation (fire and forget)
       api.agentSessions.start(newSession.id).catch(err => {
         console.error('Failed to start retry session:', err)
+        showToast({ type: 'error', title: 'Failed to start session', message: err instanceof Error ? err.message : 'Unknown error' })
       })
     } catch (err) {
       console.error('Failed to create retry session:', err)
+      showToast({ type: 'error', title: 'Failed to retry session', message: err instanceof Error ? err.message : 'Unknown error' })
       setIsRetrying(false)
+    }
+  }
+
+  const handleCancelClick = () => {
+    setShowCancelDialog(true)
+  }
+
+  const handleCancelConfirm = async () => {
+    setShowCancelDialog(false)
+    setIsCancelling(true)
+    try {
+      await cancelAgentSession(sessionId)
+      showToast({ type: 'info', title: 'Session cancelled', duration: 3000 })
+    } catch (err) {
+      console.error('Failed to cancel session:', err)
+      showToast({ type: 'error', title: 'Failed to cancel session', message: err instanceof Error ? err.message : 'Unknown error' })
+    } finally {
+      setIsCancelling(false)
     }
   }
 
@@ -187,13 +212,27 @@ export function AgentSessionProgressPanel({
   }
 
   const stageOutputs: Record<string, { logs: any[]; duration?: number; completedAt?: Date }> =
-    ('stageOutputs' in session ? session.stageOutputs : {}) as Record<string, { logs: any[]; duration?: number; completedAt?: Date }>
+    ('stageOutputs' in session && session.stageOutputs !== null ? session.stageOutputs : {}) as Record<string, { logs: any[]; duration?: number; completedAt?: Date }>
   const displayLogs = selectedStage && stageOutputs[selectedStage]
     ? stageOutputs[selectedStage].logs
     : ('logs' in session ? session.logs : [])
 
+  const isRunning = !['completed', 'failed', 'cancelled', 'pending'].includes(session.stage)
+  const isFailed = session.stage === 'failed' || session.stage === 'cancelled'
+
   return (
     <div className={styles.panel}>
+      <ConfirmDialog
+        isOpen={showCancelDialog}
+        title="Cancel session?"
+        message="This will stop the agent. Completed work will be preserved."
+        confirmLabel="Cancel Session"
+        cancelLabel="Keep Running"
+        variant="danger"
+        onConfirm={handleCancelConfirm}
+        onCancel={() => setShowCancelDialog(false)}
+      />
+
       <div className={styles.panelLayout}>
         {/* Left sidebar with vertical stage list */}
         <VerticalStageList
@@ -205,19 +244,33 @@ export function AgentSessionProgressPanel({
 
         {/* Main content area */}
         <div className={styles.panelMain}>
-          {/* Header with status badge and error/retry */}
+          {/* Header with status badge and controls */}
           <div className={styles.panelHeader}>
             <Badge
-              variant={session.stage === 'completed' ? 'green' : session.stage === 'failed' ? 'red' : 'orange'}
+              variant={session.stage === 'completed' ? 'green' : (session.stage === 'failed' || session.stage === 'cancelled') ? 'red' : session.stage === 'cancelling' ? 'muted' : 'orange'}
               size="sm"
             >
-              {session.stage === 'failed' ? 'Failed' : session.stage}
+              {session.stage === 'cancelling' ? 'Cancelling...' : session.stage === 'cancelled' ? 'Cancelled' : session.stage === 'failed' ? 'Failed' : session.stage}
             </Badge>
-            {session.stage === 'failed' && (
-              <div className={styles.headerActions}>
-                {session.error && (
-                  <span className={styles.headerError}>{session.error}</span>
-                )}
+
+            <div className={styles.headerActions}>
+              {session.error && isFailed && (
+                <span className={styles.headerError}>{session.error}</span>
+              )}
+
+              {/* Cancel button for running sessions */}
+              {isRunning && (
+                <button
+                  className={styles.cancelButton}
+                  onClick={handleCancelClick}
+                  disabled={isCancelling || session.stage === 'cancelling'}
+                >
+                  {session.stage === 'cancelling' ? 'Cancelling...' : 'Cancel'}
+                </button>
+              )}
+
+              {/* Retry button for failed/cancelled sessions */}
+              {isFailed && (
                 <button
                   className={styles.retryButton}
                   onClick={handleRetry}
@@ -225,8 +278,8 @@ export function AgentSessionProgressPanel({
                 >
                   {isRetrying ? 'Retrying...' : 'Retry'}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Logs area */}
