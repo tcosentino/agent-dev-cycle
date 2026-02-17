@@ -130,10 +130,12 @@ Agent sessions and workload deployments share a common UI infrastructure:
 Agent Sessions (job-style):
 
 - Session detail header with agent type and phase
-- Task prompt display
+- Task prompt display in Session Info section
+- **Context Files** - Shows which files were loaded into agent's context (displayed in Session Info, not logs)
 - Summary and commit SHA on completion
 - Cancel button (jobs should be cancellable)
 - Retry button on failure
+- **Enhanced logging** - Shows actual git output and Claude execution details (see Agent Session Logging below)
 
 Workloads (service or job):
 
@@ -151,6 +153,48 @@ Both views use identical collapsible 2-column stage layout in detail views:
 - Right column: Logs for that stage (collapsible)
 - Clicking stage row toggles collapse/expand
 - Expand/Collapse All and Copy All Logs buttons
+
+**Live View Auto-Expansion (Agent Sessions):**
+
+When viewing a live agent session, the current running stage auto-expands:
+
+- On load, the view is "untouched" — the running stage opens automatically
+- When the session advances to a new stage, that stage auto-expands
+- Once the user manually toggles any fold (expand/collapse individual stage, or Expand/Collapse All), the view is marked "touched"
+- In the "touched" state, auto-expansion stops and the user's chosen fold layout is preserved
+- Implemented via `isUntouched` state + `prevStageRef` in `AgentSessionProgressPanel`
+
+### Agent Session Logging
+
+Agent sessions provide detailed developer-friendly logging at each stage:
+
+**Clone Stage:**
+- Shows actual git clone output (progress, repo size, errors)
+- Uses git's standard output format
+
+**Loading Stage:**
+- Lists context files loaded into agent's context
+- Displayed in Session Info metadata section (not in logs)
+- Example files: `prompts/system.md`, `PROJECT.md`, `ARCHITECTURE.md`, `state/progress.yaml`
+
+**Execute Stage:**
+- Streams Claude Code's actual output line-by-line
+- Shows real-time progress of what Claude is doing
+- Replaces generic line counts with actual execution details
+
+**Commit Stage:**
+- Shows git's actual commit output with file change stats
+- Example: `3 files changed, 42 insertions(+), 7 deletions(-)`
+- Displays commit message
+- Shows push output or rebase details if needed
+- Uses git's standard terminology (e.g., "push rejected" not "push failed")
+
+**Implementation:**
+- `runner/src/progress.ts` - Helper functions: `reportGitOutput()`, `reportClaudeOutput()`, `reportContextFiles()`
+- `runner/src/git.ts` - Captures stdout/stderr from git commands
+- `runner/src/claude.ts` - Streams Claude output instead of counting lines
+- `runner/src/context.ts` - Tracks which files were loaded
+- All logs use git's actual output format for developer familiarity
 
 ## Real-Time Architecture
 
