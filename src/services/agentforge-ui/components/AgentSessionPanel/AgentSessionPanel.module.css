@@ -525,4 +525,14 @@
   transition: all 0.2s ease;
 }
 
+.copyLogsButton:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.copyLogsButton svg {
+  width: 14px;
+  height: 14px;
+}
 
