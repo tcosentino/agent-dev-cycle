@@ -251,23 +251,23 @@ export function AgentSessionProgressPanel({
                 </span>
               </div>
             </div>
-          </div>
-
-          {/* Status Header with Controls */}
-          <ExecutionHeader
-            status={session.stage === 'cancelling' ? 'Cancelling...' : session.stage === 'cancelled' ? 'Cancelled' : session.stage}
-            error={isFailed ? session.error : undefined}
-            actions={
-              <ExecutionControls
-                mode="job"
-                status={session.stage}
-                onCancel={handleCancelClick}
-                onRetry={handleRetry}
-                isCancelling={isCancelling || session.stage === 'cancelling'}
-                isRetrying={isRetrying}
+            <div className={styles.sessionHeaderActions}>
+              <ExecutionHeader
+                status={session.stage === 'cancelling' ? 'Cancelling...' : session.stage === 'cancelled' ? 'Cancelled' : session.stage}
+                error={isFailed ? session.error : undefined}
+                actions={
+                  <ExecutionControls
+                    mode="job"
+                    status={session.stage}
+                    onCancel={handleCancelClick}
+                    onRetry={handleRetry}
+                    isCancelling={isCancelling || session.stage === 'cancelling'}
+                    isRetrying={isRetrying}
+                  />
+                }
               />
-            }
-          />
+            </div>
+          </div>
 
           {/* Tab Navigation */}
           <div className={styles.tabNav}>
