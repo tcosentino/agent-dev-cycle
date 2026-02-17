@@ -11,6 +11,7 @@ import {
 } from '@agentforge/ui-components'
 import type { Deployment, Workload } from '../types'
 import { WorkloadCard } from './WorkloadCard'
+import { SectionCard } from './SectionCard'
 import styles from '../ProjectViewer.module.css'
 
 export interface DeploymentCardProps {
@@ -54,39 +55,43 @@ export function DeploymentCard({
 
   const deploymentName = (deployment as any).serviceName || deployment.name || 'Unnamed deployment'
 
+  const titleNode = (
+    <div className={styles.deploymentTitle}>
+      {statusIcons[deployment.status]}
+      <RocketIcon className={styles.deploymentIcon} />
+      <span className={styles.deploymentName}>{deploymentName}</span>
+      <DeploymentStatusBadge
+        status={deployment.status}
+        lastCheckTime={deployment.updatedAt}
+        showTooltip={true}
+      />
+    </div>
+  )
+
+  const metaNode = (
+    <div className={styles.deploymentMeta}>
+      {deployment.trigger?.branch && (
+        <span className={styles.deploymentBranch}>
+          <GitBranchIcon className={styles.branchIcon} />
+          {deployment.trigger.branch}
+        </span>
+      )}
+      <span className={styles.deploymentTrigger}>{triggerLabel}</span>
+      <span className={styles.deploymentTime}>
+        {new Date(deployment.createdAt).toLocaleString()}
+      </span>
+      <button
+        className={styles.deleteDeploymentButton}
+        onClick={() => onDelete(deployment)}
+        title="Delete deployment"
+      >
+        <XCircleIcon />
+      </button>
+    </div>
+  )
+
   return (
-    <div className={styles.deploymentCard}>
-      <div className={styles.deploymentHeader}>
-        <div className={styles.deploymentTitle}>
-          {statusIcons[deployment.status]}
-          <RocketIcon className={styles.deploymentIcon} />
-          <span className={styles.deploymentName}>{deploymentName}</span>
-          <DeploymentStatusBadge
-            status={deployment.status}
-            lastCheckTime={deployment.updatedAt}
-            showTooltip={true}
-          />
-        </div>
-        <div className={styles.deploymentMeta}>
-          {deployment.trigger?.branch && (
-            <span className={styles.deploymentBranch}>
-              <GitBranchIcon className={styles.branchIcon} />
-              {deployment.trigger.branch}
-            </span>
-          )}
-          <span className={styles.deploymentTrigger}>{triggerLabel}</span>
-          <span className={styles.deploymentTime}>
-            {new Date(deployment.createdAt).toLocaleString()}
-          </span>
-          <button
-            className={styles.deleteDeploymentButton}
-            onClick={() => onDelete(deployment)}
-            title="Delete deployment"
-          >
-            <XCircleIcon />
-          </button>
-        </div>
-      </div>
+    <SectionCard title={titleNode} headerMeta={metaNode} noPadding>
       {deployment.description && (
         <p className={styles.deploymentDescription}>{deployment.description}</p>
       )}
@@ -99,6 +104,6 @@ export function DeploymentCard({
           />
         ))}
       </div>
-    </div>
+    </SectionCard>
   )
 }

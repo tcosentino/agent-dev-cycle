@@ -4,7 +4,8 @@
 .overviewContent {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-md);
+  padding: var(--space-md);
 }
 
 .configGrid {
@@ -34,22 +35,6 @@
   font-family: var(--font-mono);
 }
 
-.statsSection {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 20px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-}
-
-.sectionTitle {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
 
 .statsList {
   display: flex;
@@ -77,18 +62,18 @@
 .runAgentButton {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: 6px;
+  padding: 6px 12px;
   background: var(--accent-tertiary);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: opacity 0.15s;
-  align-self: flex-start;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .runAgentButton:hover {
@@ -222,6 +207,56 @@
   border-left: 3px solid var(--accent-tertiary);
   background: var(--bg-tertiary);
   color: var(--text-secondary);
+}
+
+/* Duration Widget */
+.durationWidget {
+  position: relative;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  cursor: default;
+  white-space: nowrap;
+}
+
+.durationLive {
+  color: var(--accent-primary);
+}
+
+.durationTooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 100;
+  pointer-events: none;
+}
+
+.durationTooltipAbove {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+.durationTooltipRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+
+.durationTooltipRow span:first-child {
+  color: var(--text-muted);
 }
 
 /* Loading & Error States */

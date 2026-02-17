@@ -13,12 +13,16 @@ import {
   ExecutionControls,
   type StageOutput,
 } from '@agentforge/ui-components'
+import { PanelLayout } from '../PanelLayout'
+import { SectionCard } from '../SectionCard'
 import styles from './AgentSessionPanel.module.css'
 
 export interface AgentSessionProgressPanelProps {
   sessionId: string
   onClose?: () => void
   onRetry?: (newSessionId: string) => void
+  initialTab?: TabId
+  onTabChange?: (tab: TabId) => void
 }
 
 const stages = [
@@ -42,14 +46,84 @@ const stageIndex: Record<string, number> = {
 
 type TabId = 'overview' | 'stages' | 'results'
 
+// ---- Transcript parsing ----
+
+interface AgentForgeAction {
+  type: 'task' | 'message' | 'other'
+  method: string
+  endpoint: string
+  payload?: Record<string, unknown>
+  timestamp?: string
+}
+
+function parseTranscriptForActions(jsonl: string): AgentForgeAction[] {
+  const actions: AgentForgeAction[] = []
+  const lines = jsonl.split('\n').filter(l => l.trim())
+
+  for (const line of lines) {
+    try {
+      const entry = JSON.parse(line)
+      const msg = entry.message
+      if (!msg || typeof msg !== 'object') continue
+      const content = msg.content
+      if (!Array.isArray(content)) continue
+
+      for (const block of content) {
+        if (block.type !== 'tool_use' || block.name !== 'Bash') continue
+        const cmd: string = block.input?.command || ''
+
+        // Match curl -X POST/PATCH to /api/* endpoints
+        const methodMatch = cmd.match(/curl\s+.*?(?:-X\s+(\w+)|--request\s+(\w+))/s)
+        const urlMatch = cmd.match(/https?:\/\/[^\s'"]+\/api\/(\w+)/)
+        if (!urlMatch) continue
+
+        const resource = urlMatch[1]
+        const method = methodMatch?.[1] || methodMatch?.[2] || 'GET'
+        if (!['POST', 'PATCH', 'PUT'].includes(method.toUpperCase())) continue
+
+        let type: AgentForgeAction['type'] = 'other'
+        if (resource === 'tasks') type = 'task'
+        else if (resource === 'messages') type = 'message'
+
+        let payload: Record<string, unknown> | undefined
+        const dataMatch = cmd.match(/-d\s+'({[^']+})'/) || cmd.match(/-d\s+"({[^"]+})"/)
+        if (dataMatch) {
+          try { payload = JSON.parse(dataMatch[1]) } catch { /* ignore */ }
+        }
+
+        actions.push({ type, method: method.toUpperCase(), endpoint: `/api/${resource}`, payload, timestamp: entry.timestamp })
+      }
+    } catch { /* skip malformed lines */ }
+  }
+
+  return actions
+}
+
+function getActionLabel(action: AgentForgeAction): string {
+  const p = action.payload
+  if (action.type === 'task' && p?.title) return String(p.title)
+  if (action.type === 'message' && p?.content) return String(p.content).slice(0, 80)
+  return action.endpoint
+}
+
+// ---- Component ----
+
 export function AgentSessionProgressPanel({
   sessionId,
   onRetry,
+  initialTab,
+  onTabChange,
 }: AgentSessionProgressPanelProps) {
   const { progress, isLoading, error } = useAgentSessionProgress(sessionId)
   const { session: initialSession } = useAgentSession(sessionId)
   const { showToast } = useToast()
-  const [activeTab, setActiveTab] = useState<TabId>('overview')
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab ?? 'overview')
+
+  const handleTabChange = (tab: TabId) => {
+    setActiveTab(tab)
+    onTabChange?.(tab)
+  }
+
   const [isRetrying, setIsRetrying] = useState(false)
   const [isCancelling, setIsCancelling] = useState(false)
   const [showCancelDialog, setShowCancelDialog] = useState(false)
@@ -58,15 +132,21 @@ export function AgentSessionProgressPanel({
   const [isUntouched, setIsUntouched] = useState(true)
   const prevStageRef = useRef<string | null>(null)
 
+  // Artifact state
+  const [notepad, setNotepad] = useState<string | null>(null)
+  const [transcript, setTranscript] = useState<string | null>(null)
+  const [changedFiles, setChangedFiles] = useState<Array<{ path: string; status: 'added' | 'modified' | 'deleted' }>>([])
+  const [agentForgeActions, setAgentForgeActions] = useState<AgentForgeAction[]>([])
+  const [artifactsLoaded, setArtifactsLoaded] = useState(false)
+  const [commitTab, setCommitTab] = useState<'files' | 'notepad' | 'transcript'>('files')
+
   const handleRetry = async () => {
     if (!sessionId || !onRetry) return
     setIsRetrying(true)
     try {
       const newSession = await api.agentSessions.retry(sessionId)
       showToast({ type: 'info', title: 'Session retried', message: `Started retry as ${newSession.sessionId}`, duration: 3000 })
-      // Navigate to new session immediately, then start it
       onRetry(newSession.id)
-      // Start the session after navigation (fire and forget)
       api.agentSessions.start(newSession.id).catch(err => {
         console.error('Failed to start retry session:', err)
         showToast({ type: 'error', title: 'Failed to start session', message: err instanceof Error ? err.message : 'Unknown error' })
@@ -78,9 +158,7 @@ export function AgentSessionProgressPanel({
     }
   }
 
-  const handleCancelClick = () => {
-    setShowCancelDialog(true)
-  }
+  const handleCancelClick = () => setShowCancelDialog(true)
 
   const handleCancelConfirm = async () => {
     setShowCancelDialog(false)
@@ -97,24 +175,17 @@ export function AgentSessionProgressPanel({
   }
 
   const handleToggleStage = (stage: string) => {
-    // Mark as touched when user manually toggles
     setIsUntouched(false)
     setExpandedStages(prev => {
       const next = new Set(prev)
-      if (next.has(stage)) {
-        next.delete(stage)
-      } else {
-        next.add(stage)
-      }
+      if (next.has(stage)) next.delete(stage)
+      else next.add(stage)
       return next
     })
   }
 
-  // Use progress from SSE if connected, otherwise use initial session data
   const session = progress || initialSession
 
-  // Transform stageOutputs to StageOutput[] format for ExecutionLogPanel
-  // (Moved before early returns to avoid hook ordering issues)
   const stageOutputsRaw: Record<string, { logs: any[]; duration?: number; completedAt?: Date }> =
     session && 'stageOutputs' in session && session.stageOutputs !== null
       ? session.stageOutputs
@@ -126,13 +197,9 @@ export function AgentSessionProgressPanel({
     const isFailed = session.stage === 'failed'
 
     let status: 'pending' | 'running' | 'success' | 'failed' = 'pending'
-    if (isFailed && idx === current) {
-      status = 'failed'
-    } else if (isComplete || idx < current) {
-      status = 'success'
-    } else if (idx === current) {
-      status = 'running'
-    }
+    if (isFailed && idx === current) status = 'failed'
+    else if (isComplete || idx < current) status = 'success'
+    else if (idx === current) status = 'running'
 
     const stageData = stageOutputsRaw[stage.key]
     return {
@@ -147,28 +214,38 @@ export function AgentSessionProgressPanel({
     }
   }) : []
 
-  // Auto-expand current running stage if view is untouched
   useEffect(() => {
     if (!isUntouched || !session) return
-
     const currentStage = session.stage
     if (currentStage === prevStageRef.current) return
-
     prevStageRef.current = currentStage
-
-    // Find the running stage
     const runningStage = transformedStageOutputs.find(s => s.status === 'running')
-    if (runningStage) {
-      setExpandedStages(new Set([runningStage.stage]))
-    }
+    if (runningStage) setExpandedStages(new Set([runningStage.stage]))
   }, [session?.stage, transformedStageOutputs, isUntouched])
+
+  // Load artifacts when on results tab and session is completed
+  useEffect(() => {
+    if (activeTab !== 'results' || !session || session.stage !== 'completed' || artifactsLoaded) return
+    setArtifactsLoaded(true)
+
+    Promise.all([
+      api.agentSessions.getFile(sessionId, 'notepad.md').catch(() => null),
+      api.agentSessions.getFile(sessionId, 'transcript.jsonl').catch(() => null),
+      api.agentSessions.getChangedFiles(sessionId).catch(() => null),
+    ]).then(([notepadRes, transcriptRes, changedFilesRes]) => {
+      if (notepadRes?.content) setNotepad(notepadRes.content)
+      if (transcriptRes?.content) {
+        setTranscript(transcriptRes.content)
+        setAgentForgeActions(parseTranscriptForActions(transcriptRes.content))
+      }
+      if (changedFilesRes?.files) setChangedFiles(changedFilesRes.files)
+    })
+  }, [activeTab, session?.stage, sessionId, artifactsLoaded])
 
   if (isLoading && !session) {
     return (
       <div className={styles.panel}>
-        <div className={styles.loadingState}>
-          <Spinner />
-        </div>
+        <div className={styles.loadingState}><Spinner /></div>
       </div>
     )
   }
@@ -176,9 +253,7 @@ export function AgentSessionProgressPanel({
   if (error && !session) {
     return (
       <div className={styles.panel}>
-        <div className={styles.errorState}>
-          {error}
-        </div>
+        <div className={styles.errorState}>{error}</div>
       </div>
     )
   }
@@ -186,9 +261,7 @@ export function AgentSessionProgressPanel({
   if (!session) {
     return (
       <div className={styles.panel}>
-        <div className={styles.errorState}>
-          Session not found
-        </div>
+        <div className={styles.errorState}>Session not found</div>
       </div>
     )
   }
@@ -197,8 +270,8 @@ export function AgentSessionProgressPanel({
     const logText = transformedStageOutputs
       .map(stage => {
         const logs = stage.logs.map((l: any) => l.message).join('\n')
-        const error = stage.error || ''
-        return `[${stage.stage}]\n${logs}${error ? '\nError: ' + error : ''}`
+        const err = stage.error || ''
+        return `[${stage.stage}]\n${logs}${err ? '\nError: ' + err : ''}`
       })
       .join('\n\n')
 
@@ -212,7 +285,6 @@ export function AgentSessionProgressPanel({
   }
 
   const toggleAllStages = () => {
-    // Mark as touched when user uses expand/collapse all
     setIsUntouched(false)
     if (expandedStages.size === transformedStageOutputs.length) {
       setExpandedStages(new Set())
@@ -223,8 +295,18 @@ export function AgentSessionProgressPanel({
 
   const isFailed = session.stage === 'failed' || session.stage === 'cancelled'
 
+  const sessionTabs = [
+    { id: 'overview' as TabId, label: 'Overview' },
+    { id: 'stages' as TabId, label: 'Stages' },
+    { id: 'results' as TabId, label: 'Results', disabled: session.stage !== 'completed' },
+  ]
+
+  // Filter out session-internal files from changed files list
+  const SESSION_FILES = new Set(['notepad.md', 'transcript.jsonl'])
+  const displayedFiles = changedFiles.filter(f => !SESSION_FILES.has(f.path.split('/').pop() || ''))
+
   return (
-    <div className={styles.panel}>
+    <>
       <ConfirmDialog
         isOpen={showCancelDialog}
         title="Cancel session?"
@@ -236,205 +318,212 @@ export function AgentSessionProgressPanel({
         onCancel={() => setShowCancelDialog(false)}
       />
 
-      <div className={styles.panelLayout}>
-        <div className={styles.panelMain}>
-          {/* Session Details Header */}
-          <div className={styles.sessionDetailHeader}>
-            <div>
-              <h2 className={styles.sessionDetailTitle}>Agent Session</h2>
-              <div className={styles.sessionMeta}>
-                <span className={styles.sessionMetaItem}>
-                  <strong>Agent:</strong> {session.agent}
-                </span>
-                <span className={styles.sessionMetaItem}>
-                  <strong>Phase:</strong> {session.phase}
-                </span>
+      <PanelLayout
+        title="Agent Session"
+        headerActions={
+          <ExecutionHeader
+            status={session.stage === 'cancelling' ? 'Cancelling...' : session.stage === 'cancelled' ? 'Cancelled' : session.stage}
+            error={isFailed ? session.error : undefined}
+            actions={
+              <ExecutionControls
+                mode="job"
+                status={session.stage}
+                onCancel={handleCancelClick}
+                onRetry={handleRetry}
+                isCancelling={isCancelling || session.stage === 'cancelling'}
+                isRetrying={isRetrying}
+              />
+            }
+          />
+        }
+        tabs={sessionTabs}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+      >
+        {activeTab === 'overview' && (
+          <div className={styles.overviewTab}>
+            <SectionCard title="Task Prompt" className={styles.resultSection}>
+              <p className={styles.taskPrompt}>{session.taskPrompt}</p>
+            </SectionCard>
+
+            <SectionCard title="Progress" className={styles.resultSection}>
+              <div className={styles.stageTimeline}>
+                {stages.map((stage, idx) => {
+                  const current = stageIndex[session.stage] ?? -1
+                  const isComplete = session.stage === 'completed'
+                  const isStageFailed = session.stage === 'failed'
+
+                  let status: 'pending' | 'running' | 'success' | 'failed' = 'pending'
+                  if (isStageFailed && idx === current) status = 'failed'
+                  else if (isComplete || idx < current) status = 'success'
+                  else if (idx === current) status = 'running'
+
+                  return (
+                    <div key={stage.key} className={styles.stageTimelineItem}>
+                      <div className={styles.stageTimelineTrack}>
+                        <div className={`${styles.stageTimelineCircle} ${styles[`stageCircle-${status}`]}`} />
+                        {idx < stages.length - 1 && (
+                          <div className={`${styles.stageTimelineConnector} ${status === 'success' ? styles.connectorDone : styles.connectorPending}`} />
+                        )}
+                      </div>
+                      <span className={`${styles.stageTimelineLabel} ${styles[`stageLabel-${status}`]}`}>
+                        {stage.label}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-            <div className={styles.sessionHeaderActions}>
-              <ExecutionHeader
-                status={session.stage === 'cancelling' ? 'Cancelling...' : session.stage === 'cancelled' ? 'Cancelled' : session.stage}
-                error={isFailed ? session.error : undefined}
-                actions={
-                  <ExecutionControls
-                    mode="job"
-                    status={session.stage}
-                    onCancel={handleCancelClick}
-                    onRetry={handleRetry}
-                    isCancelling={isCancelling || session.stage === 'cancelling'}
-                    isRetrying={isRetrying}
-                  />
-                }
+            </SectionCard>
+
+            {session.stage === 'completed' && session.summary && (
+              <SectionCard title="Summary" className={styles.resultSection}>
+                <p className={styles.sessionSummary}>{session.summary}</p>
+              </SectionCard>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'stages' && (
+          <div className={styles.stagesTab}>
+            <div className={styles.sessionStageDetails}>
+              <div className={styles.stageDetailsHeader}>
+                <h3>Session Stages</h3>
+                <button
+                  className={styles.copyLogsButton}
+                  onClick={toggleAllStages}
+                  title={expandedStages.size === transformedStageOutputs.length ? 'Collapse all stages' : 'Expand all stages'}
+                >
+                  <ChevronDownIcon />
+                  <span>{expandedStages.size === transformedStageOutputs.length ? 'Collapse All' : 'Expand All'}</span>
+                </button>
+                <button
+                  className={styles.copyLogsButton}
+                  onClick={handleCopyLogs}
+                  title="Copy all logs to clipboard"
+                >
+                  <ClipboardIcon />
+                  <span>{copySuccess ? 'Copied!' : 'Copy All Logs'}</span>
+                </button>
+              </div>
+              <ExecutionLogPanel
+                stageOutputs={transformedStageOutputs}
+                expandedStages={expandedStages}
+                onToggleStage={handleToggleStage}
+                autoScroll={true}
               />
             </div>
           </div>
+        )}
 
-          {/* Tab Navigation */}
-          <div className={styles.tabNav}>
-            <button
-              className={`${styles.tab} ${activeTab === 'overview' ? styles.tabActive : ''}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              Overview
-            </button>
-            <button
-              className={`${styles.tab} ${activeTab === 'stages' ? styles.tabActive : ''}`}
-              onClick={() => setActiveTab('stages')}
-            >
-              Stages
-            </button>
-            <button
-              className={`${styles.tab} ${activeTab === 'results' ? styles.tabActive : ''}`}
-              onClick={() => setActiveTab('results')}
-              disabled={session.stage !== 'completed'}
-            >
-              Results
-            </button>
-          </div>
-
-          {/* Tab Content */}
-          <div className={styles.tabContent}>
-            {activeTab === 'overview' && (
-              <div className={styles.overviewTab}>
-                {/* Task Prompt */}
-                <div className={styles.sessionInfo}>
-                  <h3>Task Prompt</h3>
-                  <p className={styles.taskPrompt}>{session.taskPrompt}</p>
-                </div>
-
-                {/* Stage Progress Summary */}
-                <div className={styles.sessionInfo}>
-                  <h3>Progress</h3>
-                  <div className={styles.stageProgress}>
-                    {stages.map((stage, idx) => {
-                      const current = stageIndex[session.stage] ?? -1
-                      const isComplete = session.stage === 'completed'
-                      const isStageFailed = session.stage === 'failed'
-
-                      let status: 'pending' | 'running' | 'success' | 'failed' = 'pending'
-                      if (isStageFailed && idx === current) {
-                        status = 'failed'
-                      } else if (isComplete || idx < current) {
-                        status = 'success'
-                      } else if (idx === current) {
-                        status = 'running'
-                      }
-
-                      return (
-                        <div key={stage.key} className={styles.stageProgressItem}>
-                          <div className={`${styles.stageStatus} ${styles[`stageStatus-${status}`]}`} />
-                          <span>{stage.label}</span>
+        {activeTab === 'results' && (
+          <div className={styles.resultsTab}>
+            {session.stage === 'completed' ? (
+              <>
+                {/* AgentForge Actions */}
+                {agentForgeActions.length > 0 && (
+                  <SectionCard title="AgentForge Actions" className={styles.resultSection}>
+                    <div className={styles.actionsList}>
+                      {agentForgeActions.map((action, i) => (
+                        <div key={i} className={`${styles.actionBadge} ${styles[`actionBadge-${action.type}`]}`}>
+                          <span className={styles.actionMethod}>{action.method}</span>
+                          <span className={styles.actionLabel}>{getActionLabel(action)}</span>
                         </div>
-                      )
-                    })}
-                  </div>
-                </div>
-
-                {/* Summary (if completed) */}
-                {session.stage === 'completed' && session.summary && (
-                  <div className={styles.sessionInfo}>
-                    <h3>Summary</h3>
-                    <p className={styles.sessionSummary}>{session.summary}</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'stages' && (
-              <div className={styles.stagesTab}>
-                <div className={styles.sessionStageDetails}>
-                  <div className={styles.stageDetailsHeader}>
-                    <h3>Session Stages</h3>
-                    <button
-                      className={styles.copyLogsButton}
-                      onClick={toggleAllStages}
-                      title={expandedStages.size === transformedStageOutputs.length ? 'Collapse all stages' : 'Expand all stages'}
-                    >
-                      <ChevronDownIcon />
-                      <span>{expandedStages.size === transformedStageOutputs.length ? 'Collapse All' : 'Expand All'}</span>
-                    </button>
-                    <button
-                      className={styles.copyLogsButton}
-                      onClick={handleCopyLogs}
-                      title="Copy all logs to clipboard"
-                    >
-                      <ClipboardIcon />
-                      <span>{copySuccess ? 'Copied!' : 'Copy All Logs'}</span>
-                    </button>
-                  </div>
-                  <ExecutionLogPanel
-                    stageOutputs={transformedStageOutputs}
-                    expandedStages={expandedStages}
-                    onToggleStage={handleToggleStage}
-                    autoScroll={true}
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'results' && (
-              <div className={styles.resultsTab}>
-                {session.stage === 'completed' ? (
-                  <>
-                    {/* Commit Info */}
-                    {session.commitSha && (
-                      <div className={styles.sessionInfo}>
-                        <h3>Commit</h3>
-                        <div className={styles.commitHash}>
-                          <GitBranchIcon width={16} height={16} />
-                          <code>{session.commitSha}</code>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Context Files */}
-                    {'stageOutputs' in session && session.stageOutputs?.loading?.logs && (
-                      (() => {
-                        const contextLog = session.stageOutputs.loading.logs.find(
-                          (log: any) => log.message.startsWith('Context files')
-                        )
-                        if (contextLog) {
-                          return (
-                            <div className={styles.sessionInfo}>
-                              <h3>Context Files</h3>
-                              <pre className={styles.contextFiles}>{contextLog.message}</pre>
-                            </div>
-                          )
-                        }
-                        return null
-                      })()
-                    )}
-
-                    {/* Summary */}
-                    {session.summary && (
-                      <div className={styles.sessionInfo}>
-                        <h3>Summary</h3>
-                        <p className={styles.sessionSummary}>{session.summary}</p>
-                      </div>
-                    )}
-
-                    {/* Memory Files Section */}
-                    <div className={styles.sessionInfo}>
-                      <h3>Memory & Artifacts</h3>
-                      <p className={styles.helpText}>
-                        Session artifacts (notepad, transcript, etc.) are saved in the repository under:
-                      </p>
-                      <code className={styles.pathDisplay}>sessions/{session.agent}/{session.sessionId}/</code>
-                      <p className={styles.helpText}>
-                        View these files in your repository to see the agent's working notes and conversation history.
-                      </p>
+                      ))}
                     </div>
-                  </>
-                ) : (
-                  <div className={styles.emptyState}>
-                    Results will be available when the session completes.
-                  </div>
+                  </SectionCard>
                 )}
+
+                {/* Commit — tabs for Files / Notepad / Transcript */}
+                {session.commitSha && (
+                  <SectionCard
+                    title={
+                      <span className={styles.commitCardTitle}>
+                        <GitBranchIcon width={14} height={14} />
+                        Commit
+                      </span>
+                    }
+                    headerMeta={<code className={styles.commitHashCode}>{session.commitSha.slice(0, 7)}</code>}
+                    tabs={[
+                      { id: 'files' as const, label: `Files${displayedFiles.length > 0 ? ` (${displayedFiles.length})` : ''}` },
+                      { id: 'notepad' as const, label: 'Notepad', disabled: !notepad },
+                      { id: 'transcript' as const, label: 'Transcript', disabled: !transcript },
+                    ]}
+                    activeTab={commitTab}
+                    onTabChange={setCommitTab}
+                    className={styles.resultSection}
+                  >
+                    {commitTab === 'files' && (
+                      displayedFiles.length > 0 ? (
+                        <div className={styles.changedFiles}>
+                          {displayedFiles.map((f, i) => (
+                            <span
+                              key={i}
+                              className={`${styles.fileBadge} ${styles[`fileBadge-${f.status}`]}`}
+                              title={f.path}
+                            >
+                              <span className={styles.fileBadgeStatus}>{f.status === 'added' ? 'A' : f.status === 'deleted' ? 'D' : 'M'}</span>
+                              <span className={styles.fileBadgePath}>{f.path.split('/').pop()}</span>
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className={styles.emptyState}>No changed files recorded.</p>
+                      )
+                    )}
+
+                    {commitTab === 'notepad' && notepad && (
+                      <pre className={styles.artifactContent}>{notepad}</pre>
+                    )}
+
+                    {commitTab === 'transcript' && transcript && (
+                      <div className={styles.transcriptViewer}>
+                        {transcript.split('\n').filter(l => l.trim()).map((line, i) => {
+                          try {
+                            const entry = JSON.parse(line)
+                            const msg = entry.message
+                            if (!msg || typeof msg !== 'object') return null
+                            const role: string = msg.role || ''
+                            if (!['user', 'assistant'].includes(role)) return null
+                            const content = msg.content
+                            const texts: string[] = []
+                            if (typeof content === 'string') {
+                              texts.push(content)
+                            } else if (Array.isArray(content)) {
+                              for (const b of content) {
+                                if (b.type === 'text' && b.text && !b.text.startsWith('<ide_')) {
+                                  texts.push(b.text)
+                                }
+                              }
+                            }
+                            if (texts.length === 0) return null
+                            return (
+                              <div key={i} className={`${styles.transcriptEntry} ${styles[`transcriptEntry-${role}`]}`}>
+                                <span className={styles.transcriptRole}>{role}</span>
+                                <p className={styles.transcriptText}>{texts.join('\n')}</p>
+                              </div>
+                            )
+                          } catch { return null }
+                        })}
+                      </div>
+                    )}
+                  </SectionCard>
+                )}
+
+                {/* Summary */}
+                {session.summary && (
+                  <SectionCard title="Summary" className={styles.resultSection}>
+                    <p className={styles.sessionSummary}>{session.summary}</p>
+                  </SectionCard>
+                )}
+              </>
+            ) : (
+              <div className={styles.emptyState}>
+                Results will be available when the session completes.
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        )}
+      </PanelLayout>
+    </>
   )
 }

@@ -2,7 +2,8 @@ import type { OpenAPIHono } from '@hono/zod-openapi'
 import type { ResourceStore } from '@agentforge/dataobject'
 import { streamSSE } from 'hono/streaming'
 import { spawn } from 'node:child_process'
-import { writeFileSync, mkdirSync, existsSync } from 'node:fs'
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from 'node:fs'
+import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { getClaudeCredentialsForSession } from '../claude-auth-integration'
 
@@ -739,5 +740,74 @@ export function registerAgentSessionRoutes(
     await agentSessionStore.update(id, updates)
 
     return c.json({ ok: true })
+  })
+
+  // Get session artifact file (notepad.md, transcript.jsonl)
+  app.get('/api/agentSessions/:id/files/:filename', async (c) => {
+    const { id, filename } = c.req.param()
+
+    // Whitelist safe filenames only
+    const allowed = ['notepad.md', 'transcript.jsonl']
+    if (!allowed.includes(filename)) {
+      return c.json({ error: 'Not found' }, 404)
+    }
+
+    const session = await agentSessionStore.findById(id) as AgentSession | null
+    if (!session) {
+      return c.json({ error: 'Agent session not found' }, 404)
+    }
+
+    const projectRoot = join(process.cwd(), '..', '..')
+    const workspaceDir = join(projectRoot, '.data', 'workspaces', id)
+    const sessionDir = join(workspaceDir, 'sessions', session.agent, session.sessionId)
+    const filePath = join(sessionDir, filename)
+
+    if (!existsSync(filePath)) {
+      return c.json({ error: 'File not found' }, 404)
+    }
+
+    try {
+      const content = readFileSync(filePath, 'utf-8')
+      return c.json({ content })
+    } catch {
+      return c.json({ error: 'Failed to read file' }, 500)
+    }
+  })
+
+  // List session artifact files (changed files from committing stage)
+  app.get('/api/agentSessions/:id/changedFiles', async (c) => {
+    const { id } = c.req.param()
+
+    const session = await agentSessionStore.findById(id) as AgentSession | null
+    if (!session) {
+      return c.json({ error: 'Agent session not found' }, 404)
+    }
+
+    // Parse changed files from the committing stage git output logs
+    const committingLogs = session.stageOutputs?.committing?.logs || []
+    const changedFiles: Array<{ path: string; status: 'added' | 'modified' | 'deleted' }> = []
+
+    for (const log of committingLogs) {
+      // git commit output lines like: "   create mode 100644 path/to/file"
+      // or: "   modified:   path/to/file" (from git status --short)
+      const createMatch = log.message.match(/create mode \d+ (.+)/)
+      if (createMatch) {
+        changedFiles.push({ path: createMatch[1].trim(), status: 'added' })
+        continue
+      }
+      const deleteMatch = log.message.match(/delete mode \d+ (.+)/)
+      if (deleteMatch) {
+        changedFiles.push({ path: deleteMatch[1].trim(), status: 'deleted' })
+        continue
+      }
+      // Lines like " 3 files changed, 42 insertions(+), 7 deletions(-)"
+      // Lines starting with status prefix from git diff --stat: " path/to/file | 12 ++"
+      const statMatch = log.message.match(/^\s+(.+?)\s+\|\s+\d+/)
+      if (statMatch) {
+        changedFiles.push({ path: statMatch[1].trim(), status: 'modified' })
+      }
+    }
+
+    return c.json({ files: changedFiles })
   })
 }

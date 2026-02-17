@@ -77,6 +77,7 @@ yarn preview        # Preview production build
     - `AgentPanel.tsx` - Agent detail panel (tab content for agent type)
     - `ServicePanel.tsx` - Service detail panel (tab content for service type)
     - `PanelLayout.tsx` - Shared panel layout with title, tabs, and content area
+    - `SectionCard/` - Standard card component for grouping content within panels
   - `hooks/` - Custom React hooks
     - `useDeploymentStream.ts` - SSE connection for real-time deployment updates
     - `useAgentSessionProgress.ts` - Agent session SSE monitoring
@@ -114,6 +115,40 @@ yarn preview        # Preview production build
 ### Unified Execution Views
 
 Agent sessions and workload deployments share a common UI infrastructure:
+
+### Layout Primitives
+
+Two components form the standard layout structure for all panels:
+
+**`PanelLayout`** (`components/PanelLayout.tsx`) — top-level panel wrapper with a title header, optional `headerActions` slot (right side), and a tab bar. Used as the root of every panel (AgentPanel, AgentSessionProgressPanel, etc.).
+
+**`SectionCard`** (`components/SectionCard/`) — standard card for grouping related content within a panel or page. **Use this for every distinct section of content.** Features:
+- Dark header bar (`bg-tertiary`) with `title` (left, uppercased label) and optional `headerMeta` (right-aligned, mono font)
+- Optional tab bar below the header for switching between views within the card
+- Padded body with `bg-secondary` card shell
+- Props: `title: ReactNode`, `headerMeta?: ReactNode`, `tabs?`, `activeTab?`, `onTabChange?`, `noPadding?`
+
+```tsx
+// Basic section
+<SectionCard title="Configuration">
+  <p>content</p>
+</SectionCard>
+
+// With header meta (e.g. a hash or timestamp)
+<SectionCard title="Commit" headerMeta={<code>{sha.slice(0,7)}</code>}>
+  ...
+</SectionCard>
+
+// With internal tabs
+<SectionCard
+  title="Files"
+  tabs={[{ id: 'added', label: 'Added' }, { id: 'modified', label: 'Modified' }]}
+  activeTab={tab}
+  onTabChange={setTab}
+>
+  ...
+</SectionCard>
+```
 
 **Shared Components:**
 

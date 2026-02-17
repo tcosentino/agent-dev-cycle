@@ -423,6 +423,10 @@ export const api = {
         method: 'POST',
       }),
     streamUrl: (id: string) => `${API_BASE}/agentSessions/${id}/stream`,
+    getFile: (id: string, filename: 'notepad.md' | 'transcript.jsonl') =>
+      fetchJson<{ content: string }>(`/agentSessions/${id}/files/${filename}`),
+    getChangedFiles: (id: string) =>
+      fetchJson<{ files: Array<{ path: string; status: 'added' | 'modified' | 'deleted' }> }>(`/agentSessions/${id}/changedFiles`),
   },
 }
 

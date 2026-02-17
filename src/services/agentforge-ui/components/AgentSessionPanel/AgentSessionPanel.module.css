@@ -611,11 +611,16 @@
 }
 
 .overviewTab,
-.stagesTab,
-.resultsTab {
+.stagesTab {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.overviewTab {
+  gap: var(--space-md);
+  padding: var(--space-md);
+  overflow-y: auto;
 }
 
 /* Stage Progress Display */
@@ -671,6 +676,34 @@
   }
 }
 
+/* Results Tab layout */
+.resultsTab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-md);
+}
+
+.resultSection {
+  /* SectionCard spacing within the results tab */
+}
+
+.commitCardTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.commitHashCode {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+}
+
 /* Results Tab Styles */
 .helpText {
   font-family: var(--font-sans);
@@ -690,5 +723,286 @@
   border: 1px solid var(--border-color);
   color: var(--accent-primary);
   margin: var(--space-sm) 0;
+}
+
+/* Horizontal Stage Timeline */
+.stageTimeline {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  padding: var(--space-sm) 0 var(--space-xs);
+  overflow-x: auto;
+}
+
+/* Each item: circle + connector row, then label below */
+.stageTimelineItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 40px;
+}
+
+/* Last item has no connector so it doesn't expand */
+.stageTimelineItem:last-child {
+  flex: 0 0 auto;
+}
+
+.stageTimelineTrack {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.stageTimelineCircle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.stageCircle-pending {
+  background: transparent;
+  border-color: var(--text-muted);
+}
+
+.stageCircle-running {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  animation: pulse 2s infinite;
+}
+
+.stageCircle-success {
+  background: var(--status-success);
+  border-color: var(--status-success);
+}
+
+.stageCircle-failed {
+  background: var(--status-error);
+  border-color: var(--status-error);
+}
+
+.stageTimelineConnector {
+  flex: 1;
+  height: 2px;
+  background: var(--border-color);
+}
+
+.connectorDone {
+  background: var(--status-success);
+}
+
+.connectorPending {
+  background: var(--border-color);
+}
+
+.stageTimelineLabel {
+  font-size: 0.7rem;
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  margin-top: 4px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.stageLabel-pending {
+  color: var(--text-muted);
+}
+
+.stageLabel-running {
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
+.stageLabel-success {
+  color: var(--status-success);
+}
+
+.stageLabel-failed {
+  color: var(--status-error);
+}
+
+/* AgentForge Actions */
+.actionsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.actionBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.actionBadge-task {
+  border-color: rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.actionBadge-message {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.actionBadge-other {
+  border-color: var(--border-color);
+  background: var(--bg-primary);
+}
+
+.actionMethod {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-tertiary);
+  padding: 1px 5px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.actionLabel {
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Changed Files / File Badges */
+.changedFiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.fileBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 4px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.fileBadge:hover {
+  opacity: 0.8;
+}
+
+.fileBadge-added {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.fileBadge-modified {
+  border-color: rgba(245, 158, 11, 0.4);
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.fileBadge-deleted {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.fileBadgeStatus {
+  font-weight: 700;
+  font-size: 0.7rem;
+  width: 12px;
+  text-align: center;
+}
+
+.fileBadge-added .fileBadgeStatus {
+  color: var(--status-success);
+}
+
+.fileBadge-modified .fileBadgeStatus {
+  color: #f59e0b;
+}
+
+.fileBadge-deleted .fileBadgeStatus {
+  color: var(--status-error);
+}
+
+.fileBadgePath {
+  color: var(--text-secondary);
+}
+
+/* Artifact Content (Notepad) */
+.artifactContent {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Transcript Viewer */
+.transcriptViewer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.transcriptEntry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+}
+
+.transcriptEntry-user {
+  background: var(--bg-secondary);
+}
+
+.transcriptEntry-assistant {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.transcriptRole {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.transcriptEntry-assistant .transcriptRole {
+  color: var(--accent-primary);
+}
+
+.transcriptText {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
