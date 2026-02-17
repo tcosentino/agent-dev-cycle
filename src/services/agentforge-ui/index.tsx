@@ -9,6 +9,9 @@ import { ToastProvider, ErrorBoundary } from '@agentforge/ui-components'
 import { api, fetchProjectSnapshot, fetchProjectFiles, fetchFileContent, AuthError } from './api'
 import type { ApiProject, ApiUser } from './api'
 import type { ProjectData, DbSnapshot, ProjectDbData } from './types'
+import { useAppRouter } from './hooks'
+import { parseUrl, findProjectByRepoUrl } from './routing'
+import type { ParsedUrl } from './routing'
 import '@agentforge/ui-components/styles/tokens.css'
 import './project-viewer.css'
 
@@ -16,6 +19,7 @@ type CurrentPage = 'projects' | 'settings'
 
 // LocalStorage key for persisted project viewer state (matches ProjectViewer)
 const STORAGE_KEY = 'projectViewer:state'
+const RETURN_TO_KEY = 'agentforge:returnTo'
 
 function getPersistedProjectId(): string | null {
   try {
@@ -31,6 +35,7 @@ function getPersistedProjectId(): string | null {
 }
 
 function ProjectViewerPage() {
+  const { pathname, hash, popLocation, navigate } = useAppRouter()
   const [user, setUser] = useState<ApiUser | null>(null)
   const [projects, setProjects] = useState<ApiProject[]>([])
   const [selectedProjectId, setSelectedProjectId] = useState<string>('')
@@ -40,6 +45,24 @@ function ProjectViewerPage() {
   const [error, setError] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [currentPage, setCurrentPage] = useState<CurrentPage>('projects')
+  const [urlError, setUrlError] = useState<'no-access' | null>(null)
+  const [activateUrl, setActivateUrl] = useState<ParsedUrl | undefined>(undefined)
+
+  // On mount: restore returnTo URL from sessionStorage (post-login redirect)
+  useEffect(() => {
+    const returnTo = sessionStorage.getItem(RETURN_TO_KEY)
+    if (returnTo) {
+      sessionStorage.removeItem(RETURN_TO_KEY)
+      try {
+        const url = new URL(returnTo)
+        if (url.origin === window.location.origin) {
+          navigate(url.pathname, url.hash, true)
+        }
+      } catch {
+        // Invalid URL — ignore
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check authentication and load data
   useEffect(() => {
@@ -112,11 +135,34 @@ function ProjectViewerPage() {
         })
         setDbData(snapshots)
 
-        // Set initial selected project (respect persisted selection)
-        if (apiProjects.length > 0) {
-          const persistedId = getPersistedProjectId()
-          const validPersistedId = persistedId && apiProjects.some(p => p.id === persistedId)
-          setSelectedProjectId(validPersistedId ? persistedId : apiProjects[0].id)
+        // Resolve URL against loaded projects
+        const parsed = parseUrl(pathname, hash)
+        setUrlError(null)
+
+        if (parsed.type === 'root') {
+          // Use persisted project selection
+          if (apiProjects.length > 0) {
+            const persistedId = getPersistedProjectId()
+            const validPersistedId = persistedId && apiProjects.some(p => p.id === persistedId)
+            setSelectedProjectId(validPersistedId ? persistedId : apiProjects[0].id)
+          }
+        } else {
+          // All non-root URL types have owner/repo — find matching project
+          const owner = (parsed as { owner: string }).owner
+          const repo = (parsed as { repo: string }).repo
+          const matchedProject = findProjectByRepoUrl(apiProjects, owner, repo)
+          if (matchedProject) {
+            setSelectedProjectId(matchedProject.id)
+            setActivateUrl(parsed)
+          } else {
+            setUrlError('no-access')
+            // Still need a selected project for non-URL navigation
+            if (apiProjects.length > 0) {
+              const persistedId = getPersistedProjectId()
+              const validPersistedId = persistedId && apiProjects.some(p => p.id === persistedId)
+              setSelectedProjectId(validPersistedId ? persistedId : apiProjects[0].id)
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to load data:', err)
@@ -127,7 +173,30 @@ function ProjectViewerPage() {
     }
 
     loadData()
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-parse URL on back/forward navigation (popstate only — not on programmatic navigate)
+  useEffect(() => {
+    if (loading || projects.length === 0) return
+    const parsed = parseUrl(popLocation.pathname, popLocation.hash)
+    if (parsed.type === 'root') return
+
+    // All non-root URL types have owner/repo
+    const owner = (parsed as { owner: string }).owner
+    const repo = (parsed as { repo: string }).repo
+    const matchedProject = findProjectByRepoUrl(projects, owner, repo)
+    if (matchedProject) {
+      setSelectedProjectId(matchedProject.id)
+      setActivateUrl(parsed)
+      setUrlError(null)
+    } else {
+      setUrlError('no-access')
+    }
+  }, [popLocation]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleUrlChange = useCallback((path: string, tabHash: string, replace?: boolean) => {
+    navigate(path, tabHash, replace)
+  }, [navigate])
 
   // Handle project creation
   const handleProjectCreated = useCallback(async (project: ApiProject) => {
@@ -173,6 +242,11 @@ function ProjectViewerPage() {
     return urls
   }, [projects])
 
+  const currentProject = useMemo(
+    () => projects.find(p => p.id === selectedProjectId) ?? null,
+    [projects, selectedProjectId]
+  )
+
   // Handler to refresh snapshot for a project
   const handleRefreshSnapshot = useCallback(async (projectId: string) => {
     try {
@@ -200,6 +274,11 @@ function ProjectViewerPage() {
     }))
     return content
   }, [projectRepoUrls])
+
+  const handleLoginClick = () => {
+    sessionStorage.setItem(RETURN_TO_KEY, window.location.href)
+    window.location.href = api.getLoginUrl()
+  }
 
   // Build project selector component
   const projectSelector = projects.length > 0 ? (
@@ -308,9 +387,9 @@ function ProjectViewerPage() {
           <div className="login-state">
             <h2>Welcome to AgentForge</h2>
             <p>Sign in with GitHub to view your projects</p>
-            <a href={api.getLoginUrl()} className="login-button">
+            <button onClick={handleLoginClick} className="login-button">
               Log in with GitHub
-            </a>
+            </button>
           </div>
         </div>
       </div>
@@ -330,6 +409,31 @@ function ProjectViewerPage() {
           <div className="error-state">
             <p>Error: {error}</p>
             <p className="error-hint">Make sure the API server is running (yarn dev:server)</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (urlError === 'no-access') {
+    return (
+      <div className="viewer-page">
+        <Nav
+          currentPage="components"
+          user={user}
+          onSettingsClick={() => setCurrentPage('settings')}
+          projectSelector={projectSelector}
+        />
+        <div className="viewer-body">
+          <div className="error-state">
+            <p>You don&apos;t have access to this repository.</p>
+            <button
+              className="login-button"
+              onClick={() => { window.location.href = api.getLogoutUrl() }}
+              style={{ marginTop: '1rem' }}
+            >
+              Log out
+            </button>
           </div>
         </div>
       </div>
@@ -385,6 +489,9 @@ function ProjectViewerPage() {
           currentUserId={user?.id}
           onLoadFileContent={handleLoadFileContent}
           onRefreshSnapshot={handleRefreshSnapshot}
+          activateUrl={activateUrl}
+          currentProject={currentProject ?? undefined}
+          onUrlChange={handleUrlChange}
         />
       </div>
       {showCreateModal && user && (

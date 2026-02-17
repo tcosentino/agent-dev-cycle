@@ -676,6 +676,14 @@
   }
 }
 
+/* Elapsed time display in panel header */
+.elapsedTime {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
+}
+
 /* Results Tab layout */
 .resultsTab {
   display: flex;
@@ -955,6 +963,111 @@
   word-break: break-word;
   line-height: 1.6;
   margin: 0;
+}
+
+/* Markdown Content (Notepad rendered) */
+.markdownContent {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+.markdownContent h1,
+.markdownContent h2,
+.markdownContent h3,
+.markdownContent h4 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: var(--space-md) 0 var(--space-xs);
+  line-height: 1.3;
+}
+
+.markdownContent h1 { font-size: 1.1rem; }
+.markdownContent h2 { font-size: 1rem; }
+.markdownContent h3 { font-size: 0.9rem; }
+.markdownContent h4 { font-size: 0.85rem; }
+
+.markdownContent p {
+  margin: 0 0 var(--space-sm);
+}
+
+.markdownContent ul,
+.markdownContent ol {
+  padding-left: var(--space-md);
+  margin: 0 0 var(--space-sm);
+}
+
+.markdownContent li {
+  margin-bottom: 2px;
+}
+
+.markdownContent code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xs);
+  padding: 1px 4px;
+  color: var(--text-secondary);
+}
+
+.markdownContent pre {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  overflow-x: auto;
+  margin: 0 0 var(--space-sm);
+}
+
+.markdownContent pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  white-space: pre;
+}
+
+.markdownContent blockquote {
+  border-left: 3px solid var(--border-color);
+  padding-left: var(--space-sm);
+  margin: 0 0 var(--space-sm);
+  color: var(--text-muted);
+}
+
+.markdownContent hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: var(--space-md) 0;
+}
+
+.markdownContent a {
+  color: var(--accent-primary);
+  text-decoration: none;
+}
+
+.markdownContent a:hover {
+  text-decoration: underline;
+}
+
+.markdownContent table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  margin: 0 0 var(--space-sm);
+}
+
+.markdownContent th,
+.markdownContent td {
+  border: 1px solid var(--border-color);
+  padding: var(--space-xs) var(--space-sm);
+  text-align: left;
+}
+
+.markdownContent th {
+  background: var(--bg-tertiary);
+  font-weight: 600;
 }
 
 /* Transcript Viewer */

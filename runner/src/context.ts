@@ -76,34 +76,42 @@ function formatProgress(progress: ProjectProgress): string {
   return lines.join('\n')
 }
 
-export async function assembleContext(config: SessionConfig): Promise<string> {
+export async function assembleContext(config: SessionConfig): Promise<{ context: string; files: string[] }> {
   const sections: string[] = []
+  const loadedFiles: string[] = []
 
   // Shared system prompt (all agents get this)
   const systemPrompt = await readRepoFile('prompts/system.md')
   if (systemPrompt) {
     sections.push(systemPrompt)
+    loadedFiles.push('prompts/system.md')
   }
 
   // Role-specific prompt - try new structure first, then legacy
   let rolePrompt = await readRepoFile(`.agentforge/agents/${config.agent}/prompt.md`)
-  if (!rolePrompt) {
-    rolePrompt = await readRepoFile(`prompts/${config.agent}.md`)
-  }
   if (rolePrompt) {
     sections.push(`## Your Role\n\n${rolePrompt}`)
+    loadedFiles.push(`.agentforge/agents/${config.agent}/prompt.md`)
+  } else {
+    rolePrompt = await readRepoFile(`prompts/${config.agent}.md`)
+    if (rolePrompt) {
+      sections.push(`## Your Role\n\n${rolePrompt}`)
+      loadedFiles.push(`prompts/${config.agent}.md`)
+    }
   }
 
   // Project briefing
   const projectDoc = await readRepoFile('PROJECT.md')
   if (projectDoc) {
     sections.push(`## Project\n\n${projectDoc}`)
+    loadedFiles.push('PROJECT.md')
   }
 
   // Architecture
   const archDoc = await readRepoFile('ARCHITECTURE.md')
   if (archDoc) {
     sections.push(`## Architecture\n\n${archDoc}`)
+    loadedFiles.push('ARCHITECTURE.md')
   }
 
   // Current state
@@ -112,6 +120,7 @@ export async function assembleContext(config: SessionConfig): Promise<string> {
     try {
       const progress = YAML.parse(progressYaml) as ProjectProgress
       sections.push(`## Current State\n\n${formatProgress(progress)}`)
+      loadedFiles.push('state/progress.yaml')
     } catch {
       // Skip if invalid YAML
     }
@@ -123,6 +132,7 @@ export async function assembleContext(config: SessionConfig): Promise<string> {
     const lines = dailyLog.split('\n')
     const recentLines = lines.slice(-30).join('\n')
     sections.push(`## Recent History\n\n${recentLines}`)
+    loadedFiles.push('memory/daily-log.md')
   }
 
   // Session metadata
@@ -158,7 +168,10 @@ ${config.taskPrompt}
 
   sections.push(instructions)
 
-  return sections.join('\n\n---\n\n')
+  return {
+    context: sections.join('\n\n---\n\n'),
+    files: loadedFiles
+  }
 }
 
 export async function writeContextFile(context: string): Promise<string> {

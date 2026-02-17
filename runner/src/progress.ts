@@ -102,3 +102,31 @@ export async function reportFailure(error: string): Promise<void> {
   })
   await reportLog({ level: 'error', message: error })
 }
+
+// Report git command output with appropriate formatting
+export async function reportGitOutput(
+  stdout: string,
+  stderr: string,
+  stage: ProgressStage
+): Promise<void> {
+  // Log stdout if present
+  if (stdout.trim()) {
+    await reportLog({ level: 'info', message: stdout.trim() }, stage)
+  }
+
+  // Log stderr as warning if present
+  if (stderr.trim()) {
+    await reportLog({ level: 'warn', message: stderr.trim() }, stage)
+  }
+}
+
+// Stream Claude output line-by-line
+export async function reportClaudeOutput(line: string): Promise<void> {
+  await reportLog({ level: 'info', message: line }, 'executing')
+}
+
+// Report context files metadata
+export async function reportContextFiles(files: string[]): Promise<void> {
+  const message = `Context files (${files.length}):\n${files.map(f => `  - ${f}`).join('\n')}`
+  await reportLog({ level: 'info', message }, 'loading')
+}

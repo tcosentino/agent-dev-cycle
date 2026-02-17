@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useAgentSessionProgress, useAgentSession } from '../../hooks'
 import { api, cancelAgentSession } from '../../api'
 import {
@@ -139,6 +141,26 @@ export function AgentSessionProgressPanel({
   const [agentForgeActions, setAgentForgeActions] = useState<AgentForgeAction[]>([])
   const [artifactsLoaded, setArtifactsLoaded] = useState(false)
   const [commitTab, setCommitTab] = useState<'files' | 'notepad' | 'transcript'>('files')
+
+  // Elapsed time counter — uses progress (live) or initialSession (static) for timing data
+  const [elapsedMs, setElapsedMs] = useState(0)
+  const timerSession = progress || initialSession
+  const timerStartedAt = timerSession?.startedAt
+  const timerCompletedAt = (timerSession as any)?.completedAt
+  const timerStage = timerSession?.stage
+  useEffect(() => {
+    const startTime = timerStartedAt ? new Date(timerStartedAt).getTime() : null
+    if (!startTime) return
+    const isRunning = timerStage !== 'completed' && timerStage !== 'failed' && timerStage !== 'cancelled'
+    if (!isRunning) {
+      const endTime = timerCompletedAt ? new Date(timerCompletedAt).getTime() : Date.now()
+      setElapsedMs(endTime - startTime)
+      return
+    }
+    setElapsedMs(Date.now() - startTime)
+    const interval = setInterval(() => setElapsedMs(Date.now() - startTime), 1000)
+    return () => clearInterval(interval)
+  }, [timerStartedAt, timerCompletedAt, timerStage])
 
   const handleRetry = async () => {
     if (!sessionId || !onRetry) return
@@ -301,6 +323,16 @@ export function AgentSessionProgressPanel({
     { id: 'results' as TabId, label: 'Results', disabled: session.stage !== 'completed' },
   ]
 
+  // Format elapsed time as m:ss or h:mm:ss
+  const formatElapsed = (ms: number): string => {
+    const totalSecs = Math.floor(ms / 1000)
+    const h = Math.floor(totalSecs / 3600)
+    const m = Math.floor((totalSecs % 3600) / 60)
+    const s = totalSecs % 60
+    if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    return `${m}:${String(s).padStart(2, '0')}`
+  }
+
   // Filter out session-internal files from changed files list
   const SESSION_FILES = new Set(['notepad.md', 'transcript.jsonl'])
   const displayedFiles = changedFiles.filter(f => !SESSION_FILES.has(f.path.split('/').pop() || ''))
@@ -321,20 +353,25 @@ export function AgentSessionProgressPanel({
       <PanelLayout
         title="Agent Session"
         headerActions={
-          <ExecutionHeader
-            status={session.stage === 'cancelling' ? 'Cancelling...' : session.stage === 'cancelled' ? 'Cancelled' : session.stage}
-            error={isFailed ? session.error : undefined}
-            actions={
-              <ExecutionControls
-                mode="job"
-                status={session.stage}
-                onCancel={handleCancelClick}
-                onRetry={handleRetry}
-                isCancelling={isCancelling || session.stage === 'cancelling'}
-                isRetrying={isRetrying}
-              />
-            }
-          />
+          <>
+            {elapsedMs > 0 && (
+              <span className={styles.elapsedTime}>{formatElapsed(elapsedMs)}</span>
+            )}
+            <ExecutionHeader
+              status={session.stage === 'cancelling' ? 'Cancelling...' : session.stage === 'cancelled' ? 'Cancelled' : session.stage}
+              error={isFailed ? session.error : undefined}
+              actions={
+                <ExecutionControls
+                  mode="job"
+                  status={session.stage}
+                  onCancel={handleCancelClick}
+                  onRetry={handleRetry}
+                  isCancelling={isCancelling || session.stage === 'cancelling'}
+                  isRetrying={isRetrying}
+                />
+              }
+            />
+          </>
         }
         tabs={sessionTabs}
         activeTab={activeTab}
@@ -377,7 +414,7 @@ export function AgentSessionProgressPanel({
 
             {session.stage === 'completed' && session.summary && (
               <SectionCard title="Summary" className={styles.resultSection}>
-                <p className={styles.sessionSummary}>{session.summary}</p>
+                <div className={styles.markdownContent}><ReactMarkdown remarkPlugins={[remarkGfm]}>{session.summary}</ReactMarkdown></div>
               </SectionCard>
             )}
           </div>
@@ -419,6 +456,13 @@ export function AgentSessionProgressPanel({
           <div className={styles.resultsTab}>
             {session.stage === 'completed' ? (
               <>
+                {/* Summary */}
+                {session.summary && (
+                  <SectionCard title="Summary" className={styles.resultSection}>
+                    <div className={styles.markdownContent}><ReactMarkdown remarkPlugins={[remarkGfm]}>{session.summary}</ReactMarkdown></div>
+                  </SectionCard>
+                )}
+
                 {/* AgentForge Actions */}
                 {agentForgeActions.length > 0 && (
                   <SectionCard title="AgentForge Actions" className={styles.resultSection}>
@@ -472,7 +516,7 @@ export function AgentSessionProgressPanel({
                     )}
 
                     {commitTab === 'notepad' && notepad && (
-                      <pre className={styles.artifactContent}>{notepad}</pre>
+                      <div className={styles.markdownContent}><ReactMarkdown remarkPlugins={[remarkGfm]}>{notepad}</ReactMarkdown></div>
                     )}
 
                     {commitTab === 'transcript' && transcript && (
@@ -509,12 +553,6 @@ export function AgentSessionProgressPanel({
                   </SectionCard>
                 )}
 
-                {/* Summary */}
-                {session.summary && (
-                  <SectionCard title="Summary" className={styles.resultSection}>
-                    <p className={styles.sessionSummary}>{session.summary}</p>
-                  </SectionCard>
-                )}
               </>
             ) : (
               <div className={styles.emptyState}>

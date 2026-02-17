@@ -1,12 +1,16 @@
 import { spawn } from 'node:child_process'
+import { mkdirSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import type { SessionConfig, ModelTier } from './types.js'
 import { MODEL_MAP, WORKSPACE_PATH, DEFAULT_TIMEOUT_MS } from './types.js'
-import { reportLog, reportProgress } from './progress.js'
+import { reportLog, reportProgress, reportClaudeOutput } from './progress.js'
 
 export interface ClaudeResult {
   success: boolean
   output: string
   error?: string
+  isolatedHome: string
 }
 
 function buildArgs(
@@ -25,16 +29,29 @@ function buildArgs(
     '--model',
     MODEL_MAP[model],
     '--verbose',
-    '--no-session-persistence',
   ]
 }
 
-function buildEnv(
+function createIsolatedHome(runId: string): string {
+  const isolatedHome = join(tmpdir(), `agentforge-${runId}`)
+  const claudeDir = join(isolatedHome, '.claude')
+  mkdirSync(claudeDir, { recursive: true })
+  // Skip interactive onboarding
+  writeFileSync(
+    join(isolatedHome, '.claude.json'),
+    JSON.stringify({ hasCompletedOnboarding: true })
+  )
+  return isolatedHome
+}
+
+function buildEnvWithHome(
   config: SessionConfig,
-  anthropicApiKey: string | undefined
+  anthropicApiKey: string | undefined,
+  isolatedHome: string
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
     ...process.env,
+    HOME: isolatedHome,
     AGENTFORGE_SERVER_URL: config.serverUrl || '',
     AGENTFORGE_PROJECT_ID: config.projectId,
     AGENTFORGE_RUN_ID: config.runId,
@@ -56,7 +73,8 @@ export async function runClaude(
   timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<ClaudeResult> {
   const args = buildArgs(config.taskPrompt, contextPath, model)
-  const env = buildEnv(config, anthropicApiKey)
+  const isolatedHome = createIsolatedHome(config.runId)
+  const env = buildEnvWithHome(config, anthropicApiKey, isolatedHome)
 
   return new Promise((resolve) => {
     const outputChunks: string[] = []
@@ -82,6 +100,7 @@ export async function runClaude(
         success: false,
         output: outputChunks.join(''),
         error: 'Process timed out',
+        isolatedHome,
       })
     }, timeoutMs)
 
@@ -89,7 +108,18 @@ export async function runClaude(
       const str = data.toString()
       process.stdout.write(str) // Stream output live
       outputChunks.push(str)
-      outputLineCount += str.split('\n').length
+
+      // Stream actual Claude output to logs
+      const lines = str.split('\n')
+      for (const line of lines) {
+        const trimmed = line.trim()
+        if (trimmed) {
+          reportClaudeOutput(trimmed).catch(err => {
+            console.warn('Failed to report Claude output:', err)
+          })
+          outputLineCount++
+        }
+      }
 
       // Report progress periodically (every 5 seconds) to show activity
       const now = Date.now()
@@ -97,7 +127,7 @@ export async function runClaude(
         lastProgressReport = now
         // Calculate rough progress (30-75% during execution)
         const estimatedProgress = Math.min(75, 30 + Math.floor(outputLineCount / 10))
-        reportProgress({ progress: estimatedProgress, currentStep: `Claude Code working... (${outputLineCount} lines output)` })
+        reportProgress({ progress: estimatedProgress, currentStep: `Claude Code working...` })
       }
     })
 
@@ -120,6 +150,7 @@ export async function runClaude(
         resolve({
           success: true,
           output: outputChunks.join(''),
+          isolatedHome,
         })
       } else {
         reportLog({ level: 'error', message: `Claude Code exited with code ${code}` }, 'executing')
@@ -127,6 +158,7 @@ export async function runClaude(
           success: false,
           output: outputChunks.join(''),
           error: errorChunks.join('') || `Process exited with code ${code}`,
+          isolatedHome,
         })
       }
     })
@@ -138,29 +170,16 @@ export async function runClaude(
         success: false,
         output: outputChunks.join(''),
         error: err.message,
+        isolatedHome,
       })
     })
   })
 }
 
 export function extractSummary(output: string): string {
-  // Try to extract a summary from the stream-json output
-  // Look for the final result message
-  const lines = output.trim().split('\n')
-
-  for (let i = lines.length - 1; i >= 0; i--) {
-    try {
-      const event = JSON.parse(lines[i])
-      if (event.result) {
-        // Extract first sentence or first 100 chars
-        const text = event.result as string
-        const firstSentence = text.split(/[.!?]/)[0]
-        return firstSentence.slice(0, 100).trim() || 'Completed session'
-      }
-    } catch {
-      // Skip invalid JSON lines
-    }
-  }
-
-  return 'Completed session'
+  // Claude runs with --output-format text, so output is plain text / markdown.
+  // Strip a leading "# Summary" (or "## Summary" etc.) header line if present.
+  const trimmed = output.trim()
+  const withoutHeader = trimmed.replace(/^#{1,6}\s+Summary\s*\n/, '').trim()
+  return withoutHeader || 'Completed session'
 }

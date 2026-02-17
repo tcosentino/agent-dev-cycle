@@ -81,6 +81,8 @@ yarn preview        # Preview production build
   - `hooks/` - Custom React hooks
     - `useDeploymentStream.ts` - SSE connection for real-time deployment updates
     - `useAgentSessionProgress.ts` - Agent session SSE monitoring
+    - `useAppRouter.ts` - Native History API hook for URL routing
+  - `routing.ts` - URL parsing, generation, and project lookup logic
   - `api.ts` - API client functions
   - `types.ts` - TypeScript type definitions
   - `ProjectViewer.tsx` - Main project viewer component
@@ -170,10 +172,13 @@ Agent Sessions (job-style):
 - Session detail header with agent type and phase
 - Task prompt display in Session Info section
 - **Context Files** - Shows which files were loaded into agent's context (displayed in Session Info, not logs)
-- Summary and commit SHA on completion
+- **Summary** - Rendered as markdown (ReactMarkdown + remark-gfm); populated from Claude's full text output via `extractSummary()` in `runner/src/claude.ts`; leading `# Summary` heading stripped automatically
+- Commit SHA on completion
+- **Elapsed timer** - Counts up while session is running; freezes at final duration on completion; shown in panel header (monospace, muted)
 - Cancel button (jobs should be cancellable)
 - Retry button on failure
 - **Enhanced logging** - Shows actual git output and Claude execution details (see Agent Session Logging below)
+- **Notepad tab** - Agent notepad rendered as markdown (ReactMarkdown + remark-gfm)
 
 Workloads (service or job):
 
@@ -230,9 +235,55 @@ Agent sessions provide detailed developer-friendly logging at each stage:
 **Implementation:**
 - `runner/src/progress.ts` - Helper functions: `reportGitOutput()`, `reportClaudeOutput()`, `reportContextFiles()`
 - `runner/src/git.ts` - Captures stdout/stderr from git commands
-- `runner/src/claude.ts` - Streams Claude output instead of counting lines
+- `runner/src/claude.ts` - Streams Claude output instead of counting lines; `extractSummary()` returns full trimmed text output (Claude uses `--output-format text`, not JSON) with optional `# Summary` header stripped
 - `runner/src/context.ts` - Tracks which files were loaded
 - All logs use git's actual output format for developer familiarity
+
+## URL Routing
+
+The AgentForge UI uses GitHub-style URL routing with the native History API (no React Router). URLs reflect the active panel and enable deep linking and back/forward navigation.
+
+### URL Structure
+
+```text
+/{owner}/{repo}/tree/{branch}/{filePath}        # File or service
+/{owner}/{repo}/tree/{branch}/.agentforge/agents/{id}            # Agent panel
+/{owner}/{repo}/tree/{branch}/.agentforge/agents/{id}/sessions/{sessionId}  # Agent session
+/{owner}/{repo}/{tableName}                     # DB table (tasks, sessions, etc.)
+/{owner}/{repo}/{tableName}/{recordKey}         # DB record
+```
+
+**Examples:**
+
+- `tcosentino/todo-app/tree/main/.agentforge/agents/pm` — PM agent panel
+- `tcosentino/todo-app/tree/main/.agentforge/agents/pm/sessions/pm-001#stages` — session, stages tab
+- `tcosentino/todo-app/tasks` — tasks table
+- `tcosentino/todo-app/tasks/AF-1` — task record
+
+Panel sub-tabs are reflected in the `#hash` (e.g., `#overview`, `#sessions`, `#stages`).
+
+### Key Files
+
+- **`routing.ts`** — `ParsedUrl` discriminated union, `parseUrl()`, `tabToUrl()`, `findProjectByRepoUrl()`
+- **`hooks/useAppRouter.ts`** — wraps `pushState`/`replaceState`; exposes `pathname`, `hash`, `popLocation`, and `navigate`. **`popLocation` only updates on browser back/forward (`popstate`)** — not on programmatic `navigate()` calls. This prevents feedback loops.
+
+### Avoiding URL Feedback Loops
+
+The URL sync effect in `ProjectViewer` fires whenever the active tab changes and calls `onUrlChange → navigate`. If the back/forward effect in `index.tsx` watched `pathname`/`hash`, it would fire on every `navigate` call, re-activating the same tab in an infinite loop. The fix: the back/forward effect watches `popLocation` (only changes on actual user navigation), not `pathname`.
+
+### Deep Link Behavior
+
+On cold load:
+
+1. `useAppRouter` captures initial `pathname` + `hash` from `window.location`
+2. After projects load, `parseUrl` produces a `ParsedUrl`
+3. Owner/repo is matched against projects via `findProjectByRepoUrl`
+4. `ProjectViewer` receives `activateUrl` prop — restores localStorage tabs first, then activates the URL tab on top
+
+### Auth & Access
+
+- Not logged in → save `returnTo` in `sessionStorage`, redirect to login, restore URL after auth
+- Logged in but project not found → "no access" error with logout button
 
 ## Real-Time Architecture
 

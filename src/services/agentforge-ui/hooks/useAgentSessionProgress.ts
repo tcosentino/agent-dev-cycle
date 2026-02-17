@@ -22,6 +22,9 @@ export interface AgentSessionProgress {
     committing?: ApiAgentSessionStageOutput
   }
 
+  // Timing
+  startedAt?: string
+
   // Result (when completed/failed)
   summary?: string
   commitSha?: string
@@ -94,6 +97,8 @@ export function useAgentSessionProgress(
         currentStep: data.currentStep,
         logs: [],
         stageOutputs: data.stageOutputs || {},
+        startedAt: data.startedAt,
+        completedAt: data.completedAt,
         isConnected: true,
         isComplete: data.stage === 'completed' || data.stage === 'failed',
       })

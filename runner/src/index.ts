@@ -4,7 +4,7 @@ import { loadAgentsConfig, getAgentConfig, assembleContext, writeContextFile } f
 import { runClaude, extractSummary } from './claude.js'
 import { captureTranscript } from './transcript.js'
 import { updateProgress } from './state.js'
-import { reportStageStart, reportStageComplete, reportComplete, reportFailure, reportProgress } from './progress.js'
+import { reportStageStart, reportStageComplete, reportComplete, reportFailure, reportProgress, reportContextFiles } from './progress.js'
 import type { RunResult } from './types.js'
 
 async function main(): Promise<void> {
@@ -47,14 +47,16 @@ async function main(): Promise<void> {
     // 4. Assemble context
     console.log('[4/8] Assembling context...')
     await reportProgress({ progress: 25, currentStep: 'Assembling context...' })
-    const context = await assembleContext(config)
+    const { context, files } = await assembleContext(config)
     const contextPath = await writeContextFile(context)
     console.log(`  - Context written to: ${contextPath}`)
+    await reportContextFiles(files)
 
     // 5. Execute Claude Code
     console.log('[5/8] Starting Claude Code...')
     console.log(`  - Task: ${config.taskPrompt}`)
     await reportStageStart('executing', 30, 'Starting Claude Code...')
+    const claudeStartedAtMs = Date.now()
     const result = await runClaude(
       config,
       contextPath,
@@ -72,7 +74,7 @@ async function main(): Promise<void> {
     // 6. Capture transcript
     console.log('[6/8] Capturing transcript...')
     await reportStageStart('capturing', 80, 'Capturing transcript...')
-    await captureTranscript(config)
+    await captureTranscript(config, claudeStartedAtMs, result.isolatedHome)
     console.log('  - Transcript captured')
     await reportStageComplete('capturing')
 

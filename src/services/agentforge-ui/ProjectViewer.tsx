@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { ReactNode } from 'react'
+import type { ParsedUrl } from './routing'
+import { tabToUrl } from './routing'
+import type { ApiProject } from './api'
 import {
   FileDocumentIcon,
   SettingsIcon,
@@ -55,6 +58,7 @@ interface SerializedTab {
   label: string
   pane: PaneId
   tableName?: DbTableName
+  agentId?: string
 }
 
 interface PersistedState {
@@ -248,9 +252,12 @@ interface ProjectViewerProps {
   currentUserId?: string
   onLoadFileContent?: (projectId: string, filePath: string) => Promise<string>
   onRefreshSnapshot?: (projectId: string) => Promise<void>
+  activateUrl?: ParsedUrl
+  currentProject?: ApiProject
+  onUrlChange?: (path: string, hash: string, replace?: boolean) => void
 }
 
-export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedProjectId, currentUserId, onLoadFileContent, onRefreshSnapshot }: ProjectViewerProps) {
+export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedProjectId, currentUserId, onLoadFileContent, onRefreshSnapshot, activateUrl, currentProject, onUrlChange }: ProjectViewerProps) {
   const projectIds = useMemo(() => Object.keys(projects).sort(), [projects])
 
   // Load persisted state once on mount
@@ -344,6 +351,13 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   const editorAreaRef = useRef<HTMLDivElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // Tracks the active panel's internal sub-tab hash for URL generation
+  const [activePanelHash, setActivePanelHash] = useState<string>('')
+  // True while applyUrlToTab is activating an initial URL (use replaceState instead of pushState)
+  const isApplyingUrlRef = useRef(false)
+  // Last activateUrl we processed (to avoid double-applying same url)
+  const lastActivateUrlRef = useRef<ParsedUrl | undefined>(undefined)
+
   // Persist state to localStorage when it changes
   useEffect(() => {
     const serializedTabs: SerializedTab[] = openTabs.map(t => ({
@@ -353,6 +367,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       label: t.label,
       pane: t.pane,
       tableName: t.tableName,
+      agentId: t.agentId,
     }))
 
     savePersistedState({
@@ -384,6 +399,23 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
 
   const files = projects[activeProject] || {}
   const snapshot = dbData[activeProject]
+
+  // Sync active tab to URL
+  useEffect(() => {
+    if (!onUrlChange) return
+    const activeTabId = activeTabIds[activePane]
+    const activeTab = openTabs.find(t => t.id === activeTabId)
+    if (!activeTab) {
+      onUrlChange('/', '', isApplyingUrlRef.current)
+      isApplyingUrlRef.current = false
+      return
+    }
+    const result = tabToUrl(activeTab, currentProject ?? null)
+    if (result) {
+      onUrlChange(result.path, activePanelHash, isApplyingUrlRef.current)
+    }
+    isApplyingUrlRef.current = false
+  }, [activeTabIds, activePane, activePanelHash]) // eslint-disable-line react-hooks/exhaustive-deps
   const fullTree = useMemo(() => buildFileTree(files), [files])
   const tree = useMemo(
     () => simpleMode ? filterTreeForSimpleMode(fullTree) : fullTree,
@@ -626,7 +658,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
   }, [openTabs, files, activePane, openFile])
 
-  const openAgentSession = useCallback((sessionId: string) => {
+  const openAgentSession = useCallback((sessionId: string, agentId?: string, initialPanelTab?: string) => {
     const tabId = `agentSession:${sessionId}`
 
     // Check if tab already exists
@@ -648,12 +680,14 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       label: `Session ${sessionId.slice(0, 8)}`,
       icon: <PlayIcon />,
       pane: targetPane,
+      agentId,
+      initialPanelTab,
     }])
     setActiveTabIds(prev => ({ ...prev, [targetPane]: tabId }))
     setActivePane(targetPane)
   }, [openTabs])
 
-  const openAgent = useCallback((agentId: string) => {
+  const openAgent = useCallback((agentId: string, initialPanelTab?: string) => {
     const tabId = `agent:${agentId}`
     const agent = agents.find(a => a.id === agentId)
     if (!agent) return
@@ -675,6 +709,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       icon: <CodeIcon />,
       pane: activePane,
       agentId,
+      initialPanelTab,
     }])
     setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
     setActivePane(activePane)
@@ -687,6 +722,56 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     setActiveTabIds(prev => ({ ...prev, right: tabId }))
     setActivePane('right')
   }, [])
+
+  // Apply a parsed URL to open/activate the corresponding tab
+  const applyUrlToTab = useCallback((url: ParsedUrl) => {
+    if (url.type === 'root') return
+
+    isApplyingUrlRef.current = true
+
+    if (url.type === 'agent') {
+      openAgent(url.agentId, url.panelTab)
+    } else if (url.type === 'agentSession') {
+      openAgentSession(url.sessionId, url.agentId, url.panelTab)
+    } else if (url.type === 'file') {
+      // Detect if this file path is actually a service (has service.json)
+      const serviceJsonPath = `${url.filePath}/service.json`
+      if (files[serviceJsonPath] !== undefined) {
+        openService(url.filePath)
+      } else {
+        openFile(url.filePath)
+      }
+    } else if (url.type === 'table') {
+      const validTableNames = TABLE_NAMES as readonly string[]
+      if (validTableNames.includes(url.tableName)) {
+        openTable(url.tableName as typeof TABLE_NAMES[number])
+      }
+    } else if (url.type === 'record') {
+      // Record tabs need snapshot data — find the record by key
+      const tableData = snapshot?.[url.tableName as keyof typeof snapshot] as Record<string, unknown>[] | undefined
+      if (tableData) {
+        const record = tableData.find((r: Record<string, unknown>) =>
+          r['key'] === url.recordKey || r['id'] === url.recordKey
+        )
+        if (record) {
+          openRecord(
+            url.tableName as typeof TABLE_NAMES[number],
+            record as Record<string, unknown>,
+            url.recordKey
+          )
+        }
+      }
+    }
+  }, [files, snapshot, openAgent, openAgentSession, openFile, openService, openTable, openRecord]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Apply activateUrl when it changes (initial load + back/forward navigation)
+  useEffect(() => {
+    if (!activateUrl || activateUrl.type === 'root') return
+    // Avoid re-processing the same URL object
+    if (lastActivateUrlRef.current === activateUrl) return
+    lastActivateUrlRef.current = activateUrl
+    applyUrlToTab(activateUrl)
+  }, [activateUrl, applyUrlToTab])
 
   const closeTab = useCallback((tabId: string, pane: PaneId) => {
     setOpenTabs(prev => {
@@ -967,8 +1052,9 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
 
     if (tab.type === 'file') {
       const cachedContent = files[tab.path]
-      // If cachedContent is undefined, file doesn't exist in the tree
-      if (cachedContent === undefined) {
+      const filesLoaded = Object.keys(files).length > 0
+      // If file listing is loaded and file isn't in it, it doesn't exist
+      if (cachedContent === undefined && filesLoaded) {
         return <div className={styles.emptyState}>File not found</div>
       }
       return (
@@ -1123,6 +1209,8 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
               closeTab(tab.id, tab.pane)
               openAgentSession(newSessionId)
             }}
+            initialTab={tab.initialPanelTab as 'overview' | 'stages' | 'results' | undefined}
+            onTabChange={(panelTab) => setActivePanelHash(panelTab)}
           />
         </div>
       )
@@ -1151,6 +1239,8 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             setShowStartSessionModal(true)
           }}
           onSessionSelect={openAgentSession}
+          initialTab={tab.initialPanelTab as 'overview' | 'sessions' | 'prompt' | undefined}
+          onTabChange={(panelTab) => setActivePanelHash(panelTab)}
         />
       )
     }
