@@ -35,9 +35,9 @@ import {
   ContentPreview,
   DatabaseTableView,
   RecordDetailView,
-  ServiceView,
+  ServicePanel,
   AgentBrowser,
-  AgentPage,
+  AgentPanel,
   parseAgentsYaml,
   parseAgentConfigs,
 } from './components'
@@ -1091,7 +1091,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       }
       return (
         <div className={styles.tabContentInner}>
-          <ServiceView
+          <ServicePanel
             metadata={metadata}
             readme={readme}
             servicePath={tab.path}
@@ -1142,7 +1142,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
         files[`prompts/${agent.id}.md`]
 
       return (
-        <AgentPage
+        <AgentPanel
           agent={agent}
           projectId={activeProject}
           promptContent={promptContent}

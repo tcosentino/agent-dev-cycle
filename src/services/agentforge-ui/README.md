@@ -24,7 +24,7 @@ agentforge-ui/
 │   ├── DatabaseViews.tsx  # Table and board views
 │   ├── RecordViews.tsx    # Record detail views
 │   ├── DeploymentViews.tsx # Deployment and workload views
-│   └── ServiceView.tsx    # Service detail view
+│   └── ServicePanel.tsx   # Service detail panel
 └── service.json           # Service definition
 ```
 

@@ -5,7 +5,7 @@ import { useCreateDeployment } from '../../deployment-dataobject/hooks'
 import { useCreateWorkload } from '../../workload-dataobject/hooks'
 import styles from '../ProjectViewer.module.css'
 
-interface ServiceViewProps {
+interface ServicePanelProps {
   metadata: ServiceMetadata
   readme?: string
   onFileClick?: (path: string) => void
@@ -28,7 +28,7 @@ const SERVICE_TYPE_LABELS: Record<ServiceMetadata['type'], string> = {
   ui: 'UI Component',
 }
 
-export function ServiceView({ metadata, onFileClick, servicePath, projectId, onWorkloadCreated }: ServiceViewProps) {
+export function ServicePanel({ metadata, onFileClick, servicePath, projectId, onWorkloadCreated }: ServicePanelProps) {
   const TypeIcon = SERVICE_TYPE_ICONS[metadata.type] || BoxIcon
   const typeLabel = SERVICE_TYPE_LABELS[metadata.type] || metadata.type
 

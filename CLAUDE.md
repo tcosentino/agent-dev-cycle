@@ -74,6 +74,9 @@ yarn preview        # Preview production build
     - `DeploymentCard.tsx` - Deployment card with workload list
     - `WorkloadCard.tsx` - Workload card with horizontal pipeline visualizer
     - `AgentSessionPanel/` - Agent session management components
+    - `AgentPanel.tsx` - Agent detail panel (tab content for agent type)
+    - `ServicePanel.tsx` - Service detail panel (tab content for service type)
+    - `PanelLayout.tsx` - Shared panel layout with title, tabs, and content area
   - `hooks/` - Custom React hooks
     - `useDeploymentStream.ts` - SSE connection for real-time deployment updates
     - `useAgentSessionProgress.ts` - Agent session SSE monitoring
@@ -355,6 +358,16 @@ workloadEvents.emitDeploymentDeleted({ deploymentId, projectId })
 - Only include multiple components in a single file for tiny sub-components that are tightly coupled
 - File name should match the primary component name (e.g., `DeploymentCard.tsx` exports `DeploymentCard`)
 - Keep components focused and single-purpose
+
+### Tab Panel Naming Convention
+
+Components that render as the content of a tab are called **Panels**. Use the `Panel` suffix for all top-level tab content components:
+
+- `AgentPanel` - renders when `tab.type === 'agent'`
+- `ServicePanel` - renders when `tab.type === 'service'`
+- `AgentSessionProgressPanel` - renders when `tab.type === 'agentSession'`
+
+Sub-components rendered inside panels (not directly as tab content) keep their existing naming (`View`, `Card`, etc.).
 
 ### Documentation
 

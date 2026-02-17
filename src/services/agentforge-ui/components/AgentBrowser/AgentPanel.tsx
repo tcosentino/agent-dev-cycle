@@ -4,9 +4,10 @@ import { api, type ApiAgentSession } from '../../api'
 import { Badge, Spinner, PlayIcon } from '@agentforge/ui-components'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import styles from './AgentPage.module.css'
+import { PanelLayout } from '../PanelLayout'
+import styles from './AgentPanel.module.css'
 
-export interface AgentPageProps {
+export interface AgentPanelProps {
   agent: AgentConfig
   projectId: string
   promptContent?: string
@@ -14,27 +15,22 @@ export interface AgentPageProps {
   onSessionSelect: (sessionId: string) => void
 }
 
-type AgentSection = 'overview' | 'sessions' | 'prompt'
+type AgentTab = 'overview' | 'sessions' | 'prompt'
 
-interface AgentSectionItem {
-  key: AgentSection
-  label: string
-}
-
-const sections: AgentSectionItem[] = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'sessions', label: 'Sessions' },
-  { key: 'prompt', label: 'Prompt' },
+const AGENT_TABS = [
+  { id: 'overview' as AgentTab, label: 'Overview' },
+  { id: 'sessions' as AgentTab, label: 'Sessions' },
+  { id: 'prompt' as AgentTab, label: 'Prompt' },
 ]
 
-export function AgentPage({
+export function AgentPanel({
   agent,
   projectId,
   promptContent,
   onRunAgent,
   onSessionSelect,
-}: AgentPageProps) {
-  const [activeSection, setActiveSection] = useState<AgentSection>('overview')
+}: AgentPanelProps) {
+  const [activeTab, setActiveTab] = useState<AgentTab>('overview')
   const [sessions, setSessions] = useState<ApiAgentSession[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,7 +55,7 @@ export function AgentPage({
   }, [projectId, agent.id])
 
   const renderContent = () => {
-    if (activeSection === 'overview') {
+    if (activeTab === 'overview') {
       return (
         <div className={styles.overviewContent}>
           <div className={styles.configGrid}>
@@ -112,7 +108,7 @@ export function AgentPage({
       )
     }
 
-    if (activeSection === 'sessions') {
+    if (activeTab === 'sessions') {
       if (loading) {
         return (
           <div className={styles.loadingState}>
@@ -170,7 +166,7 @@ export function AgentPage({
       )
     }
 
-    if (activeSection === 'prompt') {
+    if (activeTab === 'prompt') {
       if (!promptContent) {
         return (
           <div className={styles.emptyState}>
@@ -192,30 +188,13 @@ export function AgentPage({
   }
 
   return (
-    <div className={styles.agentPage}>
-      <div className={styles.pageLayout}>
-        {/* Left sidebar with section navigation */}
-        <div className={styles.sectionList}>
-          <div className={styles.agentInfo}>
-            <h2 className={styles.agentName}>{agent.displayName}</h2>
-            <span className={styles.agentId}>{agent.id}</span>
-          </div>
-          {sections.map(section => (
-            <button
-              key={section.key}
-              className={`${styles.sectionItem} ${activeSection === section.key ? styles.sectionItemActive : ''}`}
-              onClick={() => setActiveSection(section.key)}
-            >
-              {section.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Main content area */}
-        <div className={styles.pageMain}>
-          {renderContent()}
-        </div>
-      </div>
-    </div>
+    <PanelLayout
+      title={agent.displayName}
+      tabs={AGENT_TABS}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+    >
+      {renderContent()}
+    </PanelLayout>
   )
 }
