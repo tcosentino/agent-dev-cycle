@@ -70,16 +70,25 @@ yarn preview        # Preview production build
 - `src/services/agentforge-ui/` - React dashboard application
   - `components/` - React components
     - `DeploymentDashboard.tsx` - Main deployment view
-    - `DeploymentViews.tsx` - Deployment list and detail views
-    - `WorkloadControls.tsx` - Workload control buttons (Stop, Restart, View Logs)
-    - `LogViewer.tsx` - Log viewing modal
-    - `HealthBadge.tsx` - Status indicators
+    - `DeploymentViews.tsx` - Deployment list and workload detail views
+    - `DeploymentCard.tsx` - Deployment card with workload list
+    - `WorkloadCard.tsx` - Workload card with horizontal pipeline visualizer
+    - `AgentSessionPanel/` - Agent session management components
   - `hooks/` - Custom React hooks
     - `useDeploymentStream.ts` - SSE connection for real-time deployment updates
-    - `useAgentSessionProgress.ts` - Agent session monitoring
+    - `useAgentSessionProgress.ts` - Agent session SSE monitoring
   - `api.ts` - API client functions
   - `types.ts` - TypeScript type definitions
   - `ProjectViewer.tsx` - Main project viewer component
+
+### Shared UI Components
+
+- `packages/ui-components/src/components/` - Reusable React components
+  - `ExecutionLogPanel/` - Collapsible 2-column stage sections with logs
+  - `ExecutionHeader/` - Status badge with flexible action slots
+  - `ExecutionControls/` - Conditional lifecycle buttons (job vs service mode)
+  - `ErrorBoundary/` - Error boundary with copy error functionality
+  - `Badge/`, `Modal/`, `Toast/` - Basic UI primitives
 
 ### Backend Services
 
@@ -96,6 +105,52 @@ yarn preview        # Preview production build
   - `dataobject.ts` - Resource definition framework
   - `discover.ts` - Auto-discovery of modules
   - `types.ts` - Type definitions
+
+## UI Architecture
+
+### Unified Execution Views
+
+Agent sessions and workload deployments share a common UI infrastructure:
+
+**Shared Components:**
+
+- `ExecutionLogPanel` - Displays logs in collapsible 2-column sections (stage label | logs)
+  - Each stage row independently collapsible/expandable
+  - Status circles with colors (gray pending → blue running → green success / red failed)
+  - Duration display in stage labels
+  - Color-coded log levels (blue info, yellow warn, red error)
+  - Auto-scroll support
+- `ExecutionHeader` - Status badge with flexible action slot for buttons
+- `ExecutionControls` - Conditional buttons based on execution type:
+  - Job mode (agent sessions): Cancel/Retry buttons
+  - Service mode (workloads): Stop/Restart buttons
+
+**View-Specific Features:**
+
+Agent Sessions (job-style):
+
+- Session detail header with agent type and phase
+- Task prompt display
+- Summary and commit SHA on completion
+- Cancel button (jobs should be cancellable)
+- Retry button on failure
+
+Workloads (service or job):
+
+- Horizontal pipeline visualizer in cards (compact view)
+- Collapsible stage sections in detail view
+- Artifact URL display (services expose endpoints)
+- Module type/name metadata
+- Stop/Restart controls (services need lifecycle management)
+
+**Layout Pattern:**
+
+Both views use identical collapsible 2-column stage layout in detail views:
+
+- Left column: Stage name with status circle and duration
+- Right column: Logs for that stage (collapsible)
+- Clicking stage row toggles collapse/expand
+- Expand/Collapse All and Copy All Logs buttons
 
 ## Real-Time Architecture
 
