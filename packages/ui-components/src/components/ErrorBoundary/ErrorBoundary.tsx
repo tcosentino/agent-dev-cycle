@@ -11,6 +11,7 @@ interface ErrorBoundaryState {
   hasError: boolean
   error: Error | null
   errorInfo: ErrorInfo | null
+  copied: boolean
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -20,6 +21,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       hasError: false,
       error: null,
       errorInfo: null,
+      copied: false,
     }
   }
 
@@ -54,6 +56,26 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     window.location.reload()
   }
 
+  handleCopyError = async () => {
+    const errorText = [
+      'Error: ' + (this.state.error?.message || 'Unknown error'),
+      '',
+      'Stack:',
+      this.state.error?.stack || '',
+      '',
+      'Component Stack:',
+      this.state.errorInfo?.componentStack || '',
+    ].join('\n')
+
+    try {
+      await navigator.clipboard.writeText(errorText)
+      this.setState({ copied: true })
+      setTimeout(() => this.setState({ copied: false }), 2000)
+    } catch (err) {
+      console.error('Failed to copy error:', err)
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       const { level = 'panel' } = this.props
@@ -80,6 +102,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                   className={styles.primaryButton}
                 >
                   Reload Page
+                </button>
+                <button
+                  onClick={this.handleCopyError}
+                  className={styles.secondaryButton}
+                >
+                  {this.state.copied ? 'Copied!' : 'Copy Error'}
                 </button>
                 <a
                   href="https://github.com/anthropics/agentforge/issues"
@@ -109,12 +137,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 <pre>{this.state.error?.stack}</pre>
               </details>
             )}
-            <button
-              onClick={this.handleReset}
-              className={styles.retryButton}
-            >
-              Retry Panel
-            </button>
+            <div className={styles.panelActions}>
+              <button
+                onClick={this.handleReset}
+                className={styles.retryButton}
+              >
+                Retry Panel
+              </button>
+              <button
+                onClick={this.handleCopyError}
+                className={styles.copyButton}
+              >
+                {this.state.copied ? 'Copied!' : 'Copy Error'}
+              </button>
+            </div>
           </div>
         </div>
       )

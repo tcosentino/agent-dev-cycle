@@ -1,12 +1,8 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Modal, useToast, ServerIcon, ClipboardIcon, ChevronDownIcon } from '@agentforge/ui-components'
+import { Modal, useToast, ServerIcon, ClipboardIcon, ChevronDownIcon, ExecutionHeader, ExecutionControls, ExecutionLogPanel, type StageOutput, type LogEntry as ExecutionLogEntry } from '@agentforge/ui-components'
 import type { DbSnapshot, Deployment, Workload, WorkloadStage } from '../types'
 import { DeploymentCard } from './DeploymentCard'
-import { StageDetailCard } from './StageDetailCard'
-import { LogViewer } from './LogViewer'
-import { WorkloadControls } from './WorkloadControls'
-import { getWorkloadLogs, api } from '../api'
-import type { LogEntry } from './LogViewer'
+import { api } from '../api'
 import { formatStageName, formatUptime, formatDuration, transformLogsToStages } from '../utils/deploymentUtils'
 import { useDeployments } from '../contexts/DeploymentContext'
 import styles from '../ProjectViewer.module.css'
@@ -45,11 +41,6 @@ export function DeploymentListView({
   }))
   const workloads = deploymentsFromContext.flatMap(d => d.workloads)
 
-  const [logViewerState, setLogViewerState] = useState<{
-    workload: Workload
-    logs: LogEntry[]
-  } | null>(null)
-  const [loadingLogs, setLoadingLogs] = useState(false)
   const [deletingDeployment, setDeletingDeployment] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<Deployment | null>(null)
   const { showToast } = useToast()
@@ -66,23 +57,6 @@ export function DeploymentListView({
         return dateB - dateA // Most recent first
       })
   }, [deployments, workloads])
-
-  const handleViewLogs = async (workload: Workload) => {
-    setLoadingLogs(true)
-    try {
-      const logs = await getWorkloadLogs(workload.id)
-      setLogViewerState({ workload, logs })
-    } catch (error) {
-      console.error('Failed to load logs:', error)
-      // Show empty logs with error
-      setLogViewerState({
-        workload,
-        logs: [{ stage: 'error', log: 'Failed to load logs', error: String(error) }]
-      })
-    } finally {
-      setLoadingLogs(false)
-    }
-  }
 
   const handleDeleteDeployment = async (deployment: Deployment) => {
     setDeleteConfirmation(deployment)
@@ -179,24 +153,10 @@ export function DeploymentListView({
             deployment={deployment}
             workloads={workloads}
             onWorkloadClick={onWorkloadClick}
-            onViewLogs={handleViewLogs}
             onDelete={handleDeleteDeployment}
           />
         ))}
       </div>
-      {logViewerState && (
-        <LogViewer
-          workloadId={logViewerState.workload.id}
-          workloadName={logViewerState.workload.moduleName}
-          logs={logViewerState.logs}
-          onClose={() => setLogViewerState(null)}
-        />
-      )}
-      {loadingLogs && (
-        <div className={styles.loadingOverlay}>
-          <div className={styles.loadingSpinner}>Loading logs...</div>
-        </div>
-      )}
       {deleteConfirmation && (
         <Modal title="Delete Deployment" onClose={() => setDeleteConfirmation(null)}>
           <div className={modalStyles.modalContent}>
@@ -242,69 +202,71 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
   const deployment = workload.deploymentId ? getDeploymentById(workload.deploymentId) : undefined
   const isDeleted = !getWorkloadById(initialWorkload.id)
   const [copied, setCopied] = useState(false)
-  const [allExpanded, setAllExpanded] = useState(true)
-  const [logViewerState, setLogViewerState] = useState<{
-    workload: Workload
-    logs: LogEntry[]
-  } | null>(null)
-  const [loadingLogs, setLoadingLogs] = useState(false)
+  const [expandedStages, setExpandedStages] = useState<Set<string>>(new Set())
+  const [isStopping, setIsStopping] = useState(false)
+  const [isRestarting, setIsRestarting] = useState(false)
   const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
   const workloadType = workload.moduleType || 'service'
   const port = (workload as any).port || workload.artifacts?.port
   const containerId = (workload as any).containerId
   const currentStage = workload.currentStage || (workload as any).stage || 'pending'
 
-  // Transform logs to stages if needed
-  const stages = useMemo(() => {
-    if (workload.stages && workload.stages.length > 0) {
-      return workload.stages
+  // Transform workload stages to ExecutionLogPanel format
+  const stageOutputs = useMemo((): StageOutput[] => {
+    let stages = workload.stages
+    if (!stages || stages.length === 0) {
+      const logs = (workload as any).logs as WorkloadLogEntry[] | undefined | null
+      if (logs && Array.isArray(logs) && logs.length > 0) {
+        stages = transformLogsToStages(logs)
+      } else {
+        return []
+      }
     }
-    const logs = (workload as any).logs as WorkloadLogEntry[] | undefined | null
-    if (logs && Array.isArray(logs) && logs.length > 0) {
-      return transformLogsToStages(logs)
-    }
-    return []
+
+    return stages.map(stage => ({
+      stage: formatStageName(stage.stage),
+      status: stage.status,
+      startedAt: stage.startedAt,
+      completedAt: stage.completedAt,
+      duration: stage.duration,
+      logs: (stage.logs || []).map(log => ({
+        timestamp: stage.startedAt || new Date().toISOString(),
+        level: 'info' as const,
+        message: log
+      })),
+      error: stage.error
+    }))
   }, [workload])
 
-  // Determine current stage status for color coding
-  const currentStageStatus = useMemo(() => {
-    let status = 'pending'
-
-    if (stages.length > 0) {
-      const stageResult = stages.find(s => s.stage === currentStage)
-      if (stageResult) {
-        status = stageResult.status
-      } else if (workload.status === 'running') {
-        status = 'running'
-      }
+  // Toggle all stages expanded/collapsed
+  const toggleAllStages = () => {
+    if (expandedStages.size === stageOutputs.length) {
+      setExpandedStages(new Set())
     } else {
-      // For workloads without stages, infer from overall status
-      if (workload.status === 'running') status = 'running'
-      else if (workload.status === 'success') status = 'success'
-      else if (workload.status === 'failed') status = 'failed'
+      setExpandedStages(new Set(stageOutputs.map(s => s.stage)))
     }
+  }
 
-    return status
-  }, [stages, workload.status, currentStage])
+  const handleToggleStage = (stage: string) => {
+    setExpandedStages(prev => {
+      const next = new Set(prev)
+      if (next.has(stage)) {
+        next.delete(stage)
+      } else {
+        next.add(stage)
+      }
+      return next
+    })
+  }
 
   const handleCopyLogs = async () => {
-    let logText = ''
-
-    if (stages.length > 0) {
-      logText = stages
-        .map(stage => {
-          const logs = stage.logs?.join('\n') || ''
-          const error = stage.error || ''
-          return `[${stage.stage}]\n${logs}${error ? '\nError: ' + error : ''}`
-        })
-        .join('\n\n')
-    } else {
-      const rawLogs = (workload as any).logs || []
-      logText = rawLogs.map((log: any) => `[${log.stage || 'unknown'}] ${log.message}`).join('\n')
-      if ((workload as any).error) {
-        logText += `\nError: ${(workload as any).error}`
-      }
-    }
+    const logText = stageOutputs
+      .map(stage => {
+        const logs = stage.logs.map(l => l.message).join('\n')
+        const error = stage.error || ''
+        return `[${stage.stage}]\n${logs}${error ? '\nError: ' + error : ''}`
+      })
+      .join('\n\n')
 
     try {
       await navigator.clipboard.writeText(logText)
@@ -315,9 +277,10 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
     }
   }
 
-  const handleStop = async (workloadId: string) => {
+  const handleStop = async () => {
+    setIsStopping(true)
     try {
-      await api.workloads.stop(workload.deploymentId, workloadId)
+      await api.workloads.stop(workload.deploymentId, workload.id)
       showToast({
         type: 'success',
         title: 'Workload stopped',
@@ -330,13 +293,15 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
         title: 'Failed to stop workload',
         message
       })
-      throw error
+    } finally {
+      setIsStopping(false)
     }
   }
 
-  const handleRestart = async (workloadId: string) => {
+  const handleRestart = async () => {
+    setIsRestarting(true)
     try {
-      await api.workloads.restart(workload.deploymentId, workloadId)
+      await api.workloads.restart(workload.deploymentId, workload.id)
       showToast({
         type: 'success',
         title: 'Workload restarting',
@@ -349,23 +314,8 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
         title: 'Failed to restart workload',
         message
       })
-      throw error
-    }
-  }
-
-  const handleViewLogs = async (workload: Workload) => {
-    setLoadingLogs(true)
-    try {
-      const logs = await getWorkloadLogs(workload.id)
-      setLogViewerState({ workload, logs })
-    } catch (error) {
-      console.error('Failed to load logs:', error)
-      setLogViewerState({
-        workload,
-        logs: [{ stage: 'error', log: 'Failed to load logs', error: String(error) }]
-      })
     } finally {
-      setLoadingLogs(false)
+      setIsRestarting(false)
     }
   }
 
@@ -388,27 +338,26 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
           <h2 className={styles.workloadDetailName}>{workloadName}</h2>
           <span className={styles.workloadDetailType}>{workloadType}</span>
         </div>
-        <div className={styles.workloadStatusBadge}>
-          <span className={`${styles.workloadStatusStage} ${styles[`stageStatus-${currentStageStatus}`]}`}>
-            {formatStageName(currentStage)}
-          </span>
-          <span className={`${styles.workloadDetailStatus} ${styles[`status-${workload.status}`]}`}>
-            {workload.status}
-          </span>
-        </div>
       </div>
 
-      <WorkloadControls
-        workload={workload}
-        deploymentId={workload.deploymentId}
-        onStop={handleStop}
-        onRestart={handleRestart}
-        onViewLogs={handleViewLogs}
+      <ExecutionHeader
+        status={workload.status}
+        error={(workload as any).error}
+        actions={
+          <ExecutionControls
+            mode="service"
+            status={workload.status}
+            onStop={handleStop}
+            onRestart={handleRestart}
+            isStopping={isStopping}
+            isRestarting={isRestarting}
+          />
+        }
       />
 
       {(workload.artifacts || port || containerId) && (
         <div className={styles.workloadArtifacts}>
-          <h3>Artifacts</h3>
+          <h3>Artifacts & Metadata</h3>
           <dl>
             {workload.artifacts?.imageName && (
               <>
@@ -459,11 +408,11 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
           <h3>Pipeline Stages</h3>
           <button
             className={styles.copyLogsButton}
-            onClick={() => setAllExpanded(!allExpanded)}
-            title={allExpanded ? 'Collapse all stages' : 'Expand all stages'}
+            onClick={toggleAllStages}
+            title={expandedStages.size === stageOutputs.length ? 'Collapse all stages' : 'Expand all stages'}
           >
             <ChevronDownIcon />
-            <span>{allExpanded ? 'Collapse All' : 'Expand All'}</span>
+            <span>{expandedStages.size === stageOutputs.length ? 'Collapse All' : 'Expand All'}</span>
           </button>
           <button
             className={styles.copyLogsButton}
@@ -474,23 +423,13 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
             <span>{copied ? 'Copied!' : 'Copy All Logs'}</span>
           </button>
         </div>
-        <div className={styles.stageDetailsContainer}>
-          {stages.length > 0 ? stages.map((stage, i) => (
-            <StageDetailCard key={i} stage={stage} expanded={allExpanded} />
-          )) : (
-            <div className={styles.emptyState}>No stage data available</div>
-          )}
-        </div>
-      </div>
-
-      {logViewerState && (
-        <LogViewer
-          workloadId={workload.id}
-          workloadName={workloadName}
-          logs={logViewerState.logs}
-          onClose={() => setLogViewerState(null)}
+        <ExecutionLogPanel
+          stageOutputs={stageOutputs}
+          expandedStages={expandedStages}
+          onToggleStage={handleToggleStage}
+          autoScroll={false}
         />
-      )}
+      </div>
     </div>
   )
 }

@@ -17,7 +17,6 @@ export interface DeploymentCardProps {
   deployment: Deployment
   workloads: Workload[]
   onWorkloadClick: (workload: Workload) => void
-  onViewLogs: (workload: Workload) => void
   onDelete: (deployment: Deployment) => void
 }
 
@@ -25,7 +24,6 @@ export function DeploymentCard({
   deployment,
   workloads,
   onWorkloadClick,
-  onViewLogs,
   onDelete,
 }: DeploymentCardProps) {
   const statusIcons: Record<Deployment['status'], React.ReactNode> = {
@@ -98,7 +96,6 @@ export function DeploymentCard({
             key={workload.id}
             workload={workload}
             onClick={() => onWorkloadClick(workload)}
-            onViewLogs={onViewLogs}
           />
         ))}
       </div>

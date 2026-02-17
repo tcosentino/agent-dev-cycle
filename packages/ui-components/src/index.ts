@@ -40,6 +40,15 @@ export type { CardProps } from './components/Card/Card'
 export { CodeBlock } from './components/CodeBlock/CodeBlock'
 export type { CodeBlockProps } from './components/CodeBlock/CodeBlock'
 
+export { ExecutionHeader } from './components/ExecutionHeader/ExecutionHeader'
+export type { ExecutionHeaderProps } from './components/ExecutionHeader/ExecutionHeader'
+
+export { ExecutionControls } from './components/ExecutionControls/ExecutionControls'
+export type { ExecutionControlsProps, ExecutionMode } from './components/ExecutionControls/ExecutionControls'
+
+export { ExecutionLogPanel } from './components/ExecutionLogPanel/ExecutionLogPanel'
+export type { ExecutionLogPanelProps, StageOutput, LogEntry } from './components/ExecutionLogPanel/ExecutionLogPanel'
+
 export { ToastProvider, useToast } from './components/Toast/Toast'
 export type { ToastOptions, ToastType } from './components/Toast/Toast'
 

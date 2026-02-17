@@ -1,0 +1,93 @@
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Cancel Button (Red, for job mode when running) */
+.cancelButton {
+  padding: 6px 12px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.cancelButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Retry Button (Blue/Accent, for job mode when failed/cancelled) */
+.retryButton {
+  padding: 6px 12px;
+  background: var(--accent-tertiary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.retryButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.retryButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Stop Button (Red, for service mode when running) */
+.stopButton {
+  padding: 6px 12px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.stopButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.stopButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Restart Button (Blue/Accent, for service mode when running/stopped/failed) */
+.restartButton {
+  padding: 6px 12px;
+  background: var(--accent-tertiary);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.restartButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.restartButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

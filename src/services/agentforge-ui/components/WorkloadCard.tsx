@@ -1,23 +1,15 @@
 import { useMemo } from 'react'
-import { ServerIcon, FileDocumentIcon } from '@agentforge/ui-components'
+import { ServerIcon } from '@agentforge/ui-components'
 import type { Workload } from '../types'
 import { WorkloadStages } from './WorkloadStages'
 import styles from '../ProjectViewer.module.css'
 
-interface WorkloadLogEntry {
-  timestamp: string
-  stage: string
-  message: string
-  level: 'info' | 'warn' | 'error'
-}
-
 export interface WorkloadCardProps {
   workload: Workload
   onClick: () => void
-  onViewLogs: (workload: Workload) => void
 }
 
-export function WorkloadCard({ workload, onClick, onViewLogs }: WorkloadCardProps) {
+export function WorkloadCard({ workload, onClick }: WorkloadCardProps) {
   const statusColors: Record<Workload['status'], string> = {
     pending: 'var(--text-tertiary)',
     running: 'var(--accent-primary)',
@@ -36,16 +28,6 @@ export function WorkloadCard({ workload, onClick, onViewLogs }: WorkloadCardProp
     return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
   }, [workload])
 
-  const hasLogs = useMemo(() => {
-    // Check if workload has stages with logs
-    if (workload.stages && workload.stages.length > 0) {
-      return workload.stages.some(stage => stage.logs && stage.logs.length > 0)
-    }
-    // Check if workload has raw logs array
-    const rawLogs = (workload as any).logs as WorkloadLogEntry[] | undefined
-    return rawLogs && rawLogs.length > 0
-  }, [workload])
-
   const workloadName = workload.moduleName || (workload as any).servicePath || 'Unnamed workload'
 
   return (
@@ -59,28 +41,6 @@ export function WorkloadCard({ workload, onClick, onViewLogs }: WorkloadCardProp
         >
           {workload.status}
         </span>
-        {hasLogs && (
-          <div
-            className={styles.viewLogsButton}
-            onClick={(e) => {
-              e.stopPropagation()
-              onViewLogs(workload)
-            }}
-            title="View Logs"
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                e.stopPropagation()
-                onViewLogs(workload)
-              }
-            }}
-          >
-            <FileDocumentIcon />
-            <span>Logs</span>
-          </div>
-        )}
       </div>
       <WorkloadStages workload={workload} />
       <div className={styles.workloadMeta}>
