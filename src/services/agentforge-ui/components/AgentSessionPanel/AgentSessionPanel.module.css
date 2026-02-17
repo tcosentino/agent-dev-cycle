@@ -536,3 +536,144 @@
   height: 14px;
 }
 
+/* Context Files Display */
+.contextFiles {
+  background: var(--bg-primary);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--space-md);
+}
+
+/* Tab Navigation */
+.tabNav {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  padding: 0 var(--space-md);
+}
+
+.tab {
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.tab:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tabActive {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+/* Tab Content */
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.overviewTab,
+.stagesTab,
+.resultsTab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Stage Progress Display */
+.stageProgress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.stageProgressItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stageStatus {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+}
+
+.stageStatus-pending {
+  background: transparent;
+  border-color: var(--text-muted);
+}
+
+.stageStatus-running {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  animation: pulse 2s infinite;
+}
+
+.stageStatus-success {
+  background: var(--status-success);
+  border-color: var(--status-success);
+}
+
+.stageStatus-failed {
+  background: var(--status-error);
+  border-color: var(--status-error);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Results Tab Styles */
+.helpText {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: var(--space-sm) 0;
+}
+
+.pathDisplay {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--bg-primary);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  color: var(--accent-primary);
+  margin: var(--space-sm) 0;
+}
+

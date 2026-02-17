@@ -430,6 +430,7 @@ export function registerAgentSessionRoutes(
             sessionId: session.sessionId,
             agent: session.agent,
             phase: session.phase,
+            taskPrompt: session.taskPrompt,
             stage: session.stage,
             progress: session.progress,
             currentStep: session.currentStep,
@@ -654,11 +655,9 @@ export function registerAgentSessionRoutes(
     }
 
     const logEntry = { timestamp: new Date(), level, message }
-    const updates: Partial<AgentSession> = {
-      logs: [...session.logs, logEntry],
-    }
+    const updates: Partial<AgentSession> = {}
 
-    // If stage is specified, also add to stage-specific logs
+    // If stage is specified, add to stage-specific logs only
     if (stage && ['cloning', 'loading', 'executing', 'capturing', 'committing'].includes(stage)) {
       const stageKey = stage as keyof AgentSession['stageOutputs']
       const currentStageOutput = session.stageOutputs?.[stageKey] || { logs: [] }
@@ -671,6 +670,9 @@ export function registerAgentSessionRoutes(
           startedAt: currentStageOutput.startedAt || new Date(),
         },
       }
+    } else {
+      // Only add to global logs if no stage is specified
+      updates.logs = [...session.logs, logEntry]
     }
 
     await agentSessionStore.update(id, updates)

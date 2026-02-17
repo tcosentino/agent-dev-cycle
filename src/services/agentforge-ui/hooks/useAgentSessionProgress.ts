@@ -7,6 +7,7 @@ export interface AgentSessionProgress {
   sessionId: string
   agent: string
   phase: string
+  taskPrompt: string
 
   // Progress state
   stage: ApiAgentSessionStage
@@ -87,6 +88,7 @@ export function useAgentSessionProgress(
         sessionId: data.sessionId,
         agent: data.agent,
         phase: data.phase,
+        taskPrompt: data.taskPrompt,
         stage: data.stage,
         progress: data.progress,
         currentStep: data.currentStep,
@@ -98,17 +100,7 @@ export function useAgentSessionProgress(
       setIsLoading(false)
     })
 
-    // Handle log events
-    eventSource.addEventListener('log', (event) => {
-      const logEntry = JSON.parse(event.data) as ApiAgentSessionLogEntry
-      setProgress(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          logs: [...prev.logs, logEntry],
-        }
-      })
-    })
+    // Note: 'log' events are no longer used - all logs are stage-specific via 'stage-log' events
 
     // Handle progress events
     eventSource.addEventListener('progress', (event) => {
