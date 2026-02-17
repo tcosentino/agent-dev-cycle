@@ -332,14 +332,25 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
 
   return (
     <div className={styles.workloadDetailView}>
+      {/* Workload Details Header */}
       <div className={styles.workloadDetailHeader}>
         <ServerIcon className={styles.workloadDetailIcon} />
         <div>
           <h2 className={styles.workloadDetailName}>{workloadName}</h2>
-          <span className={styles.workloadDetailType}>{workloadType}</span>
+          <div className={styles.workloadMeta}>
+            <span className={styles.workloadMetaItem}>
+              <strong>Type:</strong> {workloadType}
+            </span>
+            {workload.moduleName && (
+              <span className={styles.workloadMetaItem}>
+                <strong>Module:</strong> {workload.moduleName}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
+      {/* Status Header with Controls */}
       <ExecutionHeader
         status={workload.status}
         error={(workload as any).error}
@@ -355,8 +366,9 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
         }
       />
 
+      {/* Artifacts & Metadata Section */}
       {(workload.artifacts || port || containerId) && (
-        <div className={styles.workloadArtifacts}>
+        <div className={styles.workloadInfo}>
           <h3>Artifacts & Metadata</h3>
           <dl>
             {workload.artifacts?.imageName && (
@@ -403,6 +415,7 @@ export function WorkloadDetailView({ workload: initialWorkload }: { workload: Wo
         </div>
       )}
 
+      {/* Pipeline Stages with Logs */}
       <div className={styles.workloadStageDetails}>
         <div className={styles.stageDetailsHeader}>
           <h3>Pipeline Stages</h3>
