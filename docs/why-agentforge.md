@@ -110,6 +110,81 @@ Engineering leadership faces constant tension: more features means more engineer
 
 Agents are a force multiplier. One senior engineer can orchestrate 10 tasks in parallel — agents handle implementation, humans handle architecture and review. Consistency is enforced at the framework level, not the individual level. Requirements are written before code. Nothing gets lost.
 
+### The "Shadow AI" Problem
+
+Here's what's happening at most engineering organizations right now: **your engineers are already using AI.** Claude Code, Cursor, GitHub Copilot — they're using these tools on their laptops, in their own accounts, with their own API keys, with no visibility from the company.
+
+This isn't bad intent. It's just how it works. But it creates real problems:
+
+- **You can't see it.** There's no log of what prompts were sent, what code was generated, what your codebase was shared with external APIs, or how much human review actually happened before a commit landed.
+- **You can't control it.** Each engineer makes their own decisions about what to use, how much to trust the output, and what context to provide. There are no guardrails, no standards, no policies.
+- **You can't audit it.** When something goes wrong — a security issue, a compliance failure, a bug that made it to production — you have no way to trace whether AI was involved and if so, how.
+- **You can't manage the risk.** Proprietary code is being sent to third-party APIs from personal machines. You may not know which APIs, under what terms, or whether it's permitted by your security policy.
+
+**AgentForge is the managed alternative.** Instead of every engineer running their own AI workflow on their laptop, AgentForge gives your organization a central platform where all AI-assisted development happens — and where you can see, control, and audit everything.
+
+#### Visibility: See What's Actually Happening
+
+With AgentForge, every agent action is logged:
+
+- Which agent ran, on which task, when
+- What files were read and modified
+- What commits were created and what they contain
+- What workloads were deployed and their current status
+
+Engineering leadership gets a real-time view of AI activity across all projects. No more guessing whether AI was used to write a piece of code, or how much oversight it received.
+
+#### Guardrails: Define What Agents Can and Can't Do
+
+AgentForge gives organizations control over agent behavior through configurable agent definitions:
+
+```markdown
+# AGENTS.md - Company-wide policy
+
+## Boundaries
+- Never commit directly to main branch
+- Never modify infrastructure configuration without human approval
+- Never send external API requests without using approved integrations
+- Never delete files — create replacement files and flag old ones for review
+- Escalate to human when touching auth, payments, or PII
+
+## Required Practices
+- All commits must reference a task ID
+- Tests required for all new functions
+- No TODO comments in committed code — open a task instead
+```
+
+These rules aren't suggestions. They're enforced at the platform level, applied consistently across every agent on every project.
+
+#### Audit Trail: Know Exactly How Code Was Built
+
+When a compliance auditor, a security reviewer, or your own leadership asks "how was this built?" — you have answers:
+
+```
+Task AF-247: Implement payment webhook handler
+  ├── Spec: openspec/changes/payments/specs/webhook/spec.md
+  ├── Agent: engineer-agent (v2.1)
+  ├── Started: 2026-02-14 09:15 AM
+  ├── Completed: 2026-02-14 11:32 AM
+  ├── Commits: 3 (feat, test, refactor)
+  ├── Files modified: 4
+  ├── Tests added: 12
+  ├── Reviewed by: Jane Smith
+  └── Deployed: 2026-02-14 2:00 PM (workload wl-981)
+```
+
+Every task has a full trail: what was asked for, what agent ran, what it changed, who reviewed it, and when it shipped. That's not just good practice — for regulated industries (fintech, healthcare, SOC 2) it's often a compliance requirement.
+
+#### Centralized Model and API Management
+
+Instead of every engineer paying for their own API access and using whatever model they prefer:
+
+- One org-level API key, managed centrally
+- Control which models agents can use
+- Set usage budgets per project or team
+- Rotate credentials without touching individual machines
+- All API calls go through your infrastructure — no code leaves to personal accounts
+
 ### The Real Benefits
 
 **Consistent code quality at scale**
@@ -160,13 +235,16 @@ Need to 2x your feature throughput? With traditional engineering, that might mea
 
 | Feature | Why It Matters |
 |---------|----------------|
+| **Activity logging** | Every agent action logged — what ran, when, what changed |
+| **Configurable guardrails** | Define exactly what agents can and cannot do, enforced at platform level |
+| **Full task audit trail** | Spec → task → agent → commits → deployment, all linked |
+| **Centralized API management** | One org API key, centrally rotated, no code to personal accounts |
 | Multi-agent orchestration | Coordinate specialized agents (architect, engineer, QA) on the same project |
 | OpenSpec framework | Formal requirements before code — auditable and traceable |
 | Test-spec linkage | Know exactly which tests cover which requirements |
 | Workload deployment | Deploy and monitor services directly from AgentForge |
-| Git integration | All agent work committed with clear history |
+| Git integration | All agent work committed with clear history, linked to tasks |
 | Self-hosted | Run entirely on your infrastructure, no data leaves your environment |
-| Configurable agents | Define exactly how agents should behave for your codebase and conventions |
 
 ### When AgentForge Might Not Be For You
 
@@ -178,7 +256,7 @@ Need to 2x your feature throughput? With traditional engineering, that might mea
 
 ## AgentForge vs. The Alternatives
 
-| | **Claude Code Directly** | **Traditional Dev** | **AgentForge** |
+| | **Claude Code on Laptops** | **Traditional Dev** | **AgentForge** |
 |---|---|---|---|
 | Requires you to supervise every step | ✅ | ✅ | ❌ |
 | Memory across sessions | ❌ | ✅ (humans) | ✅ |
@@ -188,8 +266,14 @@ Need to 2x your feature throughput? With traditional engineering, that might mea
 | Deployment included | ❌ | Separate toolchain | ✅ |
 | Scales without headcount | ❌ | ❌ | ✅ |
 | Consistent code conventions | ❌ | ❌ | ✅ |
-| Self-hosted / private | ✅ | ✅ | ✅ |
+| **Org-wide visibility of AI activity** | ❌ | ✅ | ✅ |
+| **Centralized guardrails & policies** | ❌ | N/A | ✅ |
+| **Full audit trail per task** | ❌ | Partial | ✅ |
+| **Centralized API/model management** | ❌ | N/A | ✅ |
+| Self-hosted / code stays private | ✅* | ✅ | ✅ |
 | Open source | ✅ | — | ✅ |
+
+*Claude Code is self-hosted, but each engineer manages their own API keys and there's no central visibility.
 
 ---
 
@@ -197,7 +281,7 @@ Need to 2x your feature throughput? With traditional engineering, that might mea
 
 **For individual developers:** AgentForge turns you into a one-person engineering team. You stay in the architect seat — defining requirements, reviewing output, making the calls that matter — while agents handle the implementation.
 
-**For teams and enterprises:** AgentForge is a force multiplier for your engineering organization. It increases throughput, enforces consistency, creates audit trails, and reduces the risk that comes from knowledge living in people's heads instead of the codebase.
+**For teams and enterprises:** AgentForge is the managed AI development platform your engineering org needs. It increases throughput, enforces consistency, and — critically — gives leadership visibility and control over AI usage that individual tools running on engineer laptops simply can't provide. You get the speed of AI-assisted development without giving up the oversight, auditability, and guardrails that enterprise software development requires.
 
 Either way, the fundamental shift is the same: **you move from writing code to directing work**. The judgment stays human. The execution scales.
 
