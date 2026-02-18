@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/discord/YOUR_DISCORD_ID?label=discord)](https://discord.gg/agentforge)
 
-[Quick Start](#quick-start) • [Documentation](./docs/) • [Contributing](CONTRIBUTING.md) • [Discord](https://discord.gg/agentforge)
+[Why AgentForge?](./docs/why-agentforge.md) • [Quick Start](#quick-start) • [Documentation](./docs/) • [Contributing](CONTRIBUTING.md) • [Discord](https://discord.gg/agentforge)
 
 </div>
 
@@ -116,6 +116,10 @@ agent-dev-cycle/
 See [Monorepo Structure](./docs/developer-guide/architecture/monorepo-structure.md) for details.
 
 ## Documentation
+
+### Positioning
+
+- [Why AgentForge?](./docs/why-agentforge.md) - vs. Claude Code directly, vs. traditional dev — for individuals and enterprise
 
 ### For Users
 
