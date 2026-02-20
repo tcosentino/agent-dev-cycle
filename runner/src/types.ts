@@ -16,10 +16,10 @@ export const SessionConfig = z.object({
   agent: AgentRole,
   phase: ProjectPhase,
 
-  // Repo (supports HTTPS or SSH git URLs)
+  // Repo (supports HTTPS, SSH, or local file path for testing)
   repoUrl: z.string().refine(
-    (url) => url.startsWith('https://') || url.startsWith('git@'),
-    { message: 'Must be an HTTPS or SSH git URL' }
+    (url) => url.startsWith('https://') || url.startsWith('git@') || url.startsWith('/'),
+    { message: 'Must be an HTTPS, SSH, or local file path' }
   ),
   branch: z.string().default('main'),
 

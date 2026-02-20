@@ -11,6 +11,7 @@ if (result.error) {
   console.warn('Note: No .env file found at', envPath)
 }
 
+import { spawn } from 'node:child_process'
 import { serve } from '@hono/node-server'
 import { loadAllDataObjects, loadAllIntegrations } from './discover'
 import { createServer } from './server'
@@ -34,12 +35,50 @@ const storage = (flags.storage || 'memory') as 'memory' | 'sqlite'
 const dbPath = flags.db || ':memory:'
 const title = flags.title || 'AgentForge API'
 
+// Build the runner Docker image so it's ready for agent sessions
+async function buildRunnerImage(): Promise<void> {
+  const runnerDir = resolve(__dirname, '..', '..', '..', 'runner')
+  const imageName = 'agentforge-runner:latest'
+
+  console.log(`Building runner image (${imageName})...`)
+
+  return new Promise((resolve, reject) => {
+    const proc = spawn('docker', ['build', '-t', imageName, runnerDir], {
+      stdio: ['ignore', 'inherit', 'inherit'],
+    })
+
+    proc.on('error', (err) => {
+      reject(new Error(`docker build failed: ${err.message}`))
+    })
+
+    proc.on('close', (code) => {
+      if (code === 0) {
+        console.log(`Runner image built successfully\n`)
+        resolve()
+      } else {
+        reject(new Error(`docker build exited with code ${code}`))
+      }
+    })
+  })
+}
+
 async function main() {
   console.log(`\nAgentForge Server`)
   console.log(`=================`)
   console.log(`Services dir: ${servicesDir}`)
   console.log(`Storage: ${storage}${storage === 'sqlite' ? ` (${dbPath})` : ''}`)
   console.log()
+
+  // Build runner Docker image at startup (skip in local runner mode)
+  if (process.env.RUNNER_MODE !== 'local') {
+    try {
+      await buildRunnerImage()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn(`Warning: Could not build runner image: ${msg}`)
+      console.warn('Agent sessions may fail if the image is missing or outdated\n')
+    }
+  }
 
   // Discover and load all dataobject modules
   const modules = await loadAllDataObjects(servicesDir)

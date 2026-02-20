@@ -20,6 +20,30 @@ interface StageOutput {
   duration?: number
 }
 
+interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  totalTokens: number
+  totalCostUsd?: number
+}
+
+interface ResourceSnapshot {
+  timestamp: Date
+  cpuPercent: number
+  memoryMb: number
+  memoryPercent: number
+}
+
+interface ResourceMetrics {
+  snapshots: ResourceSnapshot[]
+  peakCpuPercent?: number
+  peakMemoryMb?: number
+  avgCpuPercent?: number
+  avgMemoryMb?: number
+}
+
 interface AgentSession {
   id: string
   projectId: string
@@ -43,6 +67,8 @@ interface AgentSession {
   error?: string
   retriedFromId?: string
   retryCount: number
+  tokenUsage?: TokenUsage
+  resourceMetrics?: ResourceMetrics
   startedAt?: Date
   completedAt?: Date
   createdAt: Date
@@ -57,10 +83,96 @@ interface Project {
 }
 
 // Track running containers for cancellation
-const runningContainers = new Map<string, { containerId?: string; process?: ReturnType<typeof spawn> }>()
+const runningContainers = new Map<string, { containerId?: string; containerName?: string; process?: ReturnType<typeof spawn>; statsInterval?: NodeJS.Timeout }>()
 
 // Track active SSE streams for cleanup
 const activeStreams = new Set<AbortController>()
+
+// Poll docker stats for a container and report to server
+async function startDockerStatsPoll(
+  sessionId: string,
+  containerName: string,
+  agentSessionStore: ResourceStore<Record<string, unknown>>
+): Promise<NodeJS.Timeout> {
+  async function collectStats() {
+    return new Promise<void>((resolve) => {
+      const statsProc = spawn('docker', [
+        'stats',
+        '--no-stream',
+        '--format',
+        '{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}',
+        containerName,
+      ], { stdio: ['ignore', 'pipe', 'ignore'] })
+
+      let output = ''
+      statsProc.stdout?.on('data', (d: Buffer) => { output += d.toString() })
+
+      statsProc.on('close', async () => {
+        const line = output.trim()
+        if (!line) { resolve(); return }
+
+        try {
+          // CPU: "12.34%", MemUsage: "123MiB / 7.77GiB", MemPerc: "1.55%"
+          const [cpuStr, memUsageStr, memPercStr] = line.split('\t')
+
+          const cpuPercent = parseFloat(cpuStr?.replace('%', '') ?? '0')
+
+          // Parse memory usage (e.g. "123MiB / 7.77GiB")
+          const memUsed = memUsageStr?.split('/')[0]?.trim() ?? '0'
+          const memoryMb = parseMiB(memUsed)
+          const memoryPercent = parseFloat(memPercStr?.replace('%', '') ?? '0')
+
+          if (!isNaN(cpuPercent) && !isNaN(memoryMb) && !isNaN(memoryPercent)) {
+            const session = await agentSessionStore.findById(sessionId) as AgentSession | null
+            if (!session) { resolve(); return }
+
+            const snapshot: ResourceSnapshot = {
+              timestamp: new Date(),
+              cpuPercent,
+              memoryMb,
+              memoryPercent,
+            }
+
+            const existing = session.resourceMetrics || { snapshots: [] }
+            const snapshots = [...existing.snapshots, snapshot]
+            const cpuValues = snapshots.map(s => s.cpuPercent)
+            const memValues = snapshots.map(s => s.memoryMb)
+
+            await agentSessionStore.update(sessionId, {
+              resourceMetrics: {
+                snapshots,
+                peakCpuPercent: Math.max(...cpuValues),
+                peakMemoryMb: Math.max(...memValues),
+                avgCpuPercent: cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length,
+                avgMemoryMb: memValues.reduce((a, b) => a + b, 0) / memValues.length,
+              },
+            })
+          }
+        } catch (err) {
+          console.warn('[resource-metrics] Failed to parse docker stats:', err)
+        }
+
+        resolve()
+      })
+
+      statsProc.on('error', () => resolve())
+    })
+  }
+
+  // Collect immediately, then every 10 seconds
+  await collectStats()
+  return setInterval(() => { collectStats().catch(() => {}) }, 10_000)
+}
+
+// Parse memory string like "123MiB", "1.5GiB", "512kB" to MiB
+function parseMiB(memStr: string): number {
+  const num = parseFloat(memStr)
+  if (isNaN(num)) return 0
+  const unit = memStr.replace(/[\d.]/g, '').trim().toLowerCase()
+  if (unit === 'gib' || unit === 'gb') return num * 1024
+  if (unit === 'kib' || unit === 'kb') return num / 1024
+  return num // MiB
+}
 
 // Cleanup function for graceful shutdown
 function cleanup() {
@@ -68,11 +180,16 @@ function cleanup() {
 
   // Kill all running processes
   for (const [id, running] of runningContainers.entries()) {
+    if (running.statsInterval) {
+      clearInterval(running.statsInterval)
+    }
     if (running.process) {
       console.log(`Killing runner process for session ${id}`)
       running.process.kill('SIGTERM')
     }
-    if (running.containerId) {
+    if (running.containerName) {
+      spawn('docker', ['stop', running.containerName], { stdio: 'ignore' })
+    } else if (running.containerId) {
       spawn('docker', ['stop', running.containerId], { stdio: 'ignore' })
     }
   }
@@ -214,6 +331,17 @@ export function registerAgentSessionRoutes(
 
     console.log('[agent-session] Successfully obtained Claude credentials')
 
+    // Get GitHub access token from user
+    const user = await userStore.findById(projectWithUser.userId) as { githubAccessToken?: string } | null
+    const githubToken = user?.githubAccessToken
+    if (!githubToken) {
+      console.error('[agent-session] User has no GitHub access token')
+      return c.json({
+        error: 'GITHUB_AUTH_ERROR',
+        message: 'GitHub access token not found. Please log out and log back in.',
+      }, 400)
+    }
+
     // Update session to cloning stage
     await agentSessionStore.update(id, {
       stage: 'cloning',
@@ -233,6 +361,8 @@ export function registerAgentSessionRoutes(
     }
 
     const configPath = join(runnerConfigDir, `session-${id}.json`)
+    const useDocker = process.env.RUNNER_MODE !== 'local'
+    const runnerPath = join(projectRoot, 'runner')
     const sessionConfig = {
       runId: session.sessionId,
       projectId: session.projectId,
@@ -241,14 +371,14 @@ export function registerAgentSessionRoutes(
       repoUrl: project.repoUrl,
       branch: 'main',
       taskPrompt: session.taskPrompt,
-      serverUrl: process.env.AGENTFORGE_SERVER_URL || `http://localhost:${process.env.PORT || 3000}`,
+      serverUrl: process.env.AGENTFORGE_SERVER_URL || (useDocker
+        ? `http://host.docker.internal:${process.env.PORT || 3000}`
+        : `http://localhost:${process.env.PORT || 3000}`),
     }
 
     writeFileSync(configPath, JSON.stringify(sessionConfig, null, 2))
 
     // Spawn Docker container or local runner
-    const useDocker = process.env.RUNNER_MODE !== 'local'
-    const runnerPath = join(projectRoot, 'runner')
 
     try {
       let proc: ReturnType<typeof spawn>
@@ -259,11 +389,18 @@ export function registerAgentSessionRoutes(
           ([key, value]) => ['-e', `${key}=${value}`]
         )
 
+        // Use a deterministic container name so we can poll docker stats
+        const containerName = `agentforge-session-${id}`
+
+        const gitTokenArgs = ['-e', `GIT_TOKEN=${githubToken}`]
+
         const dockerArgs = [
           'run',
           '--rm',
+          '--name', containerName,
           '-v', `${configPath}:/config/session.json:ro`,
           ...claudeEnvArgs,
+          ...gitTokenArgs,
           '-e', `SESSION_CONFIG_PATH=/config/session.json`,
           '-e', `AGENTFORGE_SERVER_URL=${sessionConfig.serverUrl}`,
           '-e', `AGENTFORGE_SESSION_ID=${id}`,
@@ -273,6 +410,19 @@ export function registerAgentSessionRoutes(
         proc = spawn('docker', dockerArgs, {
           stdio: ['ignore', 'pipe', 'pipe'],
         })
+
+        // Start polling docker stats in background
+        startDockerStatsPoll(id, containerName, agentSessionStore)
+          .then(statsInterval => {
+            const entry = runningContainers.get(id)
+            if (entry) {
+              entry.statsInterval = statsInterval
+              entry.containerName = containerName
+            } else {
+              clearInterval(statsInterval)
+            }
+          })
+          .catch(err => console.warn('[resource-metrics] Failed to start stats poll:', err))
       } else {
         // Local execution (for development)
         // Use the tsx binary directly from runner's node_modules
@@ -291,6 +441,7 @@ export function registerAgentSessionRoutes(
             env: {
               ...process.env,
               ...credentialsResult.envVars,
+              GIT_TOKEN: githubToken,
               SESSION_CONFIG_PATH: configPath,
               AGENTFORGE_SERVER_URL: sessionConfig.serverUrl,
               AGENTFORGE_SESSION_ID: id,
@@ -357,6 +508,10 @@ export function registerAgentSessionRoutes(
 
       // Handle process exit
       proc.on('close', async (code) => {
+        const running = runningContainers.get(id)
+        if (running?.statsInterval) {
+          clearInterval(running.statsInterval)
+        }
         runningContainers.delete(id)
 
         const current = await agentSessionStore.findById(id) as AgentSession | null
@@ -420,6 +575,8 @@ export function registerAgentSessionRoutes(
       let lastLogIndex = 0
       let lastStage = ''
       let lastProgress = -1
+      let lastTokenUsageJson = ''
+      let lastResourceSnapshotCount = 0
       const lastStageLogCounts: Record<string, number> = {}
 
       try {
@@ -437,6 +594,8 @@ export function registerAgentSessionRoutes(
             currentStep: session.currentStep,
             logsCount: session.logs.length,
             stageOutputs: session.stageOutputs,
+            tokenUsage: session.tokenUsage,
+            resourceMetrics: session.resourceMetrics,
           }),
         })
 
@@ -469,6 +628,35 @@ export function registerAgentSessionRoutes(
             })
             lastStage = current.stage
             lastProgress = current.progress
+          }
+
+          // Send token usage updates when they change
+          const currentTokenUsageJson = JSON.stringify(current.tokenUsage ?? null)
+          if (currentTokenUsageJson !== lastTokenUsageJson && current.tokenUsage) {
+            await stream.writeSSE({
+              event: 'token-usage',
+              data: JSON.stringify(current.tokenUsage),
+            })
+            lastTokenUsageJson = currentTokenUsageJson
+          }
+
+          // Send latest resource metric snapshot when new ones arrive
+          const currentSnapshotCount = current.resourceMetrics?.snapshots?.length ?? 0
+          if (currentSnapshotCount > lastResourceSnapshotCount && current.resourceMetrics) {
+            const newSnapshots = current.resourceMetrics.snapshots.slice(lastResourceSnapshotCount)
+            for (const snapshot of newSnapshots) {
+              await stream.writeSSE({
+                event: 'resource-metric',
+                data: JSON.stringify({
+                  snapshot,
+                  peakCpuPercent: current.resourceMetrics.peakCpuPercent,
+                  peakMemoryMb: current.resourceMetrics.peakMemoryMb,
+                  avgCpuPercent: current.resourceMetrics.avgCpuPercent,
+                  avgMemoryMb: current.resourceMetrics.avgMemoryMb,
+                }),
+              })
+            }
+            lastResourceSnapshotCount = currentSnapshotCount
           }
 
           // Send stage-specific updates
@@ -512,6 +700,8 @@ export function registerAgentSessionRoutes(
                 commitSha: current.commitSha,
                 error: current.error,
                 completedAt: current.completedAt,
+                tokenUsage: current.tokenUsage,
+                resourceMetrics: current.resourceMetrics,
               }),
             })
             break
@@ -555,12 +745,17 @@ export function registerAgentSessionRoutes(
 
     const running = runningContainers.get(id)
     if (running) {
+      if (running.statsInterval) {
+        clearInterval(running.statsInterval)
+      }
       // Kill the process
       if (running.process) {
         running.process.kill('SIGTERM')
       }
       // If using Docker, stop the container
-      if (running.containerId) {
+      if (running.containerName) {
+        spawn('docker', ['stop', running.containerName], { stdio: 'ignore' })
+      } else if (running.containerId) {
         spawn('docker', ['stop', running.containerId], { stdio: 'ignore' })
       }
       runningContainers.delete(id)
@@ -717,7 +912,7 @@ export function registerAgentSessionRoutes(
   app.patch('/api/agentSessions/:id/progress', async (c) => {
     const { id } = c.req.param()
     const body = await c.req.json()
-    const { stage, progress, currentStep, summary, commitSha, error } = body
+    const { stage, progress, currentStep, summary, commitSha, error, tokenUsage } = body
 
     const session = await agentSessionStore.findById(id) as AgentSession | null
     if (!session) {
@@ -732,12 +927,54 @@ export function registerAgentSessionRoutes(
     if (summary !== undefined) updates.summary = summary
     if (commitSha !== undefined) updates.commitSha = commitSha
     if (error !== undefined) updates.error = error
+    if (tokenUsage !== undefined) updates.tokenUsage = tokenUsage
 
     if (stage === 'completed' || stage === 'failed') {
       updates.completedAt = new Date()
     }
 
     await agentSessionStore.update(id, updates)
+
+    return c.json({ ok: true })
+  })
+
+  // Append resource metric snapshot (called by runner periodically)
+  app.post('/api/agentSessions/:id/resourceMetrics', async (c) => {
+    const { id } = c.req.param()
+    const body = await c.req.json()
+    const { cpuPercent, memoryMb, memoryPercent } = body
+
+    if (cpuPercent === undefined || memoryMb === undefined || memoryPercent === undefined) {
+      return c.json({ error: 'Missing required fields: cpuPercent, memoryMb, memoryPercent' }, 400)
+    }
+
+    const session = await agentSessionStore.findById(id) as AgentSession | null
+    if (!session) {
+      return c.json({ error: 'Agent session not found' }, 404)
+    }
+
+    const snapshot: ResourceSnapshot = {
+      timestamp: new Date(),
+      cpuPercent,
+      memoryMb,
+      memoryPercent,
+    }
+
+    const existing = session.resourceMetrics || { snapshots: [] }
+    const snapshots = [...existing.snapshots, snapshot]
+
+    // Compute aggregate stats
+    const cpuValues = snapshots.map(s => s.cpuPercent)
+    const memValues = snapshots.map(s => s.memoryMb)
+    const resourceMetrics: ResourceMetrics = {
+      snapshots,
+      peakCpuPercent: Math.max(...cpuValues),
+      peakMemoryMb: Math.max(...memValues),
+      avgCpuPercent: cpuValues.reduce((a, b) => a + b, 0) / cpuValues.length,
+      avgMemoryMb: memValues.reduce((a, b) => a + b, 0) / memValues.length,
+    }
+
+    await agentSessionStore.update(id, { resourceMetrics })
 
     return c.json({ ok: true })
   })

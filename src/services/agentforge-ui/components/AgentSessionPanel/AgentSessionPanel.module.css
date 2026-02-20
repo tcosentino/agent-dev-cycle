@@ -1119,3 +1119,36 @@
   word-break: break-word;
 }
 
+/* Metrics Grid */
+.metricsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+}
+
+.metricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 80px;
+}
+
+.metricItemTotal {
+  border-left: 1px solid var(--border-subtle);
+  padding-left: var(--space-lg);
+}
+
+.metricLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.metricValue {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+

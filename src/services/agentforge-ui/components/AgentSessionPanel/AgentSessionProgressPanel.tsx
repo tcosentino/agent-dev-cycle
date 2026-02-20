@@ -74,6 +74,51 @@ function parseTranscriptForActions(jsonl: string): AgentForgeAction[] {
         if (block.type !== 'tool_use' || block.name !== 'Bash') continue
         const cmd: string = block.input?.command || ''
 
+        // Match agentforge CLI commands
+        const afMatch = cmd.match(/agentforge\s+task\s+(create|update|delete|comment)\s+(.*)/)
+        if (afMatch) {
+          const subcommand = afMatch[1]
+          const rest = afMatch[2].trim()
+
+          if (subcommand === 'create') {
+            // agentforge task create "<title>" [--type x] [--priority y] [--assignee z]
+            const titleMatch = rest.match(/^["']?([^"']+?)["']?\s*(?:--|$)/)
+            const typeMatch = rest.match(/--type\s+(\S+)/)
+            const priorityMatch = rest.match(/--priority\s+(\S+)/)
+            const assigneeMatch = rest.match(/--assignee\s+(\S+)/)
+            const payload: Record<string, unknown> = { title: titleMatch?.[1]?.trim() }
+            if (typeMatch) payload.type = typeMatch[1]
+            if (priorityMatch) payload.priority = priorityMatch[1]
+            if (assigneeMatch) payload.assignee = assigneeMatch[1]
+            actions.push({ type: 'task', method: 'POST', endpoint: '/api/tasks', payload, timestamp: entry.timestamp })
+          } else if (subcommand === 'update') {
+            // agentforge task update <key> [--status x] [--assignee y]
+            const keyMatch = rest.match(/^(\S+)/)
+            const statusMatch = rest.match(/--status\s+(\S+)/)
+            const assigneeMatch = rest.match(/--assignee\s+(\S+)/)
+            const payload: Record<string, unknown> = { key: keyMatch?.[1] }
+            if (statusMatch) payload.status = statusMatch[1]
+            if (assigneeMatch) payload.assignee = assigneeMatch[1]
+            actions.push({ type: 'task', method: 'PATCH', endpoint: '/api/tasks', payload, timestamp: entry.timestamp })
+          } else if (subcommand === 'delete') {
+            const keyMatch = rest.match(/^(\S+)/)
+            actions.push({ type: 'task', method: 'DELETE', endpoint: '/api/tasks', payload: { key: keyMatch?.[1] }, timestamp: entry.timestamp })
+          } else if (subcommand === 'comment') {
+            const addMatch = rest.match(/^add\s+(\S+)\s+["']?(.+?)["']?$/)
+            if (addMatch) {
+              actions.push({ type: 'task', method: 'POST', endpoint: '/api/taskComments', payload: { key: addMatch[1], content: addMatch[2] }, timestamp: entry.timestamp })
+            }
+          }
+          continue
+        }
+
+        // Match agentforge chat post
+        const chatMatch = cmd.match(/agentforge\s+chat\s+post\s+["']?(.+?)["']?$/)
+        if (chatMatch) {
+          actions.push({ type: 'message', method: 'POST', endpoint: '/api/messages', payload: { content: chatMatch[1] }, timestamp: entry.timestamp })
+          continue
+        }
+
         // Match curl -X POST/PATCH to /api/* endpoints
         const methodMatch = cmd.match(/curl\s+.*?(?:-X\s+(\w+)|--request\s+(\w+))/s)
         const urlMatch = cmd.match(/https?:\/\/[^\s'"]+\/api\/(\w+)/)
@@ -103,7 +148,12 @@ function parseTranscriptForActions(jsonl: string): AgentForgeAction[] {
 
 function getActionLabel(action: AgentForgeAction): string {
   const p = action.payload
-  if (action.type === 'task' && p?.title) return String(p.title)
+  if (action.type === 'task') {
+    if (p?.title) return String(p.title)
+    if (p?.key && p?.status) return `${p.key} → ${p.status}`
+    if (p?.key && p?.content) return `${p.key}: ${String(p.content).slice(0, 60)}`
+    if (p?.key) return String(p.key)
+  }
   if (action.type === 'message' && p?.content) return String(p.content).slice(0, 80)
   return action.endpoint
 }
@@ -411,6 +461,74 @@ export function AgentSessionProgressPanel({
                 })}
               </div>
             </SectionCard>
+
+            {session.tokenUsage && (
+              <SectionCard title="Token Usage" className={styles.resultSection}>
+                <div className={styles.metricsGrid}>
+                  <div className={styles.metricItem}>
+                    <span className={styles.metricLabel}>Input</span>
+                    <span className={styles.metricValue}>{session.tokenUsage.inputTokens.toLocaleString()}</span>
+                  </div>
+                  <div className={styles.metricItem}>
+                    <span className={styles.metricLabel}>Output</span>
+                    <span className={styles.metricValue}>{session.tokenUsage.outputTokens.toLocaleString()}</span>
+                  </div>
+                  {session.tokenUsage.cacheReadTokens > 0 && (
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Cache Read</span>
+                      <span className={styles.metricValue}>{session.tokenUsage.cacheReadTokens.toLocaleString()}</span>
+                    </div>
+                  )}
+                  {session.tokenUsage.cacheWriteTokens > 0 && (
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Cache Write</span>
+                      <span className={styles.metricValue}>{session.tokenUsage.cacheWriteTokens.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <div className={`${styles.metricItem} ${styles.metricItemTotal}`}>
+                    <span className={styles.metricLabel}>Total</span>
+                    <span className={styles.metricValue}>{session.tokenUsage.totalTokens.toLocaleString()}</span>
+                  </div>
+                  {session.tokenUsage.totalCostUsd !== undefined && (
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Cost</span>
+                      <span className={styles.metricValue}>${session.tokenUsage.totalCostUsd.toFixed(4)}</span>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+            )}
+
+            {session.resourceMetrics && session.resourceMetrics.snapshots.length > 0 && (
+              <SectionCard title="Container Resources" className={styles.resultSection}>
+                <div className={styles.metricsGrid}>
+                  {session.resourceMetrics.peakCpuPercent !== undefined && (
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Peak CPU</span>
+                      <span className={styles.metricValue}>{session.resourceMetrics.peakCpuPercent.toFixed(1)}%</span>
+                    </div>
+                  )}
+                  {session.resourceMetrics.avgCpuPercent !== undefined && (
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Avg CPU</span>
+                      <span className={styles.metricValue}>{session.resourceMetrics.avgCpuPercent.toFixed(1)}%</span>
+                    </div>
+                  )}
+                  {session.resourceMetrics.peakMemoryMb !== undefined && (
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Peak Memory</span>
+                      <span className={styles.metricValue}>{session.resourceMetrics.peakMemoryMb.toFixed(0)} MB</span>
+                    </div>
+                  )}
+                  {session.resourceMetrics.avgMemoryMb !== undefined && (
+                    <div className={styles.metricItem}>
+                      <span className={styles.metricLabel}>Avg Memory</span>
+                      <span className={styles.metricValue}>{session.resourceMetrics.avgMemoryMb.toFixed(0)} MB</span>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+            )}
 
             {session.stage === 'completed' && session.summary && (
               <SectionCard title="Summary" className={styles.resultSection}>

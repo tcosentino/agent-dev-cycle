@@ -154,6 +154,30 @@ export interface ApiAgentSessionStageOutput {
   duration?: number
 }
 
+export interface ApiTokenUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  totalTokens: number
+  totalCostUsd?: number
+}
+
+export interface ApiResourceSnapshot {
+  timestamp: string
+  cpuPercent: number
+  memoryMb: number
+  memoryPercent: number
+}
+
+export interface ApiResourceMetrics {
+  snapshots: ApiResourceSnapshot[]
+  peakCpuPercent?: number
+  peakMemoryMb?: number
+  avgCpuPercent?: number
+  avgMemoryMb?: number
+}
+
 export type ApiAgentSessionStage =
   | 'pending'
   | 'cloning'
@@ -191,6 +215,8 @@ export interface ApiAgentSession {
   error?: string
   retriedFromId?: string
   retryCount: number
+  tokenUsage?: ApiTokenUsage
+  resourceMetrics?: ApiResourceMetrics
   startedAt?: string
   completedAt?: string
   createdAt: string

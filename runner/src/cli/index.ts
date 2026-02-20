@@ -1,6 +1,15 @@
 #!/usr/bin/env node
 
-import { taskGet, taskUpdate, taskList, taskCreate } from './commands/task.js'
+import {
+  taskGet,
+  taskUpdate,
+  taskList,
+  taskCreate,
+  taskDelete,
+  taskCommentList,
+  taskCommentAdd,
+  taskCommentDelete,
+} from './commands/task.js'
 import type { CreateTaskOptions } from './commands/task.js'
 import { chatPost } from './commands/chat.js'
 import { statusSet } from './commands/status.js'
@@ -13,18 +22,27 @@ Usage:
   agentforge <command> [options]
 
 Commands:
+  task list                         List all project tasks
+    --status <status>               Filter by status (todo/in-progress/review/done/blocked)
+    --assignee <agent>              Filter by assignee
   task get <key>                    Get task details
-  task list                         List all tasks
   task create "<title>" [options]   Create a new task
     --description <text>            Task description
-    --type <type>                   Task type (story/task/bug/epic)
-    --priority <priority>           Priority (low/medium/high/critical)
+    --type <type>                   Task type (epic/api/backend/frontend/testing/documentation/devops)
+    --priority <priority>           Priority (critical/high/medium/low)
     --assignee <agent>              Assign to agent (pm/engineer/qa/lead)
-    --parent <key>                  Parent task key (for subtasks)
   task update <key> [options]       Update a task
-    --status <status>               Set status (todo/in-progress/done)
-    --summary <text>                Set summary
+    --status <status>               Set status (todo/in-progress/review/done/blocked)
+    --title <text>                  Update title
+    --description <text>            Update description
+    --priority <priority>           Update priority
+    --type <type>                   Update type
     --assignee <agent>              Set assignee
+  task delete <key>                 Delete a task
+
+  task comment list <key>           List comments on a task
+  task comment add <key> "<text>"   Add a comment to a task
+  task comment delete <id>          Delete a comment by ID
 
   chat post "<message>"             Post a message to the project chat
 
@@ -32,12 +50,18 @@ Commands:
     status: active, busy, away, offline
 
 Examples:
-  agentforge task create "Implement user auth" --type story --priority high
-  agentforge task create "Add login form" --parent ST-1 --assignee engineer
-  agentforge task get ST-12
-  agentforge task update ST-12 --status done --summary "Implemented API"
+  agentforge task list
+  agentforge task list --status todo --assignee engineer
+  agentforge task create "Implement user auth" --type backend --priority high
+  agentforge task get AF-12
+  agentforge task update AF-12 --status in-progress
+  agentforge task update AF-12 --status done
+  agentforge task delete AF-12
+  agentforge task comment list AF-12
+  agentforge task comment add AF-12 "Started implementation, blocked on API spec"
+  agentforge task comment delete <comment-id>
   agentforge chat post "Finished the feature"
-  agentforge status set busy "Working on ST-12"
+  agentforge status set busy "Working on AF-12"
 `)
 }
 
@@ -83,6 +107,10 @@ async function main(): Promise<void> {
     switch (command) {
       case 'task':
         switch (subcommand) {
+          case 'list':
+            await taskList({ status: flags.status, assignee: flags.assignee })
+            break
+
           case 'get':
             if (!positional[0]) {
               console.error('Error: task key required')
@@ -90,9 +118,7 @@ async function main(): Promise<void> {
             }
             await taskGet(positional[0])
             break
-          case 'list':
-            await taskList()
-            break
+
           case 'create':
             if (!positional[0]) {
               console.error('Error: task title required')
@@ -104,9 +130,9 @@ async function main(): Promise<void> {
               type: flags.type,
               priority: flags.priority,
               assignee: flags.assignee,
-              parentKey: flags.parent,
             } as CreateTaskOptions)
             break
+
           case 'update':
             if (!positional[0]) {
               console.error('Error: task key required')
@@ -114,10 +140,61 @@ async function main(): Promise<void> {
             }
             await taskUpdate(positional[0], {
               status: flags.status,
-              summary: flags.summary,
+              title: flags.title,
+              description: flags.description,
+              priority: flags.priority,
+              type: flags.type,
               assignee: flags.assignee,
             })
             break
+
+          case 'delete':
+            if (!positional[0]) {
+              console.error('Error: task key required')
+              process.exit(1)
+            }
+            await taskDelete(positional[0])
+            break
+
+          case 'comment': {
+            const commentSubcommand = positional[0]
+            switch (commentSubcommand) {
+              case 'list':
+                if (!positional[1]) {
+                  console.error('Error: task key required')
+                  process.exit(1)
+                }
+                await taskCommentList(positional[1])
+                break
+
+              case 'add':
+                if (!positional[1]) {
+                  console.error('Error: task key required')
+                  process.exit(1)
+                }
+                if (!positional[2]) {
+                  console.error('Error: comment text required')
+                  process.exit(1)
+                }
+                await taskCommentAdd(positional[1], positional[2])
+                break
+
+              case 'delete':
+                if (!positional[1]) {
+                  console.error('Error: comment ID required')
+                  process.exit(1)
+                }
+                await taskCommentDelete(positional[1])
+                break
+
+              default:
+                console.error(`Unknown task comment subcommand: ${commentSubcommand}`)
+                printUsage()
+                process.exit(1)
+            }
+            break
+          }
+
           default:
             console.error(`Unknown task subcommand: ${subcommand}`)
             printUsage()

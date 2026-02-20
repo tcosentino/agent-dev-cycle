@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import YAML from 'yaml'
-import type { SessionConfig, ProjectProgress, AgentsConfig, AgentConfig } from './types.js'
+import type { SessionConfig, ProjectProgress, AgentsConfig, AgentConfig, AgentRole } from './types.js'
 import { WORKSPACE_PATH, CONTEXT_PATH, MAX_FILE_SIZE } from './types.js'
 
 function truncate(content: string, maxLength: number = MAX_FILE_SIZE): string {
@@ -30,7 +30,7 @@ export async function loadAgentsConfig(): Promise<AgentsConfig> {
     if (configContent) {
       try {
         const config = JSON.parse(configContent)
-        configs[config.id] = {
+        configs[config.id as AgentRole] = {
           model: config.model,
           maxTokens: config.maxTokens,
           orchestrator: config.orchestrator
@@ -152,6 +152,61 @@ export async function assembleContext(config: SessionConfig): Promise<{ context:
   }
 
   sections.push(sessionInfo.join('\n'))
+
+  // AgentForge CLI tools documentation
+  const cliDocs = `## AgentForge CLI Tools
+
+You have access to the \`agentforge\` CLI to manage project tasks and communicate with the team.
+The following commands are available via bash:
+
+### Task Management
+\`\`\`bash
+# List all tasks (optionally filter)
+agentforge task list
+agentforge task list --status todo
+agentforge task list --assignee engineer
+
+# Get task details
+agentforge task get <key>          # e.g. agentforge task get AF-12
+
+# Create a task
+agentforge task create "<title>" [--description <text>] [--type <type>] [--priority <priority>] [--assignee <agent>]
+# Types: epic, api, backend, frontend, testing, documentation, devops
+# Priorities: critical, high, medium, low
+# Assignees: pm, engineer, qa, lead
+
+# Update a task
+agentforge task update <key> --status <status>
+agentforge task update <key> --assignee engineer
+# Statuses: todo, in-progress, review, done, blocked
+
+# Delete a task
+agentforge task delete <key>
+
+# Task comments
+agentforge task comment list <key>
+agentforge task comment add <key> "<comment text>"
+agentforge task comment delete <comment-id>
+\`\`\`
+
+### Communication
+\`\`\`bash
+# Post a message to the project chat
+agentforge chat post "<message>"
+
+# Update your agent status
+agentforge status set busy "Working on AF-12"
+agentforge status set active
+\`\`\`
+
+**Use these tools to:**
+- List tasks to understand what needs to be done
+- Update task status as you work (in-progress → review → done)
+- Create new tasks when you identify additional work
+- Add comments to record progress, blockers, or decisions
+- Post chat messages for important updates`
+
+  sections.push(cliDocs)
 
   // Session-specific instructions
   const instructions = `## Your Task

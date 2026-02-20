@@ -32,6 +32,30 @@ export const agentSessionStageOutput = z.object({
   duration: z.number().optional(), // Duration in milliseconds
 })
 
+export const agentSessionTokenUsage = z.object({
+  inputTokens: z.number().int().min(0),
+  outputTokens: z.number().int().min(0),
+  cacheReadTokens: z.number().int().min(0).default(0),
+  cacheWriteTokens: z.number().int().min(0).default(0),
+  totalTokens: z.number().int().min(0),
+  totalCostUsd: z.number().min(0).optional(), // Only available when using API key
+})
+
+export const agentSessionResourceSnapshot = z.object({
+  timestamp: z.coerce.date(),
+  cpuPercent: z.number().min(0),
+  memoryMb: z.number().min(0),
+  memoryPercent: z.number().min(0),
+})
+
+export const agentSessionResourceMetrics = z.object({
+  snapshots: z.array(agentSessionResourceSnapshot).default([]),
+  peakCpuPercent: z.number().min(0).optional(),
+  peakMemoryMb: z.number().min(0).optional(),
+  avgCpuPercent: z.number().min(0).optional(),
+  avgMemoryMb: z.number().min(0).optional(),
+})
+
 export const agentSessionResource = defineResource({
   name: 'agentSession',
 
@@ -67,13 +91,17 @@ export const agentSessionResource = defineResource({
     retriedFromId: z.string().uuid().optional(),
     retryCount: z.number().int().min(0).default(0),
 
+    // Metrics
+    tokenUsage: agentSessionTokenUsage.optional(),
+    resourceMetrics: agentSessionResourceMetrics.optional(),
+
     // Timing
     startedAt: z.coerce.date().optional(),
     completedAt: z.coerce.date().optional(),
   }),
 
   createFields: ['projectId', 'agent', 'phase', 'taskPrompt'],
-  updateFields: ['stage', 'progress', 'currentStep', 'logs', 'stageOutputs', 'summary', 'commitSha', 'error', 'retriedFromId', 'retryCount', 'startedAt', 'completedAt'],
+  updateFields: ['stage', 'progress', 'currentStep', 'logs', 'stageOutputs', 'summary', 'commitSha', 'error', 'retriedFromId', 'retryCount', 'startedAt', 'completedAt', 'tokenUsage', 'resourceMetrics'],
   unique: ['sessionId'],
   searchable: ['sessionId', 'agent', 'stage'],
   relations: {

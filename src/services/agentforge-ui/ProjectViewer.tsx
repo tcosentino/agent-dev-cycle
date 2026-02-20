@@ -1207,7 +1207,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             onRetry={(newSessionId) => {
               // Close the current failed session tab and open the new retry session
               closeTab(tab.id, tab.pane)
-              openAgentSession(newSessionId)
+              openAgentSession(newSessionId, tab.agentId)
             }}
             initialTab={tab.initialPanelTab as 'overview' | 'stages' | 'results' | undefined}
             onTabChange={(panelTab) => setActivePanelHash(panelTab)}
@@ -1238,7 +1238,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             setPreselectedAgentForModal(agentId)
             setShowStartSessionModal(true)
           }}
-          onSessionSelect={openAgentSession}
+          onSessionSelect={(sessionId) => openAgentSession(sessionId, agent.id)}
           initialTab={tab.initialPanelTab as 'overview' | 'sessions' | 'prompt' | undefined}
           onTabChange={(panelTab) => setActivePanelHash(panelTab)}
         />
@@ -1395,10 +1395,10 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             setShowStartSessionModal(false)
             setPreselectedAgentForModal(undefined)
           }}
-          onSessionCreated={(sessionId) => {
+          onSessionCreated={(sessionId, agentId) => {
             setShowStartSessionModal(false)
             setPreselectedAgentForModal(undefined)
-            openAgentSession(sessionId)
+            openAgentSession(sessionId, agentId)
           }}
         />
       )}

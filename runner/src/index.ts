@@ -41,7 +41,6 @@ async function main(): Promise<void> {
     const agentsConfig = await loadAgentsConfig()
     const agentConfig = await getAgentConfig(agentsConfig, config.agent)
     console.log(`  - Model: ${agentConfig.model}`)
-    console.log(`  - Max turns: ${agentConfig.maxTurns || 'default'}`)
     await reportStageComplete('loading')
 
     // 4. Assemble context
@@ -105,7 +104,7 @@ async function main(): Promise<void> {
     }
 
     console.log('=== Run completed successfully ===')
-    await reportComplete(summary, commitSha)
+    await reportComplete(summary, commitSha, result.tokenUsage)
     console.log(JSON.stringify(runResult, null, 2))
     process.exit(0)
   } catch (error) {

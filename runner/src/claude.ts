@@ -5,12 +5,47 @@ import { tmpdir } from 'node:os'
 import type { SessionConfig, ModelTier } from './types.js'
 import { MODEL_MAP, WORKSPACE_PATH, DEFAULT_TIMEOUT_MS } from './types.js'
 import { reportLog, reportProgress, reportClaudeOutput } from './progress.js'
+import type { TokenUsage } from './progress.js'
 
 export interface ClaudeResult {
   success: boolean
   output: string
   error?: string
   isolatedHome: string
+  tokenUsage?: TokenUsage
+}
+
+// Shape of the final JSON object Claude emits with --output-format json
+interface ClaudeJsonResult {
+  type: 'result'
+  subtype: string
+  result?: string
+  is_error: boolean
+  duration_ms?: number
+  total_cost_usd?: number
+  usage?: {
+    input_tokens?: number | null
+    output_tokens?: number | null
+    cache_creation_input_tokens?: number | null
+    cache_read_input_tokens?: number | null
+  }
+}
+
+function parseTokenUsage(jsonResult: ClaudeJsonResult): TokenUsage | undefined {
+  const u = jsonResult.usage
+  if (!u) return undefined
+  const inputTokens = u.input_tokens ?? 0
+  const outputTokens = u.output_tokens ?? 0
+  const cacheReadTokens = u.cache_read_input_tokens ?? 0
+  const cacheWriteTokens = u.cache_creation_input_tokens ?? 0
+  return {
+    inputTokens,
+    outputTokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+    totalTokens: inputTokens + outputTokens + cacheReadTokens + cacheWriteTokens,
+    totalCostUsd: jsonResult.total_cost_usd,
+  }
 }
 
 function buildArgs(
@@ -24,7 +59,7 @@ function buildArgs(
     '--append-system-prompt-file',
     contextPath,
     '--output-format',
-    'text',
+    'json',
     '--dangerously-skip-permissions',
     '--model',
     MODEL_MAP[model],
@@ -55,6 +90,8 @@ function buildEnvWithHome(
     AGENTFORGE_SERVER_URL: config.serverUrl || '',
     AGENTFORGE_PROJECT_ID: config.projectId,
     AGENTFORGE_RUN_ID: config.runId,
+    AGENTFORGE_SESSION_ID: process.env.AGENTFORGE_SESSION_ID || config.runId,
+    AGENTFORGE_AGENT_ROLE: config.agent,
   }
 
   // Only set API key if provided (otherwise Claude Code uses subscription auth)
@@ -77,10 +114,10 @@ export async function runClaude(
   const env = buildEnvWithHome(config, anthropicApiKey, isolatedHome)
 
   return new Promise((resolve) => {
-    const outputChunks: string[] = []
-    const errorChunks: string[] = []
+    const stdoutChunks: string[] = []
+    const stderrChunks: string[] = []
     let lastProgressReport = Date.now()
-    let outputLineCount = 0
+    let stderrLineCount = 0
 
     console.log('Claude args:', args.join(' '))
 
@@ -98,18 +135,26 @@ export async function runClaude(
       reportLog({ level: 'error', message: 'Claude Code process timed out' }, 'executing')
       resolve({
         success: false,
-        output: outputChunks.join(''),
+        output: '',
         error: 'Process timed out',
         isolatedHome,
       })
     }, timeoutMs)
 
+    // With --output-format json, stdout contains the final JSON result object.
+    // Verbose/streaming output goes to stderr.
     proc.stdout.on('data', (data: Buffer) => {
       const str = data.toString()
-      process.stdout.write(str) // Stream output live
-      outputChunks.push(str)
+      process.stdout.write(str)
+      stdoutChunks.push(str)
+    })
 
-      // Stream actual Claude output to logs
+    proc.stderr.on('data', (data: Buffer) => {
+      const str = data.toString()
+      process.stderr.write(str) // Stream verbose output live
+      stderrChunks.push(str)
+
+      // Stream stderr lines to the executing stage logs (verbose Claude output)
       const lines = str.split('\n')
       for (const line of lines) {
         const trimmed = line.trim()
@@ -117,7 +162,7 @@ export async function runClaude(
           reportClaudeOutput(trimmed).catch(err => {
             console.warn('Failed to report Claude output:', err)
           })
-          outputLineCount++
+          stderrLineCount++
         }
       }
 
@@ -126,39 +171,55 @@ export async function runClaude(
       if (now - lastProgressReport > 5000) {
         lastProgressReport = now
         // Calculate rough progress (30-75% during execution)
-        const estimatedProgress = Math.min(75, 30 + Math.floor(outputLineCount / 10))
-        reportProgress({ progress: estimatedProgress, currentStep: `Claude Code working...` })
-      }
-    })
-
-    proc.stderr.on('data', (data: Buffer) => {
-      const str = data.toString()
-      process.stderr.write(str) // Stream errors live
-      errorChunks.push(str)
-      // Report stderr as warnings
-      const trimmed = str.trim()
-      if (trimmed) {
-        reportLog({ level: 'warn', message: trimmed.slice(0, 500) }, 'executing')
+        const estimatedProgress = Math.min(75, 30 + Math.floor(stderrLineCount / 10))
+        reportProgress({ progress: estimatedProgress, currentStep: 'Claude Code working...' })
       }
     })
 
     proc.on('close', (code) => {
       clearTimeout(timeout)
 
+      // Parse the JSON result from stdout
+      const rawOutput = stdoutChunks.join('')
+      let jsonResult: ClaudeJsonResult | undefined
+      let textOutput = ''
+
+      try {
+        jsonResult = JSON.parse(rawOutput.trim()) as ClaudeJsonResult
+        textOutput = jsonResult.result ?? ''
+      } catch {
+        // Fallback: treat stdout as plain text if JSON parse fails
+        textOutput = rawOutput
+      }
+
+      const tokenUsage = jsonResult ? parseTokenUsage(jsonResult) : undefined
+
       if (code === 0) {
-        reportLog({ level: 'info', message: `Claude Code completed successfully (${outputLineCount} lines output)` }, 'executing')
+        reportLog({ level: 'info', message: `Claude Code completed successfully` }, 'executing')
+        if (tokenUsage) {
+          const parts = [
+            `${tokenUsage.inputTokens.toLocaleString()} input`,
+            `${tokenUsage.outputTokens.toLocaleString()} output`,
+          ]
+          if (tokenUsage.cacheReadTokens > 0) parts.push(`${tokenUsage.cacheReadTokens.toLocaleString()} cache read`)
+          if (tokenUsage.cacheWriteTokens > 0) parts.push(`${tokenUsage.cacheWriteTokens.toLocaleString()} cache write`)
+          reportLog({ level: 'info', message: `Tokens: ${parts.join(', ')}` }, 'executing').catch(() => {})
+        }
         resolve({
           success: true,
-          output: outputChunks.join(''),
+          output: textOutput,
           isolatedHome,
+          tokenUsage,
         })
       } else {
+        const errMsg = stderrChunks.join('') || `Process exited with code ${code}`
         reportLog({ level: 'error', message: `Claude Code exited with code ${code}` }, 'executing')
         resolve({
           success: false,
-          output: outputChunks.join(''),
-          error: errorChunks.join('') || `Process exited with code ${code}`,
+          output: textOutput,
+          error: errMsg,
           isolatedHome,
+          tokenUsage,
         })
       }
     })
@@ -168,7 +229,7 @@ export async function runClaude(
       reportLog({ level: 'error', message: `Failed to spawn Claude Code: ${err.message}` }, 'executing')
       resolve({
         success: false,
-        output: outputChunks.join(''),
+        output: '',
         error: err.message,
         isolatedHome,
       })
