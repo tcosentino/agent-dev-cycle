@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { api, type ApiAgentSessionLogEntry, type ApiAgentSessionStage, type ApiAgentSessionStageOutput } from '../api'
+import { api, type ApiAgentSessionLogEntry, type ApiAgentSessionStage, type ApiAgentSessionStageOutput, type ApiTokenUsage, type ApiResourceMetrics } from '../api'
 
 export interface AgentSessionProgress {
   // Session identity
@@ -7,6 +7,7 @@ export interface AgentSessionProgress {
   sessionId: string
   agent: string
   phase: string
+  taskPrompt: string
 
   // Progress state
   stage: ApiAgentSessionStage
@@ -20,6 +21,13 @@ export interface AgentSessionProgress {
     capturing?: ApiAgentSessionStageOutput
     committing?: ApiAgentSessionStageOutput
   }
+
+  // Metrics
+  tokenUsage?: ApiTokenUsage
+  resourceMetrics?: ApiResourceMetrics
+
+  // Timing
+  startedAt?: string
 
   // Result (when completed/failed)
   summary?: string
@@ -87,28 +95,23 @@ export function useAgentSessionProgress(
         sessionId: data.sessionId,
         agent: data.agent,
         phase: data.phase,
+        taskPrompt: data.taskPrompt,
         stage: data.stage,
         progress: data.progress,
         currentStep: data.currentStep,
         logs: [],
         stageOutputs: data.stageOutputs || {},
+        tokenUsage: data.tokenUsage,
+        resourceMetrics: data.resourceMetrics,
+        startedAt: data.startedAt,
+        completedAt: data.completedAt,
         isConnected: true,
         isComplete: data.stage === 'completed' || data.stage === 'failed',
       })
       setIsLoading(false)
     })
 
-    // Handle log events
-    eventSource.addEventListener('log', (event) => {
-      const logEntry = JSON.parse(event.data) as ApiAgentSessionLogEntry
-      setProgress(prev => {
-        if (!prev) return null
-        return {
-          ...prev,
-          logs: [...prev.logs, logEntry],
-        }
-      })
-    })
+    // Note: 'log' events are no longer used - all logs are stage-specific via 'stage-log' events
 
     // Handle progress events
     eventSource.addEventListener('progress', (event) => {
@@ -165,6 +168,31 @@ export function useAgentSessionProgress(
       })
     })
 
+    // Handle token usage updates
+    eventSource.addEventListener('token-usage', (event) => {
+      const data = JSON.parse(event.data) as ApiTokenUsage
+      setProgress(prev => prev ? { ...prev, tokenUsage: data } : null)
+    })
+
+    // Handle resource metric updates
+    eventSource.addEventListener('resource-metric', (event) => {
+      const data = JSON.parse(event.data)
+      setProgress(prev => {
+        if (!prev) return null
+        const existing = prev.resourceMetrics || { snapshots: [] }
+        return {
+          ...prev,
+          resourceMetrics: {
+            snapshots: [...existing.snapshots, data.snapshot],
+            peakCpuPercent: data.peakCpuPercent,
+            peakMemoryMb: data.peakMemoryMb,
+            avgCpuPercent: data.avgCpuPercent,
+            avgMemoryMb: data.avgMemoryMb,
+          },
+        }
+      })
+    })
+
     // Handle result events
     eventSource.addEventListener('result', (event) => {
       const data = JSON.parse(event.data)
@@ -177,6 +205,8 @@ export function useAgentSessionProgress(
           commitSha: data.commitSha,
           error: data.error,
           completedAt: data.completedAt,
+          tokenUsage: data.tokenUsage ?? prev.tokenUsage,
+          resourceMetrics: data.resourceMetrics ?? prev.resourceMetrics,
           isComplete: true,
         }
       })

@@ -28,92 +28,128 @@ export function registerClaudeAuthRoutes(
 
   // Set subscription token
   app.post('/api/claude-auth/set-subscription-token', async (c) => {
-    const user = getUser(c)
-    if (!user) {
-      return c.json({ error: 'Unauthorized' }, 401)
+    try {
+      const user = getUser(c)
+      if (!user) {
+        console.error('[claude-auth] Unauthorized: No user in context for set-subscription-token')
+        return c.json({ error: 'Unauthorized', message: 'User not authenticated' }, 401)
+      }
+
+      const body = await c.req.json()
+      const { token } = body
+
+      if (!token || typeof token !== 'string') {
+        console.error('[claude-auth] Bad request: Missing or invalid token', { userId: user.id })
+        return c.json({ error: 'Missing token' }, 400)
+      }
+
+      console.log('[claude-auth] Setting subscription token for user:', user.id)
+
+      // Store subscription token and clear API key
+      await userStore.update(user.id, {
+        claudeAuthType: 'subscription',
+        claudeSubscriptionToken: token,
+        claudeApiKey: null,
+      })
+
+      console.log('[claude-auth] Successfully set subscription token for user:', user.id)
+      return c.json({ success: true })
+    } catch (error) {
+      console.error('[claude-auth] Error setting subscription token:', error)
+      return c.json({ error: 'Internal server error', message: String(error) }, 500)
     }
-
-    const body = await c.req.json()
-    const { token } = body
-
-    if (!token || typeof token !== 'string') {
-      return c.json({ error: 'Missing token' }, 400)
-    }
-
-    // Store subscription token and clear API key
-    await userStore.update(user.id, {
-      claudeAuthType: 'subscription',
-      claudeSubscriptionToken: token,
-      claudeApiKey: null,
-    })
-
-    return c.json({ success: true })
   })
 
   // Set API key
   app.post('/api/claude-auth/set-api-key', async (c) => {
-    const user = getUser(c)
-    if (!user) {
-      return c.json({ error: 'Unauthorized' }, 401)
+    try {
+      const user = getUser(c)
+      if (!user) {
+        console.error('[claude-auth] Unauthorized: No user in context for set-api-key')
+        return c.json({ error: 'Unauthorized', message: 'User not authenticated' }, 401)
+      }
+
+      const body = await c.req.json()
+      const { apiKey } = body
+
+      if (!apiKey || typeof apiKey !== 'string') {
+        console.error('[claude-auth] Bad request: Missing or invalid API key', { userId: user.id })
+        return c.json({ error: 'Missing API key' }, 400)
+      }
+
+      // Basic validation
+      if (!apiKey.startsWith('sk-ant-')) {
+        console.error('[claude-auth] Bad request: Invalid API key format', { userId: user.id })
+        return c.json({ error: 'Invalid API key format' }, 400)
+      }
+
+      console.log('[claude-auth] Setting API key for user:', user.id)
+
+      // Store API key and clear subscription token
+      await userStore.update(user.id, {
+        claudeAuthType: 'api-key',
+        claudeApiKey: apiKey,
+        claudeSubscriptionToken: null,
+      })
+
+      console.log('[claude-auth] Successfully set API key for user:', user.id)
+      return c.json({ success: true })
+    } catch (error) {
+      console.error('[claude-auth] Error setting API key:', error)
+      return c.json({ error: 'Internal server error', message: String(error) }, 500)
     }
-
-    const body = await c.req.json()
-    const { apiKey } = body
-
-    if (!apiKey || typeof apiKey !== 'string') {
-      return c.json({ error: 'Missing API key' }, 400)
-    }
-
-    // Basic validation
-    if (!apiKey.startsWith('sk-ant-')) {
-      return c.json({ error: 'Invalid API key format' }, 400)
-    }
-
-    // Store API key and clear subscription token
-    await userStore.update(user.id, {
-      claudeAuthType: 'api-key',
-      claudeApiKey: apiKey,
-      claudeSubscriptionToken: null,
-    })
-
-    return c.json({ success: true })
   })
 
   // Get current auth status
   app.get('/api/claude-auth/status', async (c) => {
-    const user = getUser(c)
-    if (!user) {
-      return c.json({ error: 'Unauthorized' }, 401)
-    }
+    try {
+      const user = getUser(c)
+      if (!user) {
+        console.error('[claude-auth] Unauthorized: No user in context for status check')
+        return c.json({ error: 'Unauthorized', message: 'User not authenticated' }, 401)
+      }
 
-    const info: ClaudeAuthInfo = {
-      type: user.claudeAuthType || null,
-      status: 'not-configured',
-    }
+      const info: ClaudeAuthInfo = {
+        type: user.claudeAuthType || null,
+        status: 'not-configured',
+      }
 
-    if (user.claudeAuthType === 'subscription' && user.claudeSubscriptionToken) {
-      info.status = 'valid'
-    } else if (user.claudeAuthType === 'api-key' && user.claudeApiKey) {
-      info.status = 'valid'
-    }
+      if (user.claudeAuthType === 'subscription' && user.claudeSubscriptionToken) {
+        info.status = 'valid'
+      } else if (user.claudeAuthType === 'api-key' && user.claudeApiKey) {
+        info.status = 'valid'
+      }
 
-    return c.json(info)
+      return c.json(info)
+    } catch (error) {
+      console.error('[claude-auth] Error getting status:', error)
+      return c.json({ error: 'Internal server error', message: String(error) }, 500)
+    }
   })
 
   // Disconnect (clear credentials)
   app.delete('/api/claude-auth/disconnect', async (c) => {
-    const user = getUser(c)
-    if (!user) {
-      return c.json({ error: 'Unauthorized' }, 401)
+    try {
+      const user = getUser(c)
+      if (!user) {
+        console.error('[claude-auth] Unauthorized: No user in context for disconnect')
+        return c.json({ error: 'Unauthorized', message: 'User not authenticated' }, 401)
+      }
+
+      console.log('[claude-auth] Disconnecting user:', user.id)
+
+      await userStore.update(user.id, {
+        claudeAuthType: null,
+        claudeApiKey: null,
+        claudeSubscriptionToken: null,
+      })
+
+      console.log('[claude-auth] Successfully disconnected user:', user.id)
+      return c.json({ success: true })
+    } catch (error) {
+      console.error('[claude-auth] Error disconnecting:', error)
+      return c.json({ error: 'Internal server error', message: String(error) }, 500)
     }
-
-    await userStore.update(user.id, {
-      claudeAuthType: null,
-      claudeApiKey: null,
-      claudeSubscriptionToken: null,
-    })
-
-    return c.json({ success: true })
   })
 }
 

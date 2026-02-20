@@ -19,8 +19,10 @@ export interface OpenTab {
   // For service tabs
   serviceMetadata?: ServiceMetadata
   serviceReadme?: string
-  // For agent tabs
+  // For agent tabs and agentSession tabs (to construct session URLs)
   agentId?: string
+  // Initial sub-tab to show when panel is first opened via URL deep link
+  initialPanelTab?: string
 }
 
 export const TABLE_NAMES: DbTableName[] = ['tasks', 'channels', 'messages', 'agentStatus', 'sessions', 'deployments', 'workloads']

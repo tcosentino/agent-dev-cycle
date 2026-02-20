@@ -3,6 +3,7 @@ export interface ApiConfig {
   projectId: string
   runId: string
   sessionId?: string
+  agentRole?: string
 }
 
 export function getApiConfig(): ApiConfig {
@@ -10,6 +11,7 @@ export function getApiConfig(): ApiConfig {
   const projectId = process.env.AGENTFORGE_PROJECT_ID
   const runId = process.env.AGENTFORGE_RUN_ID
   const sessionId = process.env.AGENTFORGE_SESSION_ID
+  const agentRole = process.env.AGENTFORGE_AGENT_ROLE
 
   if (!serverUrl) {
     throw new Error('AGENTFORGE_SERVER_URL not set')
@@ -21,7 +23,7 @@ export function getApiConfig(): ApiConfig {
     throw new Error('AGENTFORGE_RUN_ID not set')
   }
 
-  return { serverUrl, projectId, runId, sessionId }
+  return { serverUrl, projectId, runId, sessionId, agentRole }
 }
 
 export async function apiRequest<T = unknown>(

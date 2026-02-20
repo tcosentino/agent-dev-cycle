@@ -43,9 +43,9 @@ vi.mock('./components', () => ({
   ContentPreview: () => null,
   DatabaseTableView: () => null,
   RecordDetailView: () => null,
-  ServiceView: () => null,
+  ServicePanel: () => null,
   AgentBrowser: () => null,
-  AgentPage: () => null,
+  AgentPanel: () => null,
   parseAgentsYaml: vi.fn(() => []),
   parseAgentConfigs: vi.fn(() => []),
 }))

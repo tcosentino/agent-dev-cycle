@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import type { SessionConfig, AgentRole } from './types.js'
 import { WORKSPACE_PATH } from './types.js'
+import { reportLog, reportGitOutput } from './progress.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -26,7 +27,8 @@ export async function cloneRepo(
 ): Promise<void> {
   const authUrl = getAuthenticatedUrl(config.repoUrl, gitToken)
 
-  await execFileAsync('git', [
+  // Clone repo
+  const { stdout, stderr } = await execFileAsync('git', [
     'clone',
     '--branch',
     config.branch,
@@ -35,6 +37,9 @@ export async function cloneRepo(
     authUrl,
     WORKSPACE_PATH,
   ])
+
+  // Report clone output
+  await reportGitOutput(stdout, stderr, 'cloning')
 
   // Configure git user for commits
   await execFileAsync('git', [
@@ -80,13 +85,17 @@ export async function commitAndPush(
   ])
 
   if (!status.trim()) {
-    console.log('No changes to commit')
+    await reportLog({
+      level: 'info',
+      message: 'nothing to commit, working tree clean'
+    }, 'committing')
     return undefined
   }
 
   // Commit with structured message
   const commitMessage = `agent(${config.agent}): ${summary} [${config.runId}]`
-  await execFileAsync('git', [
+
+  const { stdout: commitOutput } = await execFileAsync('git', [
     '-C',
     WORKSPACE_PATH,
     'commit',
@@ -94,23 +103,34 @@ export async function commitAndPush(
     commitMessage,
   ])
 
-  // Push to remote (with pull --rebase if needed for shallow clone)
+  // Log the actual git commit output (shows files changed, insertions/deletions)
+  await reportLog({
+    level: 'info',
+    message: commitOutput
+  }, 'committing')
+
+  // Push to remote
   const authUrl = getAuthenticatedUrl(config.repoUrl, gitToken)
 
   try {
-    await execFileAsync('git', [
+    const { stdout, stderr } = await execFileAsync('git', [
       '-C',
       WORKSPACE_PATH,
       'push',
       authUrl,
       config.branch,
     ])
-  } catch (pushError) {
-    // Push failed, likely because remote has new commits
-    // Unshallow the clone and rebase on top of remote
-    console.log('Push failed, fetching and rebasing...')
 
-    // Unshallow the clone to get full history
+    // Log the actual git push output
+    await reportGitOutput(stdout, stderr, 'committing')
+  } catch (pushError) {
+    // Push rejected, need to pull and rebase first
+    await reportLog({
+      level: 'warn',
+      message: 'push rejected, fetching remote changes...'
+    }, 'committing')
+
+    // Unshallow the clone to get full history (needed for rebase)
     await execFileAsync('git', [
       '-C',
       WORKSPACE_PATH,
@@ -123,30 +143,33 @@ export async function commitAndPush(
     })
 
     // Fetch latest from remote
-    await execFileAsync('git', [
+    const { stdout: fetchOutput, stderr: fetchError } = await execFileAsync('git', [
       '-C',
       WORKSPACE_PATH,
       'fetch',
       authUrl,
       config.branch,
     ])
+    await reportGitOutput(fetchOutput, fetchError, 'committing')
 
     // Rebase local changes on top of remote
-    await execFileAsync('git', [
+    const { stdout: rebaseOutput, stderr: rebaseError } = await execFileAsync('git', [
       '-C',
       WORKSPACE_PATH,
       'rebase',
       'FETCH_HEAD',
     ])
+    await reportGitOutput(rebaseOutput, rebaseError, 'committing')
 
-    // Try push again
-    await execFileAsync('git', [
+    // Push again after rebase
+    const { stdout, stderr } = await execFileAsync('git', [
       '-C',
       WORKSPACE_PATH,
       'push',
       authUrl,
       config.branch,
     ])
+    await reportGitOutput(stdout, stderr, 'committing')
   }
 
   // Get commit SHA
@@ -180,7 +203,7 @@ export async function commitPartialWork(
     }
 
     const commitMessage = `agent(${config.agent}): FAILED - ${error.message} [${config.runId}]`
-    await execFileAsync('git', [
+    const { stdout: commitOutput } = await execFileAsync('git', [
       '-C',
       WORKSPACE_PATH,
       'commit',
@@ -188,20 +211,30 @@ export async function commitPartialWork(
       commitMessage,
     ])
 
+    // Log the actual git commit output for partial work
+    await reportLog({
+      level: 'warn',
+      message: `Committing partial work:\n${commitOutput}`
+    }, 'committing')
+
     const authUrl = getAuthenticatedUrl(config.repoUrl, gitToken)
 
     try {
-      await execFileAsync('git', [
+      const { stdout, stderr } = await execFileAsync('git', [
         '-C',
         WORKSPACE_PATH,
         'push',
         authUrl,
         config.branch,
       ])
+
+      await reportGitOutput(stdout, stderr, 'committing')
     } catch {
-      // Push failed, likely because remote has new commits
-      // Unshallow the clone and rebase on top of remote
-      console.log('Push failed, fetching and rebasing...')
+      // Push rejected, need to pull and rebase first
+      await reportLog({
+        level: 'warn',
+        message: 'push rejected, fetching remote changes...'
+      }, 'committing')
 
       await execFileAsync('git', [
         '-C',
@@ -214,28 +247,31 @@ export async function commitPartialWork(
         // Already unshallowed or full clone
       })
 
-      await execFileAsync('git', [
+      const { stdout: fetchOutput, stderr: fetchError } = await execFileAsync('git', [
         '-C',
         WORKSPACE_PATH,
         'fetch',
         authUrl,
         config.branch,
       ])
+      await reportGitOutput(fetchOutput, fetchError, 'committing')
 
-      await execFileAsync('git', [
+      const { stdout: rebaseOutput, stderr: rebaseError } = await execFileAsync('git', [
         '-C',
         WORKSPACE_PATH,
         'rebase',
         'FETCH_HEAD',
       ])
+      await reportGitOutput(rebaseOutput, rebaseError, 'committing')
 
-      await execFileAsync('git', [
+      const { stdout, stderr } = await execFileAsync('git', [
         '-C',
         WORKSPACE_PATH,
         'push',
         authUrl,
         config.branch,
       ])
+      await reportGitOutput(stdout, stderr, 'committing')
     }
   } catch (commitError) {
     console.error('Failed to commit partial work:', commitError)

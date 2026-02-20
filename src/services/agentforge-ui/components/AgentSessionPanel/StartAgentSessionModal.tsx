@@ -10,7 +10,7 @@ export interface StartAgentSessionModalProps {
   agents?: AgentConfig[]
   preselectedAgent?: string
   onClose: () => void
-  onSessionCreated: (sessionId: string) => void
+  onSessionCreated: (sessionId: string, agentId: string) => void
 }
 
 const defaultAgents = [
@@ -74,7 +74,7 @@ export function StartAgentSessionModal({
       // Start the session
       await api.agentSessions.start(session.id)
 
-      onSessionCreated(session.id)
+      onSessionCreated(session.id, agent)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to start session')
       setIsSubmitting(false)

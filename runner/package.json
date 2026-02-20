@@ -6,17 +6,21 @@
     "dev": "./scripts/dev.sh",
     "dev:raw": "tsx src/index.ts",
     "build": "tsc",
-    "cli": "tsx src/cli/index.ts"
+    "cli": "tsx src/cli/index.ts",
+    "test": "vitest run --exclude='**/*.integration.test.ts'",
+    "test:watch": "vitest --exclude='**/*.integration.test.ts'",
+    "test:integration": "vitest run --testTimeout=300000 src/tests/integration/"
   },
   "dependencies": {
-    "@agentforge/logger": "0.1.0",
     "yaml": "^2.7.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
+    "dotenv": "^17.3.1",
     "tsx": "^4.19.4",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "vitest": "^2.0.0"
   },
   "bin": {
     "agentforge": "./dist/src/cli/index.js"

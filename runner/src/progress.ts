@@ -10,6 +10,15 @@ export type ProgressStage =
   | 'completed'
   | 'failed'
 
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens: number
+  cacheWriteTokens: number
+  totalTokens: number
+  totalCostUsd?: number
+}
+
 export interface ProgressUpdate {
   stage?: ProgressStage
   progress?: number
@@ -17,6 +26,7 @@ export interface ProgressUpdate {
   summary?: string
   commitSha?: string
   error?: string
+  tokenUsage?: TokenUsage
 }
 
 export interface LogEntry {
@@ -85,13 +95,14 @@ export async function reportStageComplete(stage: ProgressStage): Promise<void> {
   }
 }
 
-export async function reportComplete(summary: string, commitSha?: string): Promise<void> {
+export async function reportComplete(summary: string, commitSha?: string, tokenUsage?: TokenUsage): Promise<void> {
   await reportProgress({
     stage: 'completed',
     progress: 100,
     currentStep: 'Done',
     summary,
     commitSha,
+    tokenUsage,
   })
 }
 
@@ -101,4 +112,50 @@ export async function reportFailure(error: string): Promise<void> {
     error,
   })
   await reportLog({ level: 'error', message: error })
+}
+
+// Report git command output with appropriate formatting
+export async function reportGitOutput(
+  stdout: string,
+  stderr: string,
+  stage: ProgressStage
+): Promise<void> {
+  // Log stdout if present
+  if (stdout.trim()) {
+    await reportLog({ level: 'info', message: stdout.trim() }, stage)
+  }
+
+  // Log stderr as warning if present
+  if (stderr.trim()) {
+    await reportLog({ level: 'warn', message: stderr.trim() }, stage)
+  }
+}
+
+// Stream Claude output line-by-line
+export async function reportClaudeOutput(line: string): Promise<void> {
+  await reportLog({ level: 'info', message: line }, 'executing')
+}
+
+// Report context files metadata
+export async function reportContextFiles(files: string[]): Promise<void> {
+  const message = `Context files (${files.length}):\n${files.map(f => `  - ${f}`).join('\n')}`
+  await reportLog({ level: 'info', message }, 'loading')
+}
+
+// Report a container resource metric snapshot
+export async function reportResourceMetric(cpuPercent: number, memoryMb: number, memoryPercent: number): Promise<void> {
+  const sessionId = getSessionId()
+  if (!sessionId) {
+    return
+  }
+
+  try {
+    await apiRequest('POST', `/api/agentSessions/${sessionId}/resourceMetrics`, {
+      cpuPercent,
+      memoryMb,
+      memoryPercent,
+    })
+  } catch (err) {
+    console.warn('Failed to report resource metric:', err instanceof Error ? err.message : err)
+  }
 }

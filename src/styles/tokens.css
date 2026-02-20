@@ -20,6 +20,10 @@
   --accent-pink: #ec4899;
   --accent-red: #ef4444;
 
+  /* Status colors */
+  --status-success: #10b981;
+  --status-error: #ef4444;
+
   /* Agent/Role colors */
   --pm-color: #ef4444;
   --engineer-color: #0ea5e9;

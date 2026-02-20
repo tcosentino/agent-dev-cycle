@@ -1,0 +1,170 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  height: 100%;
+}
+
+.stageList {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.stageRow {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.stageRow:last-child {
+  border-bottom: none;
+}
+
+.stageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: none;
+  text-align: left;
+  cursor: default;
+  transition: background 0.15s ease;
+}
+
+.stageHeader.clickable {
+  cursor: pointer;
+}
+
+.stageHeader.clickable:hover {
+  background: var(--bg-hover);
+}
+
+.stageHeader.expanded {
+  background: var(--bg-tertiary);
+}
+
+.stageLabel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.stageName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.stageDuration {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.expandIcon {
+  font-size: 18px;
+  color: var(--text-muted);
+  font-weight: 600;
+  width: 20px;
+  text-align: center;
+}
+
+/* Status Indicators */
+.statusIndicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.stageHeader.pending .statusIndicator {
+  background: #9ca3af;
+  border-color: #9ca3af;
+}
+
+.stageHeader.running .statusIndicator {
+  background: var(--accent-tertiary);
+  border-color: var(--accent-tertiary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.stageHeader.success .statusIndicator {
+  background: var(--status-success);
+  border-color: var(--status-success);
+}
+
+.stageHeader.failed .statusIndicator {
+  background: var(--status-error);
+  border-color: var(--status-error);
+}
+
+/* Logs Content */
+.logsContent {
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+.logEntry {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  line-height: 1.4;
+}
+
+.logTime {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.logLevel {
+  flex-shrink: 0;
+  font-weight: 600;
+}
+
+.logEntry.info .logLevel {
+  color: var(--accent-tertiary);
+}
+
+.logEntry.warn .logLevel {
+  color: var(--status-warning);
+}
+
+.logEntry.error .logLevel {
+  color: var(--status-error);
+}
+
+.logMessage {
+  word-break: break-word;
+  color: var(--text-primary);
+}
+
+.errorMessage {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 4px;
+  color: var(--status-error);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+/* Empty State */
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--text-muted);
+  font-size: 14px;
+}

@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import YAML from 'yaml'
-import type { SessionConfig, ProjectProgress, AgentsConfig, AgentConfig } from './types.js'
+import type { SessionConfig, ProjectProgress, AgentsConfig, AgentConfig, AgentRole } from './types.js'
 import { WORKSPACE_PATH, CONTEXT_PATH, MAX_FILE_SIZE } from './types.js'
 
 function truncate(content: string, maxLength: number = MAX_FILE_SIZE): string {
@@ -30,7 +30,7 @@ export async function loadAgentsConfig(): Promise<AgentsConfig> {
     if (configContent) {
       try {
         const config = JSON.parse(configContent)
-        configs[config.id] = {
+        configs[config.id as AgentRole] = {
           model: config.model,
           maxTokens: config.maxTokens,
           orchestrator: config.orchestrator
@@ -76,34 +76,42 @@ function formatProgress(progress: ProjectProgress): string {
   return lines.join('\n')
 }
 
-export async function assembleContext(config: SessionConfig): Promise<string> {
+export async function assembleContext(config: SessionConfig): Promise<{ context: string; files: string[] }> {
   const sections: string[] = []
+  const loadedFiles: string[] = []
 
   // Shared system prompt (all agents get this)
   const systemPrompt = await readRepoFile('prompts/system.md')
   if (systemPrompt) {
     sections.push(systemPrompt)
+    loadedFiles.push('prompts/system.md')
   }
 
   // Role-specific prompt - try new structure first, then legacy
   let rolePrompt = await readRepoFile(`.agentforge/agents/${config.agent}/prompt.md`)
-  if (!rolePrompt) {
-    rolePrompt = await readRepoFile(`prompts/${config.agent}.md`)
-  }
   if (rolePrompt) {
     sections.push(`## Your Role\n\n${rolePrompt}`)
+    loadedFiles.push(`.agentforge/agents/${config.agent}/prompt.md`)
+  } else {
+    rolePrompt = await readRepoFile(`prompts/${config.agent}.md`)
+    if (rolePrompt) {
+      sections.push(`## Your Role\n\n${rolePrompt}`)
+      loadedFiles.push(`prompts/${config.agent}.md`)
+    }
   }
 
   // Project briefing
   const projectDoc = await readRepoFile('PROJECT.md')
   if (projectDoc) {
     sections.push(`## Project\n\n${projectDoc}`)
+    loadedFiles.push('PROJECT.md')
   }
 
   // Architecture
   const archDoc = await readRepoFile('ARCHITECTURE.md')
   if (archDoc) {
     sections.push(`## Architecture\n\n${archDoc}`)
+    loadedFiles.push('ARCHITECTURE.md')
   }
 
   // Current state
@@ -112,6 +120,7 @@ export async function assembleContext(config: SessionConfig): Promise<string> {
     try {
       const progress = YAML.parse(progressYaml) as ProjectProgress
       sections.push(`## Current State\n\n${formatProgress(progress)}`)
+      loadedFiles.push('state/progress.yaml')
     } catch {
       // Skip if invalid YAML
     }
@@ -123,6 +132,7 @@ export async function assembleContext(config: SessionConfig): Promise<string> {
     const lines = dailyLog.split('\n')
     const recentLines = lines.slice(-30).join('\n')
     sections.push(`## Recent History\n\n${recentLines}`)
+    loadedFiles.push('memory/daily-log.md')
   }
 
   // Session metadata
@@ -143,6 +153,61 @@ export async function assembleContext(config: SessionConfig): Promise<string> {
 
   sections.push(sessionInfo.join('\n'))
 
+  // AgentForge CLI tools documentation
+  const cliDocs = `## AgentForge CLI Tools
+
+You have access to the \`agentforge\` CLI to manage project tasks and communicate with the team.
+The following commands are available via bash:
+
+### Task Management
+\`\`\`bash
+# List all tasks (optionally filter)
+agentforge task list
+agentforge task list --status todo
+agentforge task list --assignee engineer
+
+# Get task details
+agentforge task get <key>          # e.g. agentforge task get AF-12
+
+# Create a task
+agentforge task create "<title>" [--description <text>] [--type <type>] [--priority <priority>] [--assignee <agent>]
+# Types: epic, api, backend, frontend, testing, documentation, devops
+# Priorities: critical, high, medium, low
+# Assignees: pm, engineer, qa, lead
+
+# Update a task
+agentforge task update <key> --status <status>
+agentforge task update <key> --assignee engineer
+# Statuses: todo, in-progress, review, done, blocked
+
+# Delete a task
+agentforge task delete <key>
+
+# Task comments
+agentforge task comment list <key>
+agentforge task comment add <key> "<comment text>"
+agentforge task comment delete <comment-id>
+\`\`\`
+
+### Communication
+\`\`\`bash
+# Post a message to the project chat
+agentforge chat post "<message>"
+
+# Update your agent status
+agentforge status set busy "Working on AF-12"
+agentforge status set active
+\`\`\`
+
+**Use these tools to:**
+- List tasks to understand what needs to be done
+- Update task status as you work (in-progress → review → done)
+- Create new tasks when you identify additional work
+- Add comments to record progress, blockers, or decisions
+- Post chat messages for important updates`
+
+  sections.push(cliDocs)
+
   // Session-specific instructions
   const instructions = `## Your Task
 
@@ -158,7 +223,10 @@ ${config.taskPrompt}
 
   sections.push(instructions)
 
-  return sections.join('\n\n---\n\n')
+  return {
+    context: sections.join('\n\n---\n\n'),
+    files: loadedFiles
+  }
 }
 
 export async function writeContextFile(context: string): Promise<string> {

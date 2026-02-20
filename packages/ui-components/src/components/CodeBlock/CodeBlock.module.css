@@ -1,0 +1,94 @@
+.codeBlock {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--code-bg);
+  overflow: hidden;
+}
+
+.singleLine {
+  display: flex;
+  align-items: center;
+}
+
+.copyButton {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.codeBlock:hover .copyButton {
+  opacity: 1;
+}
+
+.copyButton:hover {
+  background: var(--button-hover-bg);
+  color: var(--text-primary);
+}
+
+.copyButton:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.code {
+  margin: 0;
+  padding: 12px 40px 12px 16px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.code code {
+  font-family: inherit;
+  background: none;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .codeBlock {
+    --code-bg: #1e1e1e;
+    --code-header-bg: #2d2d2d;
+    --border-color: #3e3e3e;
+    --text-primary: #d4d4d4;
+    --text-secondary: #858585;
+    --button-bg: #3e3e3e;
+    --button-text: #d4d4d4;
+    --button-hover-bg: #4e4e4e;
+    --button-hover-border: #5e5e5e;
+  }
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+  .codeBlock {
+    --code-bg: #f6f8fa;
+    --code-header-bg: #ffffff;
+    --border-color: #d0d7de;
+    --text-primary: #24292f;
+    --text-secondary: #57606a;
+    --button-bg: #ffffff;
+    --button-text: #24292f;
+    --button-hover-bg: #f3f4f6;
+    --button-hover-border: #d0d7de;
+  }
+}
+
+/* Font variables */
+.codeBlock {
+  --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, 'DejaVu Sans Mono', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+}

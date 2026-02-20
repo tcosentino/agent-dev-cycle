@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { CodeBlock } from '@agentforge/ui-components'
 import { api, type ClaudeAuthStatus } from '../api'
 import './SettingsPage.css'
 
@@ -217,9 +218,7 @@ export function SettingsPage({ onBack }: SettingsPageProps) {
                     <ol>
                       <li>
                         Open your terminal and run:
-                        <div className="code-block">
-                          <code>claude setup-token</code>
-                        </div>
+                        <CodeBlock code="claude setup-token" />
                       </li>
                       <li>Follow the prompts to authenticate with your Claude account</li>
                       <li>Copy the token you receive and paste it below</li>

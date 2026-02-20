@@ -25,6 +25,8 @@
   --success: #10b981;
   --error: #ef4444;
   --warning: #f59e0b;
+  --status-success: #10b981;
+  --status-error: #ef4444;
 
   /* Agent/Role colors */
   --pm-color: #ef4444;

@@ -4,7 +4,7 @@ import { z } from 'zod'
 export const taskCommentSchema = z.object({
   id: z.string().uuid(),
   taskId: z.string().uuid(),
-  userId: z.string().uuid(),
+  userId: z.string().uuid().optional(),
   content: z.string().min(1).max(5000),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -15,7 +15,7 @@ export const taskCommentSchema = z.object({
 export const taskCommentResourceDefinition = {
   name: 'taskComment',
   schema: taskCommentSchema,
-  createFields: ['taskId', 'userId', 'content'],
+  createFields: ['taskId', 'userId', 'content', 'authorName'],
   updateFields: ['content'],
   searchable: ['content'],
 } as const
