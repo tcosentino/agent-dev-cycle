@@ -56,10 +56,9 @@ export async function runSession(config: {
     AGENTFORGE_PROJECT_ID: sessionConfig.projectId,
     AGENTFORGE_RUN_ID: sessionConfig.runId,
     AGENTFORGE_AGENT_ROLE: 'engineer',
-    // Try both auth methods - Claude Code accepts either
-    ANTHROPIC_API_KEY: config.anthropicApiKey,
-    CLAUDE_CODE_OAUTH_TOKEN: config.anthropicApiKey,
     WORKSPACE_PATH: join(workspaceDir, 'repo'),
+    // Pass token as ANTHROPIC_API_KEY (runner reads this, not ANTHROPIC_TOKEN)
+    ANTHROPIC_API_KEY: config.anthropicApiKey,
     // Unset CLAUDECODE to allow nested Claude Code sessions in tests
     CLAUDECODE: undefined,
   }

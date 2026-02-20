@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Wrapper script to run agentforge CLI via tsx
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUNNER_ROOT="$(dirname "$SCRIPT_DIR")"
+exec node --import tsx/esm "$RUNNER_ROOT/src/cli/index.ts" "$@"

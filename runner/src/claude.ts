@@ -84,8 +84,15 @@ function buildEnvWithHome(
   anthropicApiKey: string | undefined,
   isolatedHome: string
 ): NodeJS.ProcessEnv {
+  // Add agentforge CLI to PATH (bin directory from runner root)
+  const runnerRoot = join(new URL(import.meta.url).pathname, '../../../')
+  const binPath = join(runnerRoot, 'bin')
+  const existingPath = process.env.PATH || ''
+  const newPath = `${binPath}:${existingPath}`
+
   const env: NodeJS.ProcessEnv = {
     ...process.env,
+    PATH: newPath,
     HOME: isolatedHome,
     AGENTFORGE_SERVER_URL: config.serverUrl || '',
     AGENTFORGE_PROJECT_ID: config.projectId,
@@ -94,9 +101,22 @@ function buildEnvWithHome(
     AGENTFORGE_AGENT_ROLE: config.agent,
   }
 
-  // Only set API key if provided (otherwise Claude Code uses subscription auth)
+  // Set appropriate auth env var based on token format
   if (anthropicApiKey) {
-    env.ANTHROPIC_API_KEY = anthropicApiKey
+    // Remove quotes if present (from .env files)
+    const cleanToken = anthropicApiKey.replace(/^["']|["']$/g, '')
+
+    if (cleanToken.startsWith('sk-ant-api')) {
+      // API key from Anthropic Console
+      env.ANTHROPIC_API_KEY = cleanToken
+      // Unset OAuth token to avoid conflicts
+      env.CLAUDE_CODE_OAUTH_TOKEN = undefined
+    } else {
+      // Subscription token from Claude Code login (sk-ant-oa...)
+      env.CLAUDE_CODE_OAUTH_TOKEN = cleanToken
+      // Unset API key to force Claude Code to use OAuth token
+      env.ANTHROPIC_API_KEY = undefined
+    }
   }
 
   return env
@@ -120,6 +140,10 @@ export async function runClaude(
     let stderrLineCount = 0
 
     console.log('Claude args:', args.join(' '))
+    console.log('Auth env vars:', {
+      ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY ? 'set' : 'not set',
+      CLAUDE_CODE_OAUTH_TOKEN: env.CLAUDE_CODE_OAUTH_TOKEN ? `set (${env.CLAUDE_CODE_OAUTH_TOKEN.substring(0, 15)}...)` : 'not set'
+    })
 
     const proc = spawn('claude', args, {
       cwd: WORKSPACE_PATH,

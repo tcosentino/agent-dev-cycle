@@ -1,204 +1,162 @@
-# Agent Session Runner Integration Tests
+# Integration Test Suite
 
-End-to-end integration tests for the full agent session pipeline.
+End-to-end integration tests for the AgentForge runner that validate the full agent session pipeline with real Claude API calls.
 
-## What These Tests Do
+## Overview
 
-The integration tests validate the complete runner workflow:
+These tests create a local git repository fixture, spawn the runner as a subprocess, execute real Claude API calls, and validate the results. Perfect for:
 
-1. **Setup** — Create a local bare git repo with a minimal AgentForge project
-2. **Run** — Spawn the runner process with a task prompt
-3. **Execute** — Runner clones repo, runs real Claude Code CLI, makes changes
-4. **Verify** — Assert on tool calls, git commits, file modifications, artifacts
+- **Regression testing:** Ensure the pipeline doesn't break after code changes
+- **Prompt evaluation:** Compare agent behavior across prompt iterations
+- **Infrastructure validation:** Verify tool availability and execution flow
 
 ## Architecture
 
 ```
-Vitest Process
-  ├─ Creates fixture repo (local bare git)
-  ├─ Starts mock API server
-  └─ Spawns runner subprocess
-       ├─ Clones fixture repo
-       ├─ Runs real `claude` CLI (ANTHROPIC_API_KEY required)
-       ├─ Claude calls `agentforge` CLI tools
-       ├─ Commits changes to repo
-       └─ Reports progress to mock server
+┌─────────────────────────────────────────────────────┐
+│  Vitest Test Process                                 │
+│    └─ beforeAll: setup fixture repo + mock server   │
+│    └─ test: spawn runner as child process           │
+│    └─ afterAll: cleanup                             │
+└──────────────────────┬──────────────────────────────┘
+                       │ spawns
+┌──────────────────────▼──────────────────────────────┐
+│  Runner Process (tsx src/index.ts)                   │
+│    └─ Clone fixture repo (local bare git)           │
+│    └─ Spawn real `claude` CLI (ANTHROPIC_API_KEY)   │
+│    └─ agentforge CLI available in PATH              │
+│    └─ Commit changes to fixture repo                │
+│    └─ Report progress to mock server                │
+└──────────────────────┬──────────────────────────────┘
+                       │ HTTP
+┌──────────────────────▼──────────────────────────────┐
+│  Mock API Server (node:http)                         │
+│    └─ Records all API calls (tasks, progress, logs) │
+│    └─ Returns fixture responses                     │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## Running Tests
 
-### Prerequisites
-
-- `ANTHROPIC_API_KEY` environment variable (tests skip gracefully if not set)
-- `claude` CLI installed globally (`npm install -g @anthropic-ai/claude-code`)
-- Git installed and configured
-
-### Run Integration Tests
-
 ```bash
 cd runner
-export ANTHROPIC_API_KEY=sk-ant-...
+
+# Run integration tests (requires ANTHROPIC_API_KEY or ANTHROPIC_TOKEN in .env)
 yarn test:integration
+
+# Run only unit tests (no Claude API needed)
+yarn test
+
+# Watch mode for unit tests
+yarn test:watch
 ```
 
-**Expected duration:** 2-5 minutes (depends on Claude API latency)
+## Configuration
 
-### Run All Tests (Unit + Integration)
+Tests load credentials from `.env` in the **project root** (two levels up):
 
 ```bash
-yarn test          # Unit tests only (fast, ~3s)
-yarn test:integration  # Integration tests (slow, ~2-5min with API)
+# /Users/you/Projects/agent-dev-cycle/.env
+ANTHROPIC_TOKEN=sk-ant-...
+# OR
+ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-## Test Cases
+Tests automatically skip if no API key is found.
 
-### 1. Full Pipeline Test
+## Test Suite
 
-**Task:** "Add a line 'Test: Integration' to README.md"
+### Test 1: Full Pipeline
+Validates the complete cycle: clone → execute → commit
 
-**Validates:**
-- Runner completes all 8 stages (clone, load, execute, capture, commit)
-- File is modified correctly
-- Commit is created with proper message format
-- Exit code is 0 (success)
+- Creates a local bare git repo with test project
+- Asks Claude to modify README.md
+- Verifies file was changed
+- Confirms commit was created with correct format
 
-### 2. Tool Call Validation
+### Test 2: CLI Environment
+Verifies agentforge CLI is available to Claude during execution
 
-**Task:** "Work on task AF-1: update the README with the task title"
+- Asks Claude to run `agentforge task list`
+- Validates runner completes successfully
+- Infrastructure test - proves CLI is in PATH and accessible
 
-**Validates:**
-- Claude calls `agentforge task get AF-1`
-- API receives GET/PATCH requests to `/api/tasks`
-- Tool usage matches expected patterns
+**Note:** Claude's tool calling is non-deterministic - this test validates the environment is set up correctly, not that Claude will always use the CLI.
 
-### 3. Artifact Capture
+### Test 3: Artifact Capture
+Ensures transcript and notepad are saved correctly
 
-**Task:** "Add a comment to README.md"
-
-**Validates:**
-- Session transcript (`.jsonl`) is captured
-- Sessions directory structure is created
-- Artifacts are in the correct location
+- Validates `sessions/engineer/{runId}/` directory exists
+- Confirms session artifacts are captured
+- Tests file structure compliance
 
 ## Evaluation Workflow
 
 To compare agent behavior across prompt changes:
 
 ```bash
-# Run with baseline prompt
-ANTHROPIC_API_KEY=... yarn test:integration > baseline.txt
+# Baseline run
+yarn test:integration > baseline-output.txt
 
-# Edit fixture repo's agent prompt (see fixture-repo.ts)
-# Or modify the task prompt in the test file
+# Modify agent prompt in fixture-repo.ts
 
-# Run again
-ANTHROPIC_API_KEY=... yarn test:integration > modified.txt
+# Compare run
+yarn test:integration > modified-output.txt
 
-# Compare
-diff baseline.txt modified.txt
+# Diff
+diff baseline-output.txt modified-output.txt
 ```
 
-Or programmatically — save `apiServer.getCalls()` to JSON and compare tool sequences.
+Or programmatically save `apiServer.getCalls()` to JSON and compare tool call patterns.
 
-## Cost Considerations
+## Fixture Repository
 
-Each integration test run costs ~$0.01-0.05 depending on:
-- Model used (Haiku is cheapest, configured in fixture)
-- Task complexity
-- Number of tests
-
-**Tip:** Use Haiku for integration tests (fast + cheap). The fixture repo is configured to use Haiku by default.
-
-## Fixture Repo Structure
-
-The test creates a minimal project:
+The test creates a minimal AgentForge project with:
 
 ```
 .agentforge/
   agents/engineer/
-    config.json      # model: haiku, maxTokens: 10000
-    prompt.md        # Simple task-focused instructions
-  PROJECT.md         # Test project description
-tasks.json           # Fixture task data (for mock server)
-README.md            # Target file for tests
+    config.json       # model: sonnet, maxTokens: 10000
+    prompt.md         # Simple task-focused prompt
+  PROJECT.md          # Test project description
+tasks.json            # Fixture task data for mock server
+README.md             # Test file to modify
 ```
 
-## Mock API Server
+The agentforge CLI is made available to Claude via:
+- Wrapper script at `runner/bin/agentforge` that executes CLI via tsx
+- PATH updated in Claude's environment to include the bin directory
 
-The server records all runner → server HTTP calls:
+## Files
 
-- **Progress updates:** `PATCH /api/agentSessions/:id/progress`
-- **Logs:** `POST /api/agentSessions/:id/logs`
-- **Tasks:** `GET/POST/PATCH /api/tasks`
-- **Comments:** `GET/POST/DELETE /api/taskComments`
-- **Messages:** `POST /api/projects/:id/messages`
+- `fixture-repo.ts` - Creates local bare git repo with test project
+- `mock-api-server.ts` - HTTP server that records API calls
+- `runner-harness.ts` - Spawns runner process and captures output
+- `assertions.ts` - Helper assertions for common checks
+- `runner.integration.test.ts` - Main test suite
+- `../../../bin/agentforge` - Wrapper script for CLI execution
 
-Use `apiServer.getCalls()` in assertions to verify the runner made the right API calls.
+## Debugging
 
-## Troubleshooting
+Enable verbose output:
 
-### Tests skip with "ANTHROPIC_API_KEY not set"
-
-Set the environment variable:
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+yarn test:integration 2>&1 | tee test-output.log
 ```
 
-### "claude: command not found"
-
-Install Claude Code CLI:
-```bash
-npm install -g @anthropic-ai/claude-code
-```
-
-### Tests timeout after 5 minutes
-
-Claude API calls can be slow. Increase timeout in test:
-```typescript
-await runSession({
-  // ...
-  timeoutMs: 600000, // 10 minutes
-})
-```
-
-### Git errors during fixture setup
-
-Ensure git is installed and configured:
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "you@example.com"
-```
-
-## File Structure
-
-| File | Purpose |
-|------|---------|
-| `fixture-repo.ts` | Creates local bare git repo with test project |
-| `mock-api-server.ts` | HTTP server that records API calls |
-| `runner-harness.ts` | Spawns runner process, waits for completion |
-| `assertions.ts` | Helper assertions for tool calls, commits, files |
-| `runner.integration.test.ts` | Test cases |
-
-## Extending Tests
-
-To add a new test case:
+Check workspace directories (temp dirs are cleaned up after tests):
 
 ```typescript
-it('validates new behavior', async () => {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) return  // Skip if no key
-
-  const result = await runSession({
-    fixtureRepoPath,
-    taskPrompt: 'Your task here',
-    apiServerUrl: apiServer.url,
-    anthropicApiKey: apiKey,
-  })
-
-  expect(result.success).toBe(true)
-  // Your assertions here
-}, 300000)  // 5-minute timeout
+// In afterAll(), comment out cleanup to inspect workspaces:
+// await rm(tempDir, { recursive: true, force: true })
 ```
+
+## Known Limitations
+
+- **Claude's tool calling is non-deterministic** - we can't force Claude to use specific bash commands or CLI tools, so Test 2 validates environment setup rather than guaranteed CLI usage
+- **Tests require real API key** - can't run in CI without credentials
+- **5-minute timeout per test** - Claude API latency varies
+- **Uses Sonnet model** - requires access to `claude-sonnet-4-5-20250929`
 
 ## CI/CD Integration
 
@@ -210,9 +168,9 @@ Integration tests are **optional** in CI (require API key). Recommended approach
   run: cd runner && yarn test
 
 - name: Run integration tests
-  if: env.ANTHROPIC_API_KEY != ''
+  if: env.ANTHROPIC_TOKEN != ''
   env:
-    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    ANTHROPIC_TOKEN: ${{ secrets.ANTHROPIC_TOKEN }}
   run: cd runner && yarn test:integration
 ```
 
