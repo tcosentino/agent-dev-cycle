@@ -224,6 +224,73 @@ export async function getUserRepos(
   return res.json()
 }
 
+// Create or update a file in a repository via the Contents API
+export async function createFileInRepo(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  path: string,
+  content: string,
+  message: string,
+  branch = 'main'
+): Promise<{ sha: string; commitSha: string }> {
+  // Base64 encode the content
+  const encodedContent = Buffer.from(content, 'utf-8').toString('base64')
+
+  const res = await fetch(
+    `${GITHUB_API_BASE}/repos/${owner}/${repo}/contents/${path}`,
+    {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        message,
+        content: encodedContent,
+        branch,
+      }),
+    }
+  )
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    if (res.status === 422 && errorData.message?.includes('sha')) {
+      throw new Error('File already exists at this path')
+    }
+    throw new Error(`Failed to create file: ${res.status} ${errorData.message || ''}`)
+  }
+
+  const data = await res.json()
+  return {
+    sha: data.content.sha,
+    commitSha: data.commit.sha,
+  }
+}
+
+// Check if a file exists in the repository
+export async function fileExistsInRepo(
+  accessToken: string,
+  owner: string,
+  repo: string,
+  path: string,
+  branch = 'main'
+): Promise<boolean> {
+  const res = await fetch(
+    `${GITHUB_API_BASE}/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    }
+  )
+  return res.ok
+}
+
 // Parse GitHub repo URL to extract owner and repo
 export function parseRepoUrl(url: string): { owner: string; repo: string } | null {
   // Handle various GitHub URL formats:

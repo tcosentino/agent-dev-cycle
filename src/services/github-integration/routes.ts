@@ -10,6 +10,9 @@ import {
   getRepoTree,
   getFileContent,
   getUserRepos,
+  createFileInRepo,
+  fileExistsInRepo,
+  parseRepoUrl,
 } from './github-api'
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || ''
@@ -292,6 +295,132 @@ export function registerGitHubRoutes(
     } catch (err) {
       console.error('Error fetching file content:', err)
       return c.json({ error: 'Failed to fetch file content' }, 500)
+    }
+  })
+
+  const projectStore = ctx.stores.get('project')
+
+  // API: Create a new agent in a project's repository
+  app.post('/api/projects/:projectId/agents', async (c) => {
+    const user = getUser(c)
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401)
+    }
+
+    const { projectId } = c.req.param()
+
+    // Get project to find repo URL
+    if (!projectStore) {
+      return c.json({ error: 'Project store not available' }, 500)
+    }
+
+    const project = await projectStore.findById(projectId) as { id: string; repoUrl?: string; userId?: string } | null
+    if (!project) {
+      return c.json({ error: 'Project not found' }, 404)
+    }
+
+    if (!project.repoUrl) {
+      return c.json({ error: 'Project has no repository URL configured' }, 400)
+    }
+
+    // Verify the user owns this project
+    if (project.userId !== user.id) {
+      return c.json({ error: 'Unauthorized' }, 403)
+    }
+
+    const parsed = parseRepoUrl(project.repoUrl)
+    if (!parsed) {
+      return c.json({ error: 'Invalid repository URL' }, 400)
+    }
+
+    const body = await c.req.json()
+    const { name, type, prompt } = body as { name?: string; type?: string; prompt?: string }
+
+    // Validate name
+    if (!name || typeof name !== 'string') {
+      return c.json({ error: 'Agent name is required', code: 'INVALID_NAME' }, 400)
+    }
+
+    const normalizedName = name.toLowerCase()
+    if (!/^[a-z0-9][a-z0-9_-]*$/.test(normalizedName) || normalizedName.length > 50) {
+      return c.json({
+        error: 'Agent name can only contain lowercase letters, numbers, hyphens, and underscores',
+        code: 'INVALID_NAME',
+      }, 400)
+    }
+
+    // Validate prompt
+    if (!prompt || typeof prompt !== 'string') {
+      return c.json({ error: 'Agent prompt is required', code: 'INVALID_PROMPT' }, 400)
+    }
+
+    if (prompt.length < 10) {
+      return c.json({ error: 'Agent prompt must be at least 10 characters', code: 'INVALID_PROMPT' }, 400)
+    }
+
+    if (prompt.length > 50000) {
+      return c.json({ error: 'Agent prompt must be under 50,000 characters', code: 'INVALID_PROMPT' }, 400)
+    }
+
+    // Validate type if provided
+    const validTypes = ['architect', 'engineer', 'qa', 'lead', 'pm', 'designer', 'devops']
+    if (type && !validTypes.includes(type)) {
+      return c.json({ error: `Invalid agent type. Must be one of: ${validTypes.join(', ')}`, code: 'INVALID_TYPE' }, 400)
+    }
+
+    const filePath = `agents/${normalizedName}.md`
+
+    try {
+      // Check if file already exists
+      const exists = await fileExistsInRepo(
+        user.githubAccessToken,
+        parsed.owner,
+        parsed.repo,
+        filePath
+      )
+
+      if (exists) {
+        return c.json({
+          error: `Agent '${normalizedName}' already exists`,
+          code: 'DUPLICATE_AGENT',
+        }, 409)
+      }
+
+      // Create the file in the repo
+      const commitMessage = `Add ${normalizedName} agent`
+      const result = await createFileInRepo(
+        user.githubAccessToken,
+        parsed.owner,
+        parsed.repo,
+        filePath,
+        prompt,
+        commitMessage
+      )
+
+      return c.json({
+        agent: {
+          name: normalizedName,
+          type: type || null,
+          path: filePath,
+          createdAt: new Date().toISOString(),
+        },
+        commitSha: result.commitSha,
+      }, 201)
+    } catch (err) {
+      console.error('Error creating agent file:', err)
+      const message = err instanceof Error ? err.message : 'Unknown error'
+
+      if (message.includes('already exists')) {
+        return c.json({
+          error: `Agent '${normalizedName}' already exists`,
+          code: 'DUPLICATE_AGENT',
+        }, 409)
+      }
+
+      return c.json({
+        error: `Failed to create agent: ${message}`,
+        code: 'GIT_ERROR',
+      }, 500)
     }
   })
 }
