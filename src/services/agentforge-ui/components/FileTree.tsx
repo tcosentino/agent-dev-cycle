@@ -42,6 +42,7 @@ interface FileTreeNodeProps {
   onToggle: (path: string) => void
   onSelect: (path: string) => void
   onServiceSelect?: (path: string) => void
+  onOpenSpecSelect?: (path: string) => void
 }
 
 export function FileTreeNode({
@@ -52,6 +53,7 @@ export function FileTreeNode({
   onToggle,
   onSelect,
   onServiceSelect,
+  onOpenSpecSelect,
 }: FileTreeNodeProps) {
   const isExpanded = expandedFolders.has(node.path)
   const isSelected = node.path === selectedFile
@@ -61,6 +63,9 @@ export function FileTreeNode({
       if (node.isService && onServiceSelect) {
         // Service folders open the service view
         onServiceSelect(node.path)
+      } else if (node.isOpenSpec && onOpenSpecSelect) {
+        // OpenSpec change folders open the openspec panel
+        onOpenSpecSelect(node.path)
       } else {
         // Regular folders toggle expansion
         onToggle(node.path)
@@ -74,6 +79,7 @@ export function FileTreeNode({
     styles.treeNode,
     node.type === 'folder' ? styles.treeNodeFolder : '',
     node.isService ? styles.treeNodeService : '',
+    node.isOpenSpec ? styles.treeNodeOpenSpec : '',
     isSelected ? styles.treeNodeSelected : '',
   ].filter(Boolean).join(' ')
 
@@ -103,6 +109,23 @@ export function FileTreeNode({
                 </span>
                 <BoxIcon className={styles.treeServiceIcon} />
               </>
+            ) : node.isOpenSpec ? (
+              // OpenSpec change folders show a book icon
+              <>
+                <span
+                  className={styles.nodeChevron}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onToggle(node.path)
+                  }}
+                >
+                  {isExpanded
+                    ? <ChevronDownIcon />
+                    : <ChevronRightIcon />
+                  }
+                </span>
+                <BookOpenIcon className={styles.treeOpenSpecIcon} />
+              </>
             ) : (
               <>
                 {isExpanded
@@ -124,6 +147,7 @@ export function FileTreeNode({
         )}
         <span className={styles.nodeName}>{node.name}</span>
         {node.isService && <span className={styles.serviceBadge}>service</span>}
+        {node.isOpenSpec && <span className={styles.openspecBadge}>spec</span>}
       </button>
       {node.type === 'folder' && isExpanded && node.children?.map(child => (
         <FileTreeNode
@@ -135,6 +159,7 @@ export function FileTreeNode({
           onToggle={onToggle}
           onSelect={onSelect}
           onServiceSelect={onServiceSelect}
+          onOpenSpecSelect={onOpenSpecSelect}
         />
       ))}
     </>

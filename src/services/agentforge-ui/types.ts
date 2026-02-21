@@ -16,6 +16,7 @@ export interface FileNode {
   children?: FileNode[]
   extension?: string
   isService?: boolean  // True if this folder is a service (has service.json)
+  isOpenSpec?: boolean  // True if this folder is an openspec change (has proposal.md or .openspec.yaml)
 }
 
 export type ProjectData = Record<string, Record<string, string>>

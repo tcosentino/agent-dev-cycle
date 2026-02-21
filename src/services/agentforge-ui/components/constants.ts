@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { DbTableName, ServiceMetadata } from '../types'
 
-export type TabType = 'file' | 'table' | 'record' | 'service' | 'agentSession' | 'agent'
+export type TabType = 'file' | 'table' | 'record' | 'service' | 'agentSession' | 'agent' | 'openspec'
 export type PaneId = 'left' | 'right'
 export type ViewMode = 'table' | 'view'
 export type RecordViewMode = 'view' | 'raw'
@@ -23,6 +23,23 @@ export interface OpenTab {
   agentId?: string
   // Initial sub-tab to show when panel is first opened via URL deep link
   initialPanelTab?: string
+  // For openspec tabs - the change metadata
+  openspecChange?: OpenSpecChange
+}
+
+export interface OpenSpecChange {
+  path: string // e.g., "openspec/changes/my-feature"
+  name: string // e.g., "my-feature"
+  proposal?: string
+  design?: string
+  tasks?: string
+  specs?: OpenSpecSpec[]
+}
+
+export interface OpenSpecSpec {
+  name: string
+  path: string
+  content?: string
 }
 
 export const TABLE_NAMES: DbTableName[] = ['tasks', 'channels', 'messages', 'agentStatus', 'sessions', 'deployments', 'workloads']

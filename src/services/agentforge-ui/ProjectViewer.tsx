@@ -43,8 +43,9 @@ import {
   AgentPanel,
   parseAgentsYaml,
   parseAgentConfigs,
+  OpenSpecPanel,
 } from './components'
-import type { TabType, PaneId, ViewMode, RecordViewMode, OpenTab } from './components'
+import type { TabType, PaneId, ViewMode, RecordViewMode, OpenTab, OpenSpecChange } from './components'
 import styles from './ProjectViewer.module.css'
 
 // --- LocalStorage persistence ---
@@ -121,6 +122,9 @@ function getTabIcon(tab: SerializedTab): ReactNode {
   }
   if (tab.type === 'agent') {
     return <CodeIcon />
+  }
+  if (tab.type === 'openspec') {
+    return <BookOpenIcon />
   }
   return <FileDocumentIcon />
 }
@@ -468,8 +472,13 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     const servicePaths = Object.keys(files).filter(path =>
       path.endsWith('/service.json') || path === 'service.json'
     )
+    // OpenSpec change files (proposal.md, design.md, tasks.md, and specs)
+    const openspecPaths = Object.keys(files).filter(path =>
+      path.match(/^openspec\/changes\/[^/]+\/(proposal\.md|design\.md|tasks\.md|\.openspec\.yaml)$/) ||
+      path.match(/^openspec\/changes\/[^/]+\/specs\/[^/]+\/spec\.md$/)
+    )
 
-    const pathsToLoad = [...configPaths, ...promptPaths, ...servicePaths]
+    const pathsToLoad = [...configPaths, ...promptPaths, ...servicePaths, ...openspecPaths]
 
     for (const filePath of pathsToLoad) {
       const fileExists = filePath in files
@@ -715,6 +724,65 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
     setActivePane(activePane)
   }, [openTabs, activePane, agents])
 
+  const openOpenSpec = useCallback((changePath: string, initialPanelTab?: string) => {
+    const tabId = `openspec:${changePath}`
+    const changeName = changePath.split('/').pop() || changePath
+
+    // Check if tab already exists
+    const existingTab = openTabs.find(t => t.id === tabId)
+    if (existingTab) {
+      setActiveTabIds(prev => ({ ...prev, [existingTab.pane]: tabId }))
+      setActivePane(existingTab.pane)
+      return
+    }
+
+    // Load OpenSpec change files
+    const proposalPath = `${changePath}/proposal.md`
+    const designPath = `${changePath}/design.md`
+    const tasksPath = `${changePath}/tasks.md`
+
+    const proposal = files[proposalPath]
+    const design = files[designPath]
+    const tasks = files[tasksPath]
+
+    // Find spec files in specs/ subdirectory
+    const specPaths = Object.keys(files).filter(p =>
+      p.startsWith(`${changePath}/specs/`) && p.endsWith('/spec.md')
+    )
+    const specs = specPaths.map(specPath => {
+      // Extract spec name from path like "openspec/changes/feature/specs/spec-name/spec.md"
+      const parts = specPath.split('/')
+      const specName = parts[parts.length - 2] // Get the folder name before spec.md
+      return {
+        name: specName,
+        path: specPath,
+        content: files[specPath],
+      }
+    })
+
+    const openspecChange: OpenSpecChange = {
+      path: changePath,
+      name: changeName,
+      proposal,
+      design,
+      tasks,
+      specs,
+    }
+
+    setOpenTabs(prev => [...prev, {
+      id: tabId,
+      type: 'openspec',
+      path: changePath,
+      label: changeName,
+      icon: <BookOpenIcon />,
+      pane: activePane,
+      openspecChange,
+      initialPanelTab,
+    }])
+    setActiveTabIds(prev => ({ ...prev, [activePane]: tabId }))
+    setActivePane(activePane)
+  }, [openTabs, activePane, files])
+
   const splitToRight = useCallback((tabId: string) => {
     setOpenTabs(prev => prev.map(t =>
       t.id === tabId ? { ...t, pane: 'right' as PaneId } : t
@@ -761,8 +829,10 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
           )
         }
       }
+    } else if (url.type === 'openspec') {
+      openOpenSpec(url.changePath, url.panelTab)
     }
-  }, [files, snapshot, openAgent, openAgentSession, openFile, openService, openTable, openRecord]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [files, snapshot, openAgent, openAgentSession, openFile, openService, openTable, openRecord, openOpenSpec]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Apply activateUrl when it changes (initial load + back/forward navigation)
   useEffect(() => {
@@ -1245,6 +1315,18 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
       )
     }
 
+    if (tab.type === 'openspec' && tab.openspecChange) {
+      return (
+        <div className={styles.tabContentInner}>
+          <OpenSpecPanel
+            change={tab.openspecChange}
+            initialTab={tab.initialPanelTab as 'overview' | 'design' | 'specs' | 'tasks' | undefined}
+            onTabChange={(panelTab) => setActivePanelHash(panelTab)}
+          />
+        </div>
+      )
+    }
+
     return null
   }
 
@@ -1276,6 +1358,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
                   onToggle={toggleFolder}
                   onSelect={openFile}
                   onServiceSelect={openService}
+                  onOpenSpecSelect={openOpenSpec}
                 />
               ))}
             </div>
