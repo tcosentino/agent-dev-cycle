@@ -286,6 +286,35 @@
   margin-left: auto;
 }
 
+.treeNodeOpenSpec {
+  background: rgba(150, 100, 255, 0.05);
+}
+
+.treeNodeOpenSpec:hover {
+  background: rgba(150, 100, 255, 0.1);
+}
+
+.treeOpenSpecIcon {
+  color: var(--accent-tertiary) !important;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.openspecBadge {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent-tertiary);
+  background: rgba(150, 100, 255, 0.15);
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin-left: auto;
+}
+
 .nodeChevron {
   width: 14px;
   height: 14px;

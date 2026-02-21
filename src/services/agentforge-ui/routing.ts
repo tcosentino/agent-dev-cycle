@@ -14,6 +14,7 @@ export type ParsedUrl =
   | { type: 'file'; owner: string; repo: string; branch: string; filePath: string }
   | { type: 'table'; owner: string; repo: string; tableName: string; panelTab?: string }
   | { type: 'record'; owner: string; repo: string; tableName: string; recordKey: string; panelTab?: string }
+  | { type: 'openspec'; owner: string; repo: string; branch: string; changePath: string; panelTab?: string }
 
 // --- URL Parsing ---
 
@@ -69,6 +70,12 @@ export function parseUrl(pathname: string, hash: string): ParsedUrl {
     return { type: 'agent', owner, repo, branch, agentId: agentMatch[1], panelTab }
   }
 
+  // openspec/changes/{changeName} (exact — the change folder)
+  const openspecMatch = filePath.match(/^openspec\/changes\/([^/]+)$/)
+  if (openspecMatch) {
+    return { type: 'openspec', owner, repo, branch, changePath: filePath, panelTab }
+  }
+
   // Everything else: file (service detection deferred to activation time)
   return { type: 'file', owner, repo, branch, filePath }
 }
@@ -98,6 +105,7 @@ export function tabToUrl(tab: OpenTab, project: ApiProject | null): { path: stri
     }
     case 'file':
     case 'service':
+    case 'openspec':
       return { path: `/${owner}/${repo}/tree/main/${tab.path}`, hash: '' }
     case 'table':
       return { path: `/${owner}/${repo}/${tab.path}`, hash: '' }

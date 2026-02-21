@@ -24,6 +24,9 @@ export function buildFileTree(files: Record<string, string>): FileNode[] {
 
   // Track which folders contain service.json (to mark as services)
   const serviceFolders = new Set<string>()
+  // Track which folders are openspec changes (contain proposal.md or .openspec.yaml)
+  const openspecFolders = new Set<string>()
+
   for (const filePath of Object.keys(files)) {
     if (filePath.endsWith('/service.json') || filePath === 'service.json') {
       // Get parent folder path
@@ -31,6 +34,13 @@ export function buildFileTree(files: Record<string, string>): FileNode[] {
       if (parentPath) {
         serviceFolders.add(parentPath)
       }
+    }
+    // Detect openspec change folders (folders inside openspec/changes/ that have proposal.md or .openspec.yaml)
+    if (filePath.match(/^openspec\/changes\/[^/]+\/(proposal\.md|\.openspec\.yaml)$/)) {
+      const parts = filePath.split('/')
+      // Get the change folder path (e.g., "openspec/changes/my-feature")
+      const changePath = parts.slice(0, 3).join('/')
+      openspecFolders.add(changePath)
     }
   }
 
@@ -44,8 +54,9 @@ export function buildFileTree(files: Record<string, string>): FileNode[] {
       builtPath = builtPath ? `${builtPath}/${part}` : part
       const isFile = i === parts.length - 1
 
-      // Check if this folder path is a service folder
+      // Check if this folder path is a service folder or openspec change folder
       const isServiceFolder = !isFile && serviceFolders.has(builtPath)
+      const isOpenSpecFolder = !isFile && openspecFolders.has(builtPath)
 
       let existing = current.find(n => n.name === part)
       if (!existing) {
@@ -58,11 +69,15 @@ export function buildFileTree(files: Record<string, string>): FileNode[] {
             ? { extension: part.includes('.') ? part.split('.').pop() : undefined }
             : { children: [] }),
           ...(isServiceFolder ? { isService: true } : {}),
+          ...(isOpenSpecFolder ? { isOpenSpec: true } : {}),
         }
         current.push(existing)
       } else if (isServiceFolder && !existing.isService) {
         // Mark existing folder as service if we discovered it later
         existing.isService = true
+      } else if (isOpenSpecFolder && !existing.isOpenSpec) {
+        // Mark existing folder as openspec if we discovered it later
+        existing.isOpenSpec = true
       }
       if (!isFile && existing.children) {
         current = existing.children

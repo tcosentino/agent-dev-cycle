@@ -14,6 +14,8 @@ export type {
   ViewMode,
   RecordViewMode,
   OpenTab,
+  OpenSpecChange,
+  OpenSpecSpec,
 } from './constants'
 
 // Components
@@ -33,3 +35,5 @@ export { PanelLayout } from './PanelLayout'
 export type { PanelLayoutProps, PanelTab } from './PanelLayout'
 export { SectionCard } from './SectionCard'
 export type { SectionCardProps, SectionCardTab } from './SectionCard'
+export { OpenSpecPanel } from './OpenSpecPanel'
+export type { OpenSpecPanelProps, OpenSpecTab } from './OpenSpecPanel'
