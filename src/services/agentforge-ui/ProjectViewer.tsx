@@ -37,6 +37,7 @@ import {
   ServiceView,
   AgentBrowser,
   AgentPage,
+  CreateAgentModal,
   parseAgentsYaml,
   parseAgentConfigs,
 } from './components'
@@ -247,9 +248,10 @@ interface ProjectViewerProps {
   currentUserId?: string
   onLoadFileContent?: (projectId: string, filePath: string) => Promise<string>
   onRefreshSnapshot?: (projectId: string) => Promise<void>
+  onRefreshProjectFiles?: (projectId: string) => Promise<void>
 }
 
-export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedProjectId, currentUserId, onLoadFileContent, onRefreshSnapshot }: ProjectViewerProps) {
+export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedProjectId, currentUserId, onLoadFileContent, onRefreshSnapshot, onRefreshProjectFiles }: ProjectViewerProps) {
   const projectIds = useMemo(() => Object.keys(projects).sort(), [projects])
 
   // Load persisted state once on mount
@@ -332,6 +334,7 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
   const [isDragging, setIsDragging] = useState(false)
   const [isOverDropZone, setIsOverDropZone] = useState(false)
   const [showStartSessionModal, setShowStartSessionModal] = useState(false)
+  const [showCreateAgentModal, setShowCreateAgentModal] = useState(false)
   const [selectedAgent, setSelectedAgent] = useState<string | null>(() => {
     return persistedState?.selectedAgent || null
   })
@@ -1122,8 +1125,8 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
               <span>Agents</span>
               <button
                 className={styles.sidebarAddButton}
-                disabled
-                title='Coming soon'
+                onClick={() => setShowCreateAgentModal(true)}
+                title='Create new agent'
               >
                 +
               </button>
@@ -1236,6 +1239,18 @@ export function ProjectViewer({ projects, dbData, projectDisplayNames, selectedP
             setShowStartSessionModal(false)
             setPreselectedAgentForModal(undefined)
             openAgentSession(sessionId)
+          }}
+        />
+      )}
+      {showCreateAgentModal && (
+        <CreateAgentModal
+          projectId={activeProject}
+          existingAgentNames={agents.map(a => a.id)}
+          onClose={() => setShowCreateAgentModal(false)}
+          onAgentCreated={() => {
+            setShowCreateAgentModal(false)
+            // Refresh file tree to pick up the new agent file
+            onRefreshProjectFiles?.(activeProject)
           }}
         />
       )}

@@ -156,6 +156,24 @@ function ProjectViewerPage() {
     }
   }, [])
 
+  // Handler to refresh project file tree (re-fetch from GitHub)
+  const handleRefreshProjectFiles = useCallback(async (projectId: string) => {
+    const repoUrl = projectRepoUrls[projectId]
+    if (!repoUrl) return
+    try {
+      const newFiles = await fetchProjectFiles(repoUrl)
+      setProjectFiles(prev => ({
+        ...prev,
+        [projectId]: {
+          ...prev[projectId],
+          ...newFiles,
+        },
+      }))
+    } catch (err) {
+      console.error(`Failed to refresh files for project ${projectId}:`, err)
+    }
+  }, [projectRepoUrls])
+
   // Handler to load file content on demand
   const handleLoadFileContent = useCallback(async (projectId: string, filePath: string): Promise<string> => {
     const repoUrl = projectRepoUrls[projectId]
@@ -358,6 +376,7 @@ function ProjectViewerPage() {
           currentUserId={user?.id}
           onLoadFileContent={handleLoadFileContent}
           onRefreshSnapshot={handleRefreshSnapshot}
+          onRefreshProjectFiles={handleRefreshProjectFiles}
         />
       </div>
       {showCreateModal && user && (

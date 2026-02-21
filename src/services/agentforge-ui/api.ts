@@ -199,6 +199,22 @@ export interface CreateAgentSessionInput {
   taskPrompt: string
 }
 
+export interface CreateAgentInput {
+  name: string
+  type?: string
+  prompt: string
+}
+
+export interface CreateAgentResponse {
+  agent: {
+    name: string
+    type: string | null
+    path: string
+    createdAt: string
+  }
+  commitSha: string
+}
+
 async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
@@ -413,6 +429,15 @@ export const api = {
         method: 'POST',
       }),
     streamUrl: (id: string) => `${API_BASE}/agentSessions/${id}/stream`,
+  },
+
+  agents: {
+    create: (projectId: string, data: CreateAgentInput) =>
+      fetchJson<CreateAgentResponse>(`/projects/${projectId}/agents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
   },
 }
 
