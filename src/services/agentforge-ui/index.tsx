@@ -2,7 +2,7 @@ import { StrictMode, useState, useEffect, useCallback } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Nav } from '../demo-ui/components/nav'
 import { ProjectViewer } from './ProjectViewer'
-import { CreateProjectModal } from './components/CreateProjectModal'
+import { ProjectWizard } from './components/ProjectWizard'
 import { SettingsPage } from './components/SettingsPage'
 import { api, fetchProjectSnapshot, fetchProjectFiles, fetchFileContent, AuthError } from './api'
 import type { ApiProject, ApiUser } from './api'
@@ -320,7 +320,7 @@ function ProjectViewerPage() {
           </div>
         </div>
         {showCreateModal && user && (
-          <CreateProjectModal
+          <ProjectWizard
             userId={user.id}
             onClose={() => setShowCreateModal(false)}
             onProjectCreated={handleProjectCreated}

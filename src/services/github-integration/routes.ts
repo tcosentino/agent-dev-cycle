@@ -10,6 +10,7 @@ import {
   getRepoTree,
   getFileContent,
   getUserRepos,
+  createRepo,
 } from './github-api'
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || ''
@@ -272,6 +273,40 @@ export function registerGitHubRoutes(
     } catch (err) {
       console.error('Error fetching user repos:', err)
       return c.json({ error: 'Failed to fetch repositories' }, 500)
+    }
+  })
+
+  // API: Create a new repository
+  app.post('/api/github/repos', async (c) => {
+    const user = getUser(c)
+    if (!user) {
+      return c.json({ error: 'Unauthorized' }, 401)
+    }
+
+    try {
+      const body = await c.req.json()
+      const { name, description, isPrivate, initializeWithReadme } = body
+
+      if (!name || typeof name !== 'string') {
+        return c.json({ error: 'Repository name is required' }, 400)
+      }
+
+      // Validate name format (no spaces, valid characters)
+      if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+        return c.json({ error: 'Repository name can only contain letters, numbers, hyphens, and underscores' }, 400)
+      }
+
+      const repo = await createRepo(user.githubAccessToken, {
+        name,
+        description,
+        private: isPrivate ?? true,
+        auto_init: initializeWithReadme ?? true,
+      })
+
+      return c.json({ repo })
+    } catch (err) {
+      console.error('Error creating repo:', err)
+      return c.json({ error: err instanceof Error ? err.message : 'Failed to create repository' }, 500)
     }
   })
 
