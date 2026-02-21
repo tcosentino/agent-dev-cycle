@@ -224,6 +224,47 @@ export async function getUserRepos(
   return res.json()
 }
 
+// Create a new repository
+export async function createRepo(
+  accessToken: string,
+  options: {
+    name: string
+    description?: string
+    private?: boolean
+    auto_init?: boolean
+  }
+): Promise<GitHubRepo> {
+  const res = await fetch(`${GITHUB_API_BASE}/user/repos`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: options.name,
+      description: options.description || '',
+      private: options.private ?? true,
+      auto_init: options.auto_init ?? true,
+    }),
+  })
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    if (res.status === 422 && error.errors) {
+      // Repository name already exists
+      const nameError = error.errors.find((e: { field: string }) => e.field === 'name')
+      if (nameError) {
+        throw new Error(`Repository '${options.name}' already exists`)
+      }
+    }
+    throw new Error(`Failed to create repository: ${res.status}`)
+  }
+
+  return res.json()
+}
+
 // Parse GitHub repo URL to extract owner and repo
 export function parseRepoUrl(url: string): { owner: string; repo: string } | null {
   // Handle various GitHub URL formats:

@@ -299,6 +299,17 @@ export const api = {
   // GitHub
   github: {
     getRepos: () => fetchJson<{ repos: ApiGitHubRepo[] }>('/github/repos'),
+    createRepo: (options: {
+      name: string
+      description?: string
+      isPrivate?: boolean
+      initializeWithReadme?: boolean
+    }) =>
+      fetchJson<{ repo: ApiGitHubRepo }>('/github/repos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options),
+      }),
     getTree: (owner: string, repo: string, branch?: string) => {
       const query = branch ? `?branch=${branch}` : ''
       return fetchJson<{ files: Array<{ path: string; size?: number }>; truncated: boolean }>(
