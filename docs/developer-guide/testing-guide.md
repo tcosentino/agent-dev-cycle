@@ -692,26 +692,17 @@ node --inspect-brk node_modules/vitest/vitest.mjs run TaskCard.test.tsx
 
 Tests run automatically in GitHub Actions on every PR.
 
-See `.github/workflows/test.yml` for configuration.
-
 **Checks:**
 - All tests pass
 - Coverage meets threshold (80%)
-- No lint errors
 - Build succeeds
 
 ## Further Reading
 
 - [Vitest Documentation](https://vitest.dev/)
 - [Testing Library](https://testing-library.com/)
-- [Test-Spec Linkage](./architecture/test-spec-linkage.md)
 
 ## Getting Help
 
 - Check [troubleshooting](#troubleshooting) section
-- Ask in [Discord](https://discord.gg/agentforge)
-- See examples in `src/services/agentforge-ui/components/TasksPage/TasksPage.test.tsx`
-
----
-
-**Remember:** Good tests give you confidence to refactor, catch bugs early, and document expected behavior. Invest in your tests!
+- [Report issues](https://github.com/tcosentino/agent-dev-cycle/issues)

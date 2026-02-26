@@ -289,7 +289,6 @@ Either way, the fundamental shift is the same: **you move from writing code to d
 
 ## Ready to Get Started?
 
-- [Quick Start Guide](./user-guide/getting-started/installation.md) — Up and running in 10 minutes
-- [First Project Tutorial](./user-guide/getting-started/first-project.md) — Build something real
+- [Installation](./user-guide/getting-started/installation.md) — Get set up
+- [First Project](./user-guide/getting-started/first-project.md) — Build something real
 - [Core Concepts](./user-guide/getting-started/core-concepts.md) — Understand how it works
-- [Discord Community](https://discord.gg/agentforge) — Talk to the team and other users

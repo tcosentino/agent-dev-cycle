@@ -18,7 +18,7 @@ Thank you for your interest in contributing to AgentForge! This document will he
 
 ## Code of Conduct
 
-By participating in this project, you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). Please be respectful and constructive in all interactions.
+Please be respectful and constructive in all interactions.
 
 ## Getting Started
 
@@ -39,7 +39,7 @@ By participating in this project, you agree to abide by our [Code of Conduct](CO
    ```
 3. **Add upstream remote:**
    ```bash
-   git remote add upstream https://github.com/agentforge/agent-dev-cycle.git
+   git remote add upstream https://github.com/tcosentino/agent-dev-cycle.git
    ```
 
 ### Set Up Your Environment
@@ -54,10 +54,6 @@ yarn install
 
 # Build packages
 yarn build
-
-# Set up database
-yarn db:migrate
-yarn db:seed
 
 # Start the development server
 yarn dev
@@ -148,17 +144,17 @@ git push origin feat/add-agent-timeout
 
 ### Good First Issues
 
-New to the project? Look for issues labeled [`good first issue`](https://github.com/agentforge/agent-dev-cycle/labels/good-first-issue).
+New to the project? Look for issues labeled [`good first issue`](https://github.com/tcosentino/agent-dev-cycle/labels/good-first-issue).
 
 These are specifically chosen for newcomers and include extra guidance.
 
 ### Help Wanted
 
-Issues labeled [`help wanted`](https://github.com/agentforge/agent-dev-cycle/labels/help-wanted) are ready for community contribution.
+Issues labeled [`help wanted`](https://github.com/tcosentino/agent-dev-cycle/labels/help-wanted) are ready for community contribution.
 
 ### Check the Roadmap
 
-See our [project roadmap](https://github.com/agentforge/agent-dev-cycle/projects) for larger initiatives.
+See our [project roadmap](https://github.com/tcosentino/agent-dev-cycle/projects) for larger initiatives.
 
 ### Ask Before Starting Large Work
 
@@ -197,7 +193,7 @@ AgentForge uses a monorepo structure. See [Monorepo Structure](./docs/developer-
 - `src/services/` - Application services
 - `runner/` - Agent orchestrator
 - `docs/` - Documentation
-- `tests/` - Integration and E2E tests
+- `tests/` - Test documentation
 
 ### Adding New Files
 
@@ -308,7 +304,6 @@ open coverage/index.html
 Before submitting, ensure:
 
 - [ ] Tests pass (`yarn test`)
-- [ ] Linting passes (`yarn lint`)
 - [ ] Build succeeds (`yarn build`)
 - [ ] Documentation is updated (if applicable)
 - [ ] Commit messages follow conventions
@@ -387,7 +382,7 @@ function crtTsk(t: any, pid: any): any {
 
 - **Functional components** - No class components
 - **Hooks** for state and effects
-- **CSS Modules** for styling
+- **CSS** for styling
 - **TypeScript** - Props interfaces defined
 
 **Component structure:**
@@ -411,25 +406,11 @@ export function MyComponent({ title, onSave }: MyComponentProps) {
 
 ### Naming Conventions
 
-- **Files:** kebab-case (`task-card.tsx`, `my-util.ts`)
+- **Component Files:** PascalCase (`TaskCard.tsx`, `DeploymentDashboard.tsx`)
 - **Components:** PascalCase (`TaskCard`, `MyComponent`)
 - **Functions:** camelCase (`createTask`, `fetchData`)
 - **Constants:** UPPER_SNAKE_CASE (`MAX_RETRIES`, `DEFAULT_TIMEOUT`)
 - **Types/Interfaces:** PascalCase (`Task`, `MyInterface`)
-
-### Formatting
-
-We use **Prettier** for automatic formatting:
-
-```bash
-# Format all files
-yarn format
-
-# Check formatting (CI)
-yarn format:check
-```
-
-VS Code users: Enable "Format on Save" (see [Development Setup](./docs/developer-guide/development-setup.md)).
 
 ## Commit Message Guidelines
 
@@ -536,14 +517,12 @@ Maintainers check for:
 
 ### Where to Ask Questions
 
-- **Discord** - [Join our community](https://discord.gg/agentforge)
-- **GitHub Discussions** - [Ask a question](https://github.com/agentforge/agent-dev-cycle/discussions)
-- **Issues** - For bug reports or feature requests
+- **Issues** - [Report bugs or request features](https://github.com/tcosentino/agent-dev-cycle/issues)
 
 ### Before Asking
 
 1. Check the [documentation](./docs/)
-2. Search [existing issues](https://github.com/agentforge/agent-dev-cycle/issues)
+2. Search [existing issues](https://github.com/tcosentino/agent-dev-cycle/issues)
 3. Read the [troubleshooting guide](./docs/developer-guide/development-setup.md#troubleshooting)
 
 ### When Asking
@@ -554,17 +533,6 @@ Include:
 - Error messages (full stack trace)
 - Environment (OS, Node version, etc.)
 
-## Recognition
-
-All contributors are recognized in:
-- Our [Contributors page](https://github.com/agentforge/agent-dev-cycle/graphs/contributors)
-- Release notes for significant contributions
-- The community showcase
-
 ## Thank You!
 
-Your contributions make AgentForge better for everyone. We appreciate your time and effort! 🚀
-
----
-
-**Questions?** Join our [Discord](https://discord.gg/agentforge) or open a [GitHub Discussion](https://github.com/agentforge/agent-dev-cycle/discussions).
+Your contributions make AgentForge better for everyone. We appreciate your time and effort!

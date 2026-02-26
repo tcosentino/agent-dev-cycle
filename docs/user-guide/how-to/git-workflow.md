@@ -605,9 +605,8 @@ git checkout HEAD~1 -- good-file.ts
 ## Next Steps
 
 - [Create Your First Project](../getting-started/first-project.md)
-- [Understanding Agents](../concepts/agents.md)
-- [Task Management](../how-to/create-tasks.md)
+- [Core Concepts](../getting-started/core-concepts.md)
 
 ---
 
-**Questions?** Ask in [Discord](https://discord.gg/agentforge) or check the [FAQ](../troubleshooting/faq.md).
+**Questions?** [Report issues](https://github.com/tcosentino/agent-dev-cycle/issues).

@@ -4,12 +4,10 @@
 
 **AI-Powered Autonomous Software Development Platform**
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/agentforge/agent-dev-cycle/test.yml?branch=main)](https://github.com/agentforge/agent-dev-cycle/actions)
-[![Test Coverage](https://img.shields.io/codecov/c/github/agentforge/agent-dev-cycle)](https://codecov.io/gh/agentforge/agent-dev-cycle)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/tcosentino/agent-dev-cycle/test.yml?branch=main)](https://github.com/tcosentino/agent-dev-cycle/actions)
+[![Test Coverage](https://img.shields.io/codecov/c/github/tcosentino/agent-dev-cycle)](https://codecov.io/gh/tcosentino/agent-dev-cycle)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Discord](https://img.shields.io/discord/YOUR_DISCORD_ID?label=discord)](https://discord.gg/agentforge)
-
-[Why AgentForge?](./docs/why-agentforge.md) • [Quick Start](#quick-start) • [Documentation](./docs/) • [Contributing](CONTRIBUTING.md) • [Discord](https://discord.gg/agentforge)
+[Why AgentForge?](./docs/why-agentforge.md) | [Quick Start](#quick-start) | [Documentation](./docs/) | [Contributing](CONTRIBUTING.md)
 
 </div>
 
@@ -54,7 +52,7 @@
 
 ```bash
 # Clone the repository
-git clone --recursive https://github.com/agentforge/agent-dev-cycle.git
+git clone --recursive https://github.com/tcosentino/agent-dev-cycle.git
 cd agent-dev-cycle
 
 # Install dependencies
@@ -62,10 +60,6 @@ yarn install
 
 # Build packages
 yarn build
-
-# Set up database
-yarn db:migrate
-yarn db:seed
 
 # Start the development server
 yarn dev
@@ -140,8 +134,7 @@ See [Monorepo Structure](./docs/developer-guide/architecture/monorepo-structure.
   - [Monorepo Structure](./docs/developer-guide/architecture/monorepo-structure.md) - Code organization
 - **Contributing**
   - [Contributing Guide](CONTRIBUTING.md) - How to contribute
-  - [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
-
+  
 ### Specifications
 
 - **OpenSpec** - Requirements and design documents in `openspec/changes/`
@@ -157,13 +150,13 @@ See [Monorepo Structure](./docs/developer-guide/architecture/monorepo-structure.
 **Frontend:**
 - React 19 + TypeScript
 - Vite (build tool)
-- Tailwind CSS (styling)
+- CSS (styling)
 - Vitest + Testing Library
 
 **Backend:**
 - Node.js + TypeScript
 - Better-SQLite3 (database)
-- Express (HTTP server)
+- Hono (HTTP server)
 - Zod (validation)
 
 **Infrastructure:**
@@ -178,26 +171,21 @@ See [Monorepo Structure](./docs/developer-guide/architecture/monorepo-structure.
 ```bash
 # Development
 yarn dev              # Start UI + API server
-yarn dev:ui           # UI only (port 5173)
-yarn dev:server       # API only (port 3000)
+yarn dev:agentforge   # AgentForge UI only
+yarn dev:server       # API only
 
 # Building
-yarn build            # Build all packages
-yarn clean            # Clean build artifacts
+yarn build            # Build all UIs (agentforge + demo)
+yarn build:agentforge # Build AgentForge UI only
+yarn build:server     # Build server
 
 # Testing
 yarn test             # Run all tests
 yarn test --watch     # Watch mode
 yarn test --coverage  # With coverage report
 
-# Linting
-yarn lint             # Check for issues
-yarn lint --fix       # Auto-fix issues
-
 # Database
-yarn db:migrate       # Run migrations
-yarn db:seed          # Seed with sample data
-yarn db:reset         # Drop + migrate + seed
+yarn seed             # Seed with sample data
 ```
 
 See [Development Setup](./docs/developer-guide/development-setup.md) for more.
@@ -207,42 +195,22 @@ See [Development Setup](./docs/developer-guide/development-setup.md) for more.
 We welcome contributions! Here's how to get started:
 
 1. **Read the [Contributing Guide](CONTRIBUTING.md)**
-2. **Find an issue** - Look for [`good first issue`](https://github.com/agentforge/agent-dev-cycle/labels/good-first-issue) or [`help wanted`](https://github.com/agentforge/agent-dev-cycle/labels/help-wanted)
+2. **Find an issue** - Look for [`good first issue`](https://github.com/tcosentino/agent-dev-cycle/labels/good-first-issue) or [`help wanted`](https://github.com/tcosentino/agent-dev-cycle/labels/help-wanted)
 3. **Fork the repo** and create a branch
 4. **Make your changes** with tests
 5. **Submit a PR** with clear description
 
 ### Before Submitting a PR
 
-- ✅ Tests pass (`yarn test`)
-- ✅ Linting passes (`yarn lint`)
-- ✅ Build succeeds (`yarn build`)
+- Tests pass (`yarn test`)
+- Build succeeds (`yarn build`)
 - ✅ Documentation updated (if needed)
 
 See the [Contributing Guide](CONTRIBUTING.md) for detailed instructions.
 
 ## Community
 
-- 💬 **Discord** - [Join our community](https://discord.gg/agentforge)
-- 💡 **GitHub Discussions** - [Ask questions, share ideas](https://github.com/agentforge/agent-dev-cycle/discussions)
-- 🐛 **Issues** - [Report bugs, request features](https://github.com/agentforge/agent-dev-cycle/issues)
-- 📧 **Email** - dev@agentforge.dev
-
-## Roadmap
-
-See our [GitHub Projects](https://github.com/agentforge/agent-dev-cycle/projects) for upcoming features.
-
-**Recent Highlights:**
-- ✅ Multi-agent orchestration
-- ✅ Workload deployment system
-- ✅ OpenSpec framework
-- ✅ Test-spec linkage
-- 🚧 Agent marketplace (in progress)
-- 🚧 Documentation site (in progress)
-
-## License
-
-AgentForge is [MIT licensed](LICENSE).
+- [Issues](https://github.com/tcosentino/agent-dev-cycle/issues) - Report bugs, request features
 
 ## Acknowledgments
 
@@ -252,12 +220,3 @@ Built with:
 - [Vite](https://vitejs.dev/) - Build tool
 - [Vitest](https://vitest.dev/) - Testing framework
 
----
-
-<div align="center">
-
-**[⭐ Star us on GitHub](https://github.com/agentforge/agent-dev-cycle)** if you find AgentForge useful!
-
-Made with ❤️ by the AgentForge team and contributors
-
-</div>
