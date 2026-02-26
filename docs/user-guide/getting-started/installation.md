@@ -1,5 +1,7 @@
 # Installation
 
+> **Note:** This document describes the planned CLI-based installation experience. AgentForge is currently a development-mode application. See the [Development Setup](../../developer-guide/development-setup.md) for current instructions on running from source.
+
 Get AgentForge up and running in minutes.
 
 ## Prerequisites
@@ -53,7 +55,7 @@ For contributors or advanced users:
 
 ```bash
 # Clone the repository
-git clone https://github.com/agentforge/agent-dev-cycle.git
+git clone https://github.com/tcosentino/agent-dev-cycle.git
 cd agent-dev-cycle
 
 # Install dependencies
@@ -206,14 +208,11 @@ agentforge gateway status --verbose
 
 Now you're ready to:
 
-- 📝 [Create your first project](./first-project.md)
-- 🧠 [Learn core concepts](./core-concepts.md)
-- 🎓 [Follow a tutorial](../tutorials/build-todo-app.md)
+- [Create your first project](./first-project.md)
+- [Learn core concepts](./core-concepts.md)
 
 ## Getting Help
 
 If you're stuck:
 
-- 📖 Check the [Troubleshooting Guide](../troubleshooting/common-errors.md)
-- 💬 Ask in [Discord](https://discord.gg/agentforge)
-- 🐛 Report issues on [GitHub](https://github.com/agentforge/agent-dev-cycle/issues)
+- Report issues on [GitHub](https://github.com/tcosentino/agent-dev-cycle/issues)

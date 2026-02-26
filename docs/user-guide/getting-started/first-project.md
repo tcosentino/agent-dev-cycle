@@ -1,5 +1,7 @@
 # Your First Project
 
+> **Note:** This document describes the planned project creation experience. Some CLI commands and workflows described here are not yet implemented. See the [Development Setup](../../developer-guide/development-setup.md) for current instructions.
+
 Create your first AgentForge project and watch agents build software for you.
 
 **Time:** 10 minutes  
@@ -304,19 +306,10 @@ They'll coordinate through Git and task dependencies.
 
 You're ready to build real projects! Continue with:
 
-- 📚 [Core Concepts](./core-concepts.md) - Understand agents, projects, and workflows
-- 🎓 [Build a Todo App Tutorial](../tutorials/build-todo-app.md) - Complete end-to-end example
-- 🛠️ [How-To Guides](../how-to/) - Common tasks and recipes
-- 🤖 [Agent Marketplace](../how-to/use-marketplace.md) - Install pre-built agents
+- [Core Concepts](./core-concepts.md) - Understand agents, projects, and workflows
 
 ## Getting Help
 
 Stuck or have questions?
 
-- 💬 [Join Discord](https://discord.gg/agentforge)
-- 📖 [Troubleshooting Guide](../troubleshooting/faq.md)
-- 🐛 [Report Issues](https://github.com/agentforge/agent-dev-cycle/issues)
-
----
-
-**Congratulations! You've completed your first AgentForge project. Now go build something amazing! 🚀**
+- [Report Issues](https://github.com/tcosentino/agent-dev-cycle/issues)

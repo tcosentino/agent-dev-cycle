@@ -39,7 +39,7 @@ AgentForge is a **monolithic monorepo** with a microservices-like service archit
 │  │                                              │   │
 │  │  ┌──────────────────┐  ┌─────────────────┐│   │
 │  │  │  AgentForge UI   │  │   REST API      ││   │
-│  │  │  (React/Vite)    │  │   (Express)     ││   │
+│  │  │  (React/Vite)    │  │   (Hono)        ││   │
 │  │  └──────────────────┘  └─────────────────┘│   │
 │  └────────────────────────────────────────────┘   │
 │                                                      │
@@ -143,7 +143,7 @@ task-dataobject/
 - Validation, relations, hooks
 
 **@agentforge/server**
-- HTTP server (Express wrapper)
+- HTTP server (Hono-based)
 - Auto-generates REST API from dataobjects
 - Request/response handling
 
@@ -193,7 +193,7 @@ User (Browser)
         │     { title, projectId, type, priority }
         ▼
 ┌────────────────┐
-│  REST API      │  Express route
+│  REST API      │  Hono route
 │  (@agentforge/ │  GET/POST/PATCH/DELETE /api/tasks
 │   server)      │
 └───────┬────────┘
@@ -208,8 +208,7 @@ User (Browser)
           │
           ▼
     ┌──────────┐
-    │ SQLite/  │
-    │ Postgres │
+    │  SQLite  │
     └──────────┘
           │
           │  5. Return created task
@@ -282,17 +281,16 @@ User triggers agent
 ### Backend
 - **Runtime:** Node.js 18+
 - **Language:** TypeScript (strict mode)
-- **Framework:** Express (via @agentforge/server)
-- **Database:** SQLite (dev), PostgreSQL (prod)
+- **Framework:** Hono (via @agentforge/server)
+- **Database:** SQLite (via better-sqlite3)
 - **Validation:** Zod
 - **Testing:** Vitest
-- **Process Management:** PM2 (optional)
 
 ### Frontend
 - **Framework:** React 18
 - **Build Tool:** Vite
 - **Language:** TypeScript
-- **Styling:** CSS Modules
+- **Styling:** CSS
 - **State:** React Query + useState
 - **UI Library:** Custom (@agentforge/ui-components)
 - **Routing:** React Router
@@ -301,10 +299,7 @@ User triggers agent
 ### Infrastructure
 - **Monorepo:** Yarn Workspaces
 - **Git Workflow:** GitHub
-- **CI/CD:** GitHub Actions
-- **Deployment:** Self-hosted (local) or cloud (AWS)
-- **Logging:** Winston (planned)
-- **Monitoring:** Custom (planned)
+- **Deployment:** Self-hosted (local) or Docker containers
 
 ## Design Principles
 
@@ -312,7 +307,6 @@ User triggers agent
 
 Dataobjects auto-generate:
 - REST API endpoints
-- Database migrations
 - React hooks
 - TypeScript types
 
@@ -392,8 +386,7 @@ agent-dev-cycle/
 │   ├── user-guide/
 │   └── developer-guide/
 │
-├── scripts/               # Build and utility scripts
-├── tests/                 # Integration and E2E tests
+├── scripts/               # Utility scripts
 ├── package.json           # Root package.json
 ├── yarn.lock
 └── tsconfig.json          # Root TypeScript config
@@ -461,14 +454,14 @@ events.on('task.created', async ({ task }) => {
 
 **All inputs validated:**
 - Zod schemas on dataobjects
-- Express middleware for requests
+- Hono middleware for requests
 - Client-side validation (UX only, not security)
 
 ## Performance Characteristics
 
 ### Database Queries
 
-- **ORM:** None (raw SQL via better-sqlite3 or pg)
+- **ORM:** None (raw SQL via better-sqlite3)
 - **Indexing:** Auto-indexed on searchable fields
 - **Relations:** Lazy-loaded (no N+1 by default)
 
@@ -476,7 +469,7 @@ events.on('task.created', async ({ task }) => {
 
 - **Typical:** < 50ms (local SQLite)
 - **Pagination:** Default 50 items, max 200
-- **Caching:** None yet (planned: Redis for sessions)
+- **Caching:** None yet
 
 ### Agent Execution
 
@@ -498,22 +491,15 @@ events.on('task.created', async ({ task }) => {
 - Small teams
 - Local development
 
-### Future (Production)
+### Future (Planned)
 
-- Multi-process (PM2 cluster)
-- PostgreSQL database
+- PostgreSQL database option
 - S3 for file storage
-- Queue for agent jobs (Bull)
-- Horizontal scaling (multiple gateways)
-
-**Good for:**
-- Teams
-- Multiple projects
-- High concurrency
+- Queue for agent jobs
+- Horizontal scaling
 
 ## Related Documentation
 
 - [Monorepo Structure](./monorepo-structure.md)
-- [Dataobject Framework](./dataobject-framework.md)
 - [Workload Lifecycle](./workload-lifecycle.md)
 - [Development Setup](../development-setup.md)

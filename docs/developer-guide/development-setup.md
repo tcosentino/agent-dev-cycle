@@ -29,7 +29,7 @@ git --version
 
 ```bash
 # Clone via HTTPS
-git clone https://github.com/agentforge/agent-dev-cycle.git
+git clone https://github.com/tcosentino/agent-dev-cycle.git
 cd agent-dev-cycle
 
 # Or clone via SSH (if you have SSH keys set up)
@@ -69,53 +69,29 @@ This compiles TypeScript to JavaScript for all packages.
 
 ## Database Setup
 
-AgentForge uses SQLite for development (easy, no server required).
+AgentForge uses SQLite for development (easy, no server required). The database is created automatically when the server starts.
 
-### Initialize Database
-
-```bash
-# Create database and run migrations
-yarn db:migrate
-
-# Seed with sample data (optional)
-yarn db:seed
-```
-
-The database file will be created at:
-```
-~/.agentforge/data/agentforge.db
-```
-
-### Verify Database
+### Seed with Sample Data (Optional)
 
 ```bash
-# Check database
-sqlite3 ~/.agentforge/data/agentforge.db ".tables"
-
-# You should see tables:
-# projects, tasks, deployments, workloads, ...
+# Seed with sample data
+yarn seed
 ```
 
 ## Run the Development Server
 
-### Start the Gateway
+### Start the Server
 
-The Gateway serves both the API and UI:
+The dev command starts both the API server and UI:
 
 ```bash
 # Start in development mode (with hot reload)
 yarn dev
 ```
 
-You should see:
-```
-✓ Packages built
-✓ Database connected
-✓ AgentForge Gateway starting...
-✓ API listening on http://localhost:3000/api
-✓ UI ready at http://localhost:3000
-✓ Gateway PID: 12345
-```
+This runs concurrently:
+- **AgentForge UI** (Vite) — React dashboard
+- **API Server** — Hono-based REST API
 
 ### Access the UI
 
@@ -192,20 +168,7 @@ yarn test TaskCard
 yarn test --coverage
 ```
 
-### 5. Lint and Format
-
-```bash
-# Check linting
-yarn lint
-
-# Fix linting issues
-yarn lint --fix
-
-# Format code (if using Prettier)
-yarn format
-```
-
-### 6. Commit Changes
+### 5. Commit Changes
 
 Follow [Conventional Commits](https://www.conventionalcommits.org/):
 
@@ -238,7 +201,6 @@ Recommended VS Code extensions:
   "recommendations": [
     "dbaeumer.vscode-eslint",
     "esbenp.prettier-vscode",
-    "bradlc.vscode-tailwindcss",
     "ms-vscode.vscode-typescript-next",
     "vitest.explorer"
   ]
@@ -342,18 +304,17 @@ yarn upgrade-interactive
 ### Building
 
 ```bash
-# Build all packages
+# Build all UIs (agentforge + demo)
 yarn build
 
-# Build specific package
-cd packages/dataobject
-yarn build
+# Build AgentForge UI only
+yarn build:agentforge
 
-# Clean build artifacts
-yarn clean
+# Build Demo UI only
+yarn build:demo
 
-# Clean and rebuild
-yarn clean && yarn build
+# Build server
+yarn build:server
 ```
 
 ### Testing
@@ -379,26 +340,8 @@ yarn test
 ### Database
 
 ```bash
-# Run migrations
-yarn db:migrate
-
-# Seed database
-yarn db:seed
-
-# Reset database (drop + migrate + seed)
-yarn db:reset
-
-# Open SQLite REPL
-sqlite3 ~/.agentforge/data/agentforge.db
-```
-
-### OpenSpec
-
-```bash
-# Generate test coverage for specs
-yarn coverage:spec
-
-# Results in openspec/*/coverage.json
+# Seed database with sample data
+yarn seed
 ```
 
 ## Troubleshooting
@@ -478,12 +421,8 @@ yarn build
 
 **Solution:**
 ```bash
-# Clean everything
-yarn clean
+# Clean and reinstall
 rm -rf node_modules
-rm yarn.lock
-
-# Fresh install
 yarn install
 yarn build
 ```
@@ -494,9 +433,6 @@ yarn build
 
 **Solution:**
 ```bash
-# Make sure database is set up
-yarn db:reset
-
 # Make sure packages are built
 yarn build
 
@@ -517,10 +453,7 @@ Now that you're set up:
    - [Contributing](./contributing.md)
 
 3. **Find an Issue** - Start contributing!
-   - [Good First Issues](https://github.com/agentforge/agent-dev-cycle/labels/good-first-issue)
-
-4. **Join Discord** - Ask questions, get help
-   - [Discord Invite](https://discord.gg/agentforge)
+   - [Issues](https://github.com/tcosentino/agent-dev-cycle/issues)
 
 ## Tips for Productive Development
 
@@ -575,9 +508,4 @@ git commit -m "test(ui): add TaskCard tests"
 
 If you're stuck:
 
-- 💬 [Ask in Discord](https://discord.gg/agentforge)
-- 📖 [Read the docs](https://docs.agentforge.dev)
-- 🐛 [Report issues](https://github.com/agentforge/agent-dev-cycle/issues)
-- 📧 [Email the team](mailto:dev@agentforge.dev)
-
-Welcome to AgentForge development! 🚀
+- [Report issues](https://github.com/tcosentino/agent-dev-cycle/issues)

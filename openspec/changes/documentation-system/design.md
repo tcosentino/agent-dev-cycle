@@ -533,7 +533,7 @@ module.exports = {
         { to: '/community', label: 'Community' },
         { to: '/blog', label: 'Blog' },
         { type: 'docsVersionDropdown', position: 'right' },
-        { href: 'https://github.com/agentforge/agent-dev-cycle', label: 'GitHub' },
+        { href: 'https://github.com/tcosentino/agent-dev-cycle', label: 'GitHub' },
       ],
     },
     algolia: {

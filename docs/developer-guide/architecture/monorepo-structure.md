@@ -19,15 +19,12 @@ agent-dev-cycle/
 ├── runner/                       # Agent orchestrator
 ├── openspec/                     # Feature specifications
 ├── docs/                         # Documentation
-├── scripts/                      # Build and utility scripts
-├── tests/                        # Integration and E2E tests
-├── website/                      # Documentation site (Docusaurus)
-├── .github/                      # GitHub Actions workflows
+├── scripts/                      # Utility scripts
+├── tests/                        # Test documentation
 ├── node_modules/                 # Dependencies (managed by Yarn)
 ├── package.json                  # Root package.json
 ├── yarn.lock                     # Dependency lock file
 ├── tsconfig.json                 # Root TypeScript config
-├── vitest.config.ts              # Test configuration
 └── README.md
 ```
 
@@ -49,10 +46,15 @@ packages/
 │
 ├── server/                    # @agentforge/server
 │   ├── src/
-│   │   ├── index.ts          # Express server wrapper
-│   │   ├── routes.ts         # Auto-generated REST routes
-│   │   ├── middleware.ts     # Request validation, etc.
-│   │   └── types.ts
+│   │   ├── index.ts          # Public API
+│   │   ├── server.ts         # Hono web server
+│   │   ├── dataobject.ts     # Core dataobject framework
+│   │   ├── discover.ts       # Auto-discovery of modules
+│   │   ├── seed.ts           # Database seeding
+│   │   ├── logger.ts         # Logging utilities
+│   │   ├── cli.ts            # CLI entry point
+│   │   ├── types.ts          # Type definitions
+│   │   └── test-utils.ts     # Test utilities
 │   └── package.json
 │
 ├── runtime/                   # @agentforge/runtime
@@ -262,21 +264,14 @@ docs/
     └── testing-guide.md
 ```
 
-Will be integrated into Docusaurus site (`website/`).
 
 ## Scripts (`scripts/`)
 
-Build and utility scripts.
+Utility scripts.
 
 ```
 scripts/
-├── build.sh                # Build all packages
-├── test.sh                 # Run all tests
-├── generate-spec-coverage.ts  # Generate test coverage
-├── kill-ports.sh           # Free up development ports
-└── db/
-    ├── migrate.ts          # Database migrations
-    └── seed.ts             # Seed data
+└── kill-ports.sh           # Free up development ports
 ```
 
 ## Configuration Files
@@ -289,14 +284,13 @@ scripts/
   "name": "agent-dev-cycle",
   "private": true,
   "workspaces": [
-    "packages/*",
-    "src/services/*",
-    "runner"
+    "packages/*"
   ],
   "scripts": {
-    "build": "yarn workspaces foreach -pt run build",
-    "test": "vitest",
-    "coverage:spec": "tsx scripts/generate-spec-coverage.ts"
+    "dev": "concurrently \"yarn dev:agentforge\" \"yarn dev:server\"",
+    "build": "yarn build:agentforge && yarn build:demo",
+    "test": "yarn workspace @agentforge/server test",
+    "seed": "yarn workspace @agentforge/server seed"
   }
 }
 ```
@@ -316,19 +310,6 @@ scripts/
     }
   }
 }
-```
-
-**vitest.config.ts**
-```typescript
-import { defineConfig } from 'vitest/config'
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-    setupFiles: './vitest.setup.ts',
-  },
-})
 ```
 
 ### Per-Package
@@ -582,8 +563,7 @@ yarn build
 
 **Solution:**
 ```bash
-# Clean and rebuild
-yarn clean
+# Rebuild
 yarn build
 ```
 
@@ -659,4 +639,3 @@ yarn workspaces foreach -pt run build
 
 - [Architecture Overview](./overview.md)
 - [Development Setup](../development-setup.md)
-- [Contributing Guide](../contributing.md)

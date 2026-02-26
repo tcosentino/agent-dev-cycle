@@ -1,5 +1,7 @@
 # Core Concepts
 
+> **Note:** This document describes the planned product vision. Some features described here (CLI commands, agent marketplace, PM agent) are not yet implemented.
+
 Understand the fundamental building blocks of AgentForge.
 
 ## Overview
@@ -462,13 +464,9 @@ You're always in control:
 
 Now that you understand the core concepts:
 
-- 🎓 [Follow a tutorial](../tutorials/build-todo-app.md) to see them in action
-- 📖 [Read the Concepts guides](../concepts/) for deeper dives
-- 🛠️ [Try How-To guides](../how-to/) for specific tasks
-- 🤖 [Explore the Agent Marketplace](../how-to/use-marketplace.md)
+- [Installation](./installation.md) - Get set up
+- [Your First Project](./first-project.md) - Create something
 
 ## Questions?
 
-- 💬 Ask in [Discord](https://discord.gg/agentforge)
-- 📖 Check the [FAQ](../troubleshooting/faq.md)
-- 🐛 [Report issues](https://github.com/agentforge/agent-dev-cycle/issues)
+- [Report issues](https://github.com/tcosentino/agent-dev-cycle/issues)

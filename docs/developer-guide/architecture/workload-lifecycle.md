@@ -29,32 +29,32 @@ A **workload** represents a single instance of a service being deployed and run.
 A workload progresses through these stages:
 
 ```
-┌──────────┐
-│ pending  │  Initial state, queued for processing
-└────┬─────┘
-     │
-     ▼
-┌──────────┐
-│ validate │  Check code, dependencies, configuration
-└────┬─────┘
-     │
-     ▼
-┌──────────┐
-│  build   │  Install dependencies, compile, bundle
-└────┬─────┘
-     │
-     ▼
-┌──────────┐
-│  deploy  │  Start container/process, allocate resources
-└────┬─────┘
-     │
-     ▼
-┌──────────┐
-│ running  │  Service is live and handling requests
-└────┬─────┘
-     │
-     ├─→ stopped (user stops it)
-     └─→ failed (error occurred)
+┌────────────────────┐
+│      pending       │  Initial state, queued for processing
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│ starting-container │  Docker container initialization
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│   cloning-repo     │  Git clone operation
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│ starting-service   │  Service startup inside container
+└─────────┬──────────┘
+          │
+          ▼
+┌────────────────────┐
+│     running        │  Service is live and handling requests
+└─────────┬──────────┘
+          │
+          ├─→ graceful-shutdown → stopped (user stops it)
+          └─→ failed (error occurred)
 ```
 
 ### Stage Details
@@ -63,110 +63,102 @@ A workload progresses through these stages:
 **What happens:**
 - Workload created in database
 - Queued for processing
-- Runner picks it up
+- Orchestrator picks it up
 
 **Data recorded:**
 - Creation timestamp
 - Deployment ID
 - Service path
 
-#### 2. Validate
+#### 2. Starting Container
 **What happens:**
-- Check service directory exists
-- Validate `package.json` or equivalent
-- Check for required files (Dockerfile, etc.)
-- Verify configuration
+- Docker container is initialized
+- Environment prepared for the workload
 
 **Success criteria:**
-- Service path is valid
-- Dependencies are declared
-- Configuration is complete
+- Container created and started
+- Environment ready
 
 **Failure scenarios:**
-- Service path doesn't exist
-- Missing required files
-- Invalid configuration
+- Docker daemon not available
+- Resource constraints
 
-#### 3. Build
+#### 3. Cloning Repo
 **What happens:**
-- Install dependencies (`npm install`, `yarn`, etc.)
-- Compile TypeScript/build assets
-- Run pre-build hooks
-- Create Docker image (if applicable)
+- Git repository is cloned into the container
+- Source code made available
 
 **Logs captured:**
-- Dependency installation output
-- Build tool output
-- Warnings and errors
+- Git clone output
+- Repository setup progress
 
 **Success criteria:**
-- All dependencies installed
-- Build completes without errors
-- Artifacts created
+- Repository successfully cloned
+- Source files available
 
 **Failure scenarios:**
-- Dependency conflicts
-- Build errors
-- Missing environment variables
+- Repository not found
+- Git authentication failure
+- Network issues
 
-#### 4. Deploy
+#### 4. Starting Service
 **What happens:**
-- Start Docker container OR local process
-- Allocate port
-- Set environment variables
-- Wait for service to be ready
+- Dependencies installed
+- Service started inside the container
+- Port allocated
 
 **Data recorded:**
-- Container ID (if Docker)
+- Container ID
 - Allocated port
-- Process ID (if local)
 
 **Success criteria:**
-- Container/process started
+- Service process started
 - Port allocated and listening
-- Health check passes (if configured)
 
 **Failure scenarios:**
+- Dependency installation failures
 - Port already in use
-- Container fails to start
-- Process crashes immediately
+- Service crashes on startup
 
 #### 5. Running
 **What happens:**
 - Service is live
 - Handling requests
 - Logs streaming
-- Health checks periodic
 
 **Monitoring:**
-- Process/container status
+- Container status
 - Port accessibility
 - Error logs
-- Resource usage (future)
 
 **Exit conditions:**
-- User stops workload → `stopped`
+- User stops workload → `graceful-shutdown` → `stopped`
 - Service crashes → `failed`
-- Health check fails → `failed`
 
-#### 6. Stopped
-**Terminal state** - User manually stopped the workload
+#### 6. Graceful Shutdown
+**Transitional state** - Workload is being stopped cleanly
 
 **What happens:**
-- Container stopped OR process killed
+- Container receives stop signal
+- Service given time to clean up
+- Resources released
+
+#### 7. Stopped
+**Terminal state** - Workload has been stopped
+
+**What happens:**
+- Container stopped
 - Port released
-- Logs archived
 
 **Data preserved:**
 - Final logs
 - Run duration
-- Exit code/reason
 
-#### 7. Failed
+#### 8. Failed
 **Terminal state** - Workload encountered an error
 
 **What happens:**
-- Container stopped OR process killed
+- Container stopped (if running)
 - Port released (if allocated)
 - Error captured
 
@@ -174,7 +166,6 @@ A workload progresses through these stages:
 - Error message
 - Stage where failure occurred
 - Full logs
-- Stack trace (if available)
 
 ## Data Model
 
@@ -218,14 +209,15 @@ interface WorkloadLogEntry {
 ### Stage Enum
 
 ```typescript
-type WorkloadStage = 
+type WorkloadStage =
   | 'pending'
-  | 'validate'
-  | 'build'
-  | 'deploy'
+  | 'starting-container'
+  | 'cloning-repo'
+  | 'starting-service'
   | 'running'
-  | 'failed'
+  | 'graceful-shutdown'
   | 'stopped'
+  | 'failed'
 ```
 
 ## Code Organization
@@ -278,18 +270,18 @@ Pseudocode:
 ```typescript
 async function processWorkload(workload: Workload) {
   try {
-    await transitionTo(workload, 'validate')
-    await validateService(workload)
-    
-    await transitionTo(workload, 'build')
-    await buildService(workload)
-    
-    await transitionTo(workload, 'deploy')
-    const { containerId, port } = await deployService(workload)
-    
+    await transitionTo(workload, 'starting-container')
+    await startContainer(workload)
+
+    await transitionTo(workload, 'cloning-repo')
+    await cloneRepo(workload)
+
+    await transitionTo(workload, 'starting-service')
+    const { containerId, port } = await startService(workload)
+
     await transitionTo(workload, 'running')
     await monitorService(workload)
-    
+
   } catch (error) {
     await transitionTo(workload, 'failed')
     await recordError(workload, error)
@@ -373,20 +365,21 @@ Response:
 ### Valid Transitions
 
 ```
-pending   → validate
-validate  → build, failed
-build     → deploy, failed
-deploy    → running, failed
-running   → stopped, failed
+pending            → starting-container
+starting-container → cloning-repo, failed
+cloning-repo       → starting-service, failed
+starting-service   → running, failed
+running            → graceful-shutdown, failed
+graceful-shutdown  → stopped
 ```
 
 ### Invalid Transitions
 
 ```
-running → pending    ❌ Can't go back to pending
-build   → validate   ❌ Can't go backwards
-stopped → running    ❌ Terminal states are final
-failed  → pending    ❌ Terminal states are final
+running → pending              ❌ Can't go back to pending
+cloning-repo → starting-container  ❌ Can't go backwards
+stopped → running              ❌ Terminal states are final
+failed  → pending              ❌ Terminal states are final
 ```
 
 To retry a failed workload, create a new workload instance.
@@ -404,22 +397,22 @@ When a workload fails:
 
 ### Error Types
 
-**Validation Errors:**
+**Container Errors:**
 ```
-Stage: validate
-Error: "Service directory not found: services/api"
-```
-
-**Build Errors:**
-```
-Stage: build
-Error: "npm install failed: ENOTFOUND registry.npmjs.org"
-Logs: [full npm output]
+Stage: starting-container
+Error: "Docker daemon not running"
 ```
 
-**Deployment Errors:**
+**Clone Errors:**
 ```
-Stage: deploy
+Stage: cloning-repo
+Error: "Repository not found or access denied"
+Logs: [git clone output]
+```
+
+**Service Startup Errors:**
+```
+Stage: starting-service
 Error: "Port 3001 already in use"
 ```
 
@@ -441,8 +434,7 @@ All workload logs stored in `workload.logs[]`:
 
 Access via:
 - UI: Deployments tab → View Logs
-- API: `GET /api/workloads/:id`
-- CLI: `agentforge workload logs <id>`
+- API: `GET /api/deployments/:deploymentId/workloads/:workloadId/logs`
 
 ### Metrics (Future)
 
@@ -491,35 +483,29 @@ POST /api/workloads
 
 ### 4. Workload Progresses
 
-**Pending → Validate:**
+**Pending → Starting Container:**
 ```
-[2026-02-14 13:00:00] [validate] Checking service at services/api
-[2026-02-14 13:00:01] [validate] ✓ package.json found
-[2026-02-14 13:00:01] [validate] ✓ Dockerfile found
-[2026-02-14 13:00:01] [validate] ✓ Validation passed
+[2026-02-14 13:00:00] [starting-container] Initializing Docker container...
+[2026-02-14 13:00:02] [starting-container] Container created
 ```
 
-**Validate → Build:**
+**Starting Container → Cloning Repo:**
 ```
-[2026-02-14 13:00:02] [build] Installing dependencies...
-[2026-02-14 13:00:10] [build] npm install completed
-[2026-02-14 13:00:11] [build] Building TypeScript...
-[2026-02-14 13:00:15] [build] ✓ Build successful
+[2026-02-14 13:00:03] [cloning-repo] Cloning repository...
+[2026-02-14 13:00:08] [cloning-repo] Repository cloned successfully
 ```
 
-**Build → Deploy:**
+**Cloning Repo → Starting Service:**
 ```
-[2026-02-14 13:00:16] [deploy] Starting Docker container...
-[2026-02-14 13:00:18] [deploy] Container started: abc123def456
-[2026-02-14 13:00:19] [deploy] Allocated port: 3001
-[2026-02-14 13:00:20] [deploy] Waiting for health check...
-[2026-02-14 13:00:22] [deploy] ✓ Service healthy
+[2026-02-14 13:00:09] [starting-service] Installing dependencies...
+[2026-02-14 13:00:18] [starting-service] Starting service...
+[2026-02-14 13:00:20] [starting-service] Allocated port: 3001
 ```
 
-**Deploy → Running:**
+**Starting Service → Running:**
 ```
-[2026-02-14 13:00:23] [running] Service running on http://localhost:3001
-[2026-02-14 13:00:23] [running] Ready to accept requests
+[2026-02-14 13:00:21] [running] Service running on http://localhost:3001
+[2026-02-14 13:00:21] [running] Ready to accept requests
 ```
 
 ### 5. Workload State
@@ -545,50 +531,40 @@ POST /api/workloads
 **Symptom:** Workload created but never progresses
 
 **Causes:**
-- Runner not running (`agentforge gateway status`)
+- Orchestrator not running
 - Database connection lost
-- Queue backed up
 
 **Solution:**
-```bash
-# Check runner status
-agentforge gateway status
+1. Restart the development server: `yarn dev`
+2. Check workload state via the API or UI
 
-# Restart runner
-agentforge gateway restart
+### Container Stage Fails
 
-# Check workload manually
-agentforge workload inspect <id>
-```
-
-### Build Stage Fails
-
-**Symptom:** Workload fails during build
+**Symptom:** Workload fails during starting-container or cloning-repo
 
 **Causes:**
-- Missing dependencies
-- Build script errors
-- Network issues
+- Docker daemon not running
+- Network issues (for git clone)
+- Repository access permissions
 
 **Solution:**
-1. Check logs: `agentforge workload logs <id>`
-2. Fix issues in service code
-3. Create new workload to retry
+1. Check logs via the UI Deployments tab → View Logs
+2. Ensure Docker is running
+3. Fix issues and create a new workload to retry
 
-### Deploy Stage Fails
+### Service Startup Fails
 
-**Symptom:** Build succeeds but deploy fails
+**Symptom:** Container starts but service fails
 
 **Causes:**
 - Port conflict
-- Container image issues
-- Resource constraints
+- Missing dependencies
+- Service crash on startup
 
 **Solution:**
 1. Check logs for specific error
-2. Free up ports: `lsof -i :3001`
-3. Increase resource limits (if needed)
-4. Retry with new workload
+2. Free up ports: `lsof -i :<port>`
+3. Retry with new workload
 
 ## Future Enhancements
 
@@ -616,7 +592,6 @@ agentforge workload inspect <id>
 
 ## Related Documentation
 
-- [Deployment Dataobject](./deployment-system.md)
-- [Runner Architecture](./runner.md)
-- [Database Schema](./database-schema.md)
-- [API Reference](/api-reference/rest-api/workloads.md)
+- [Architecture Overview](./overview.md)
+- [Monorepo Structure](./monorepo-structure.md)
+- [Development Setup](../development-setup.md)
