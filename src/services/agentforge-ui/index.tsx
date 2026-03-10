@@ -2,7 +2,7 @@ import { StrictMode, useState, useEffect, useCallback, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Nav } from '../demo-ui/components/nav'
 import { ProjectViewer } from './ProjectViewer'
-import { CreateProjectModal } from './components/CreateProjectModal'
+import { ProjectWizard } from './components/ProjectWizard'
 import { SettingsPage } from './components/SettingsPage'
 import { QueryProvider } from '../../providers/QueryProvider'
 import { ToastProvider, ErrorBoundary } from '@agentforge/ui-components'
@@ -462,7 +462,7 @@ function ProjectViewerPage() {
           </div>
         </div>
         {showCreateModal && user && (
-          <CreateProjectModal
+          <ProjectWizard
             userId={user.id}
             onClose={() => setShowCreateModal(false)}
             onProjectCreated={handleProjectCreated}
